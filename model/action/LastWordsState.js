@@ -1,6 +1,6 @@
 import { GameState } from "./GameState.js";
 import { HunterRole } from "../roles/HunterRole.js";
-
+//TODO:不能处理多位死亡玩家
 export class LastWordsState extends GameState {
   constructor(game, nextState, deadPlayer) {
     super(game);

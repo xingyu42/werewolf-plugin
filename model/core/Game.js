@@ -119,8 +119,6 @@ export class Game {
         e.reply("游戏状态错误: 当前没有活动状态");
       }
       await this.currentState.handleAction(player, action, target);
-      // 检查游戏是否结束
-        await this.endGame();
     } catch (err) {
       // 记录错误
       console.error("处理玩家行为时出错:", err);
@@ -137,40 +135,12 @@ export class Game {
     return this.currentState.isValidAction(player, action);
   }
 
-  // 处理警长死亡 //TODO:警长死亡没有调用
-  async handleSheriffDeath(sheriff) {
-    try {
-      // 获取存活玩家列表
-      const alivePlayers = [...this.players.values()].filter((p) => p.isAlive && p.id !== sheriff.id);
-
-      // 发送警长死亡通知
-      this.e.reply(`警长已死亡，需要移交警徽`);
-
-      // 进入警长移交状态
-      const nextState = new SheriffTransferState(this, sheriff, this.currentState);
-      await this.changeState(nextState);
-    } catch (err) {
-      console.error("处理警长死亡时出错:", err);
-      this.e.reply(`警长交接失败: ${err.message}`);
-      // 继续当前状态
-      await this.currentState.onEnter();
-    }
-  }
-
   // 结束游戏
  async endGame() {
   // 计算各阵营存活人数
-  const aliveWolves = [...this.players.values()].filter(
-    (p) => p.isAlive && this.roles.get(p.id).getCamp() === "WOLF"
-  ).length;
-
-  const aliveGods = [...this.players.values()].filter(
-    (p) => p.isAlive && this.roles.get(p.id).getCamp() === "GOD"
-  ).length;
-
-  const aliveVillagers = [...this.players.values()].filter(
-    (p) => p.isAlive && this.roles.get(p.id).getCamp() === "VILLAGER"
-  ).length;
+  const aliveWolves = this.getAlivePlayers({ excludeCamp: 'WOLF' }).length;
+  const aliveGods = this.getAlivePlayers({ excludeCamp: 'GOD' }).length;
+  const aliveVillagers = this.getAlivePlayers({ excludeCamp: 'VILLAGER' }).length;
 
   // 胜利判定
   let winner = null;
@@ -203,10 +173,7 @@ export class Game {
 
   // 如果游戏结束，显示结果
   if (gameOver) {
-    const alivePlayersStr = [...this.players.values()]
-      .filter((p) => p.isAlive)
-      .map((p) => p.getDisplayInfo({ showRole: true, showStatus: true }))
-      .join("\n");
+    const alivePlayersStr = this.getAlivePlayers({ showRole: true, showStatus: true }).map((p) => p.getDisplayInfo()).join("\n");
 
     this.e.reply(`游戏结束！\n获胜阵营：${winner}\n胜利原因：${reason}\n存活玩家：\n${alivePlayersStr}`);
     return true;
@@ -243,17 +210,44 @@ export class Game {
     return this.players.get(playerId);
   }
 
-  /**
-   * 获取存活狼人列表
-   * @returns {Array<Player>}
-   */
-  getAliveWolves() {
-    return [...this.players.values()].filter(p => {
-      if (!p.isAlive) return false;
-      const role = this.roles.get(p.id);
-      return role instanceof WolfRole
-    });
+/**
+ * 获取存活玩家列表
+ * @param {Object} options - 选项
+ * @param {string[]} [options.excludeIds=[]] - 需要排除的玩家ID列表
+ * @param {string} [options.excludeCamp] - 排除特定阵营 (WOLF/GOD/VILLAGER)
+ * @param {string} [options.roleType] - 指定角色类型 (通过constructor.name匹配)
+ * @param {boolean} [options.includeRole=false] - 是否在返回结果中包含角色对象
+ * @returns {(Player[]|Array<{player: Player, role: Role}>)} 存活玩家列表或玩家与角色的对象数组
+ */
+getAlivePlayers({ 
+  excludeIds = [], excludeCamp = null,roleType = null,includeRole = false } = {}) {
+  const filteredPlayers = [...this.players.values()].filter(player => {
+    // 检查是否存活
+    if (!player.isAlive) return false;
+    
+    // 检查是否在排除列表中
+    if (excludeIds.includes(player.id)) return false;
+    
+    const role = this.roles.get(player.id);
+    
+    // 检查阵营
+    if (excludeCamp && role?.getCamp() === excludeCamp) return false;
+    
+    // 检查角色类型
+    if (roleType && role?.constructor.name !== roleType) return false;
+    
+    return true;
+  });
+
+  // 如果需要包含角色对象，转换为{player, role}格式
+  if (includeRole) {
+    return filteredPlayers.map(player => ({
+      player,
+      role: this.roles.get(player.id)
+    }));
   }
+  return filteredPlayers;
+}
 
   // 获取当前游戏状态
   getCurrentState() {
@@ -287,5 +281,46 @@ export class Game {
     // 开始第一天
     await this.startNewDay();
     return true;
+  }
+
+  /**
+   * 统一处理玩家死亡
+   */
+  async handlePlayerDeath(player, reason) {
+    if (!player || !player.isAlive) return false;
+
+    try {
+      // 1. 设置玩家死亡状态
+      player.isAlive = false;
+      player.deathReason = reason;
+
+      // 2. 添加死亡标记
+      switch (reason) {
+        case 'WOLF_KILL': //被狼人杀死
+        case 'EXILE': //被投票放逐
+        case 'POISON': //被毒药毒死
+        case 'HUNTER_SHOT': //被猎人射杀
+        default: 
+      }
+      
+      // 3 处理警长死亡 //TODO:警长死亡会立即调用
+      if (player.isSheriff) {
+        const alivePlayers = this.getAlivePlayers({ excludeIds: [player.id] });
+        
+        if (alivePlayers.length > 0) {
+          await this.changeState(new SheriffTransferState(this, player, this.currentState));
+        } else {
+          player.isSheriff = false;
+        }
+      }
+
+      // 4. 检查游戏是否结束
+      await this.endGame();
+
+      return true;
+    } catch (err) {
+      console.error("处理玩家死亡时出错:", err);
+      return false;
+    }
   }
 }

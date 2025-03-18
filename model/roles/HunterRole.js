@@ -97,15 +97,11 @@ export class HunterRole extends Role {
       // 使用开枪能力
       this.canShoot = false;
 
-      // 射杀目标
-      target.isAlive = false;
-      target.deathReason = 'HUNTER_SHOT'; // 设置死亡原因为猎人射杀
-
       // 调用玩家死亡处理方法
-      await this.game.handlePlayerDeath(target);
+      await this.game.handlePlayerDeath(target, 'HUNTER_SHOT');
 
       // 发送消息
-      this.e.reply(`猎人 ${this.player.name} 开枪射杀了 ${target.name}(${target.id}号)`, true);
+      this.e.reply(`猎人 ${this.player.name} 开枪射杀了 ${target.name}`, true);
 
       return true;
     } catch (err) {

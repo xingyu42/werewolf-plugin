@@ -94,8 +94,7 @@ export class WitchRole extends Role {
     } else if (action === "poison") {
       // 使用毒药
       this.hasPoison = false;
-      target.isAlive = false;
-      target.deathReason = 'POISON';
+      await this.game.handlePlayerDeath(target, 'POISON');
       this.e.reply(`${this.player.name}使用毒药毒死了${target.name}`);
       return true;
     }

@@ -121,16 +121,9 @@ export class VoteState extends GameState {
     const votedId = votedPlayers[0];
     const votedPlayer = this.game.players.get(votedId);
 
-    // 设置死亡原因为放逐
-    votedPlayer.deathReason = 'EXILE';
-
-    // 检查是否是猎人
-    const votedRole = this.game.roles.get(votedId);
-
     // 先处理玩家死亡
-    votedPlayer.isAlive = false;
+    await this.game.handlePlayerDeath(votedPlayer, 'EXILE');
     this.e.reply(`${votedPlayer.name}被投票放逐出局`);
-
     // 创建下一个状态（夜晚）
     const nextState = new NightState(this.game);
 

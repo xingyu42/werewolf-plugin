@@ -86,9 +86,7 @@ ${this.getAlivePlayersList()}
       }
 
       // 设置目标死亡
-      target.isAlive = false;
-      target.deathReason = 'WOLF_KILL'; // 设置死亡原因为狼人杀死
-
+      await this.game.handlePlayerDeath(target, 'WOLF_KILL');
       return true;
     }
 

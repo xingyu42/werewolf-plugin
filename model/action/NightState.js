@@ -73,23 +73,9 @@ export class NightState extends GameState {
     this.actionLock = false;
   }
 
-  // 获取当前存活的特定角色玩家及其角色对象
-  getAlivePlayersWithRole(roleType) {
-    return [...this.game.players.values()]
-      .filter(p => {
-        if (!p.isAlive) return false;
-        const role = this.game.roles.get(p.id);
-        return role && role.constructor.name === roleType;
-      })
-      .map(p => ({
-        player: p,
-        role: this.game.roles.get(p.id)
-      }));
-  }
-
   // 通知特定角色的玩家行动
   async notifyRolePlayers(roleType) {
-    const playerRoles = this.getAlivePlayersWithRole(roleType);
+    const playerRoles = this.game.getAlivePlayers({ roleType, includeRole: true });
     if (playerRoles.length === 0) {
       // 没有该角色的存活玩家，直接进入下一角色
       this.completedRoles.add(roleType);
@@ -160,7 +146,7 @@ export class NightState extends GameState {
     await role.act(this.game.players.get(target), action);
 
     // 检查该角色类型是否都已行动
-    const rolePlayers = this.getAlivePlayersWithRole(roleType).map(pr => pr.player);
+    const rolePlayers = this.game.getAlivePlayers({ roleType, includeRole: true });
     const actedPlayers = [...this.roleActions.keys()]
       .filter(id => {
         const action = this.roleActions.get(id);
@@ -210,9 +196,9 @@ export class NightState extends GameState {
 
   // 获取第一个存活特定角色的玩家角色实例
   getFirstAlivePlayerRole(roleType) {
-    const players = this.getAlivePlayersWithRole(roleType);
+    const players = this.game.getAlivePlayers({ roleType, includeRole: true });
     if (players.length === 0) return null;
-    return this.game.roles.get(players[0].id);
+    return players[0].role;
   }
 
   // 通知其他狼人有新投票
@@ -256,7 +242,7 @@ export class NightState extends GameState {
 
   // 通知所有狼人最终投票结果
   async notifyWolfVoteResult() {
-    const wolves = this.game.getAliveWolves();
+    const wolves = this.game.getAliveWolves(); //TODO:需改正获取方法
     let message;
 
     if (this.wolfKillTarget) {
@@ -305,7 +291,7 @@ export class NightState extends GameState {
   // 确定最终击杀目标
   tallyWolfVotes() {
     // 如果只有一个狼人，直接采用其选择
-    const aliveWolves = this.game.getAliveWolves();
+    const aliveWolves = this.game.getAliveWolves(); //TODO:需改正获取方法
     if (aliveWolves.length === 1) {
       const wolfId = aliveWolves[0].id;
       const vote = this.wolfVotes.get(wolfId);
@@ -382,7 +368,7 @@ export class NightState extends GameState {
     // 处理当前行动角色
     if (this.currentActionRole) {
       // 获取未行动的玩家
-      const rolePlayers = this.getAlivePlayersWithRole(this.currentActionRole);
+      const rolePlayers = this.game.getAlivePlayers({ roleType: this.currentActionRole, includeRole: true });
       const actedPlayerIds = new Set(
         [...this.roleActions.values()]
           .filter(a => a.roleType === this.currentActionRole)
