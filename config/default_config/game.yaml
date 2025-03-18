@@ -1,0 +1,18 @@
+#最小玩家数量
+minPlayers: 6
+#最大玩家数量
+maxPlayers: 12
+#讨论时间限制
+discussionTimeLimit: 180
+#夜晚时间限制
+nightTimeLimit: 40
+#投票时间限制
+voteTimeLimit: 15
+#遗言时间限制
+lastWordsTimeLimit: 30
+#竞选发言时间
+sheriffSpeechTime: 30
+#最少投票数
+minVotesToKill: 2
+#屠边规则
+enableTubian: true
