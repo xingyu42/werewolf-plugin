@@ -2,20 +2,19 @@ import { GameState } from "./GameState.js";
 import { VoteState } from "./VoteState.js";
 import { LastWordsState } from "./LastWordsState.js";
 import { HunterRole } from "../roles/HunterRole.js";
-//TODO: 修改自由讨论,根据顺序at几号玩家发言
+
 export class DayState extends GameState {
   constructor(game) {
     super(game);
-    this.timeLimit = game.getConfig().game.discussionTimeLimit // 讨论时间
+    this.speakTimeLimit = game.getConfig().game.speakTimeLimit; // 发言时间限制
+    this.currentSpeakerIndex = 0;
+    this.speakOrder = [];
   }
 
   async onEnter() {
-    await super.onEnter(); // 调用父类方法
-
-    // 通知所有玩家死亡信息
+    await super.onEnter();
     await this.announceDeaths();
-
-    // 开始自由讨论
+    await this.initializeSpeakOrder();
     await this.startDiscussion();
   }
 
@@ -44,51 +43,92 @@ export class DayState extends GameState {
       return;
     }
 
-    // 首夜过后检查死亡玩家中是否有猎人，如果有且可以开枪，则触发猎人反杀
+    // 首夜过后检查死亡玩家中特殊角色
     for (const player of deadPlayers) {
       const role = this.game.roles.get(player.id);
       if (role instanceof HunterRole && role.canAct()) {
         this.e.reply(`猎人 ${player.name} 死亡，现在可以开枪`);
         await role.getActionPrompt();
-        // 只处理第一个可以开枪的猎人
+        return;
+      }
+      if (player.isSheriff) {
+        this.e.reply(`警长 ${player.name} 死亡，现在可以转移警长`);
+        await this.game.changeState(new SheriffTransferState(this.game, player, this));
         return;
       }
     }
+
+    // 如果是第一个夜晚，进入警长竞选阶段
+    if (this.game.turn === 0 && this.game.getConfig().game.sheriff) {
+      this.game.changeState(new SheriffElectState(this.game));
+    }
   }
 
-  // 开始自由讨论
+  // 初始化发言顺序
+  async initializeSpeakOrder() {
+    // 获取所有存活玩家
+    const alivePlayers = this.game.getAlivePlayers();
+    
+    // 如果有警长，从警长开始
+    if (this.game.sheriff) {
+      const sheriffIndex = alivePlayers.findIndex(p => p.id === this.game.sheriff.id);
+      if (sheriffIndex !== -1) {
+        // 重排序数组，使警长在第一位
+        this.speakOrder = [
+          ...alivePlayers.slice(sheriffIndex),
+          ...alivePlayers.slice(0, sheriffIndex)
+        ];
+      }
+    } else {
+      // 没有警长就按游戏号码顺序
+      this.speakOrder = [...alivePlayers].sort((a, b) => a.gameNumber - b.gameNumber);
+    }
+  }
+
+  // 开始讨论
   async startDiscussion() {
-    const minutes = Math.floor(this.timeLimit / 60);
-    const seconds = this.timeLimit % 60;
-    const timeText = `${minutes}分${seconds > 0 ? seconds + "秒" : ""}`;
-
-    this.e.reply(`白天自由讨论开始，时间为${timeText}，所有存活的玩家可以自由发言`);
-
-    // 设置定时提醒
-    this.setupTimeReminders();
+    await this.e.reply("白天阶段开始，按顺序发言");
+    await this.nextSpeaker();
   }
 
-  // 设置定时提醒
-  setupTimeReminders() {
-    // 如果讨论时间超过1分钟，在剩余1分钟时提醒
-    if (this.timeLimit > 60) {
-      setTimeout(() => {
-        this.e.reply("讨论还剩1分钟").catch(console.error);
-      }, (this.timeLimit - 60) * 1000);
+  // 处理下一个发言者
+  async nextSpeaker() {
+    if (this.currentSpeakerIndex >= this.speakOrder.length) {
+      // 所有人都发言完毕
+      await this.e.reply("所有玩家已完成发言");
+      await this.onTimeout();
+      return;
     }
 
-    // 如果讨论时间超过30秒，在剩余30秒时提醒
-    if (this.timeLimit > 30) {
-      setTimeout(() => {
-        this.e.reply("讨论还剩30秒").catch(console.error);
-      }, (this.timeLimit - 30) * 1000);
-    }
+    const currentPlayer = this.speakOrder[this.currentSpeakerIndex];
+    const nextPlayer = this.speakOrder[this.currentSpeakerIndex + 1];
+
+    // 通知当前发言者
+    await this.e.reply([
+      segment.at(currentPlayer.id),
+      `轮到你发言了，请在${this.speakTimeLimit}秒内完成发言\n`,
+      nextPlayer ? `\n下一位发言者: ${nextPlayer.name}` : "\n你是最后一位发言者"
+    ]);
+
+    // 设置发言超时
+    this.speakTimeout = setTimeout(() => {
+      this.handleSpeakTimeout(currentPlayer);
+    }, this.speakTimeLimit * 1000);
   }
 
-  // 超时处理
+  // 处理发言超时
+  async handleSpeakTimeout(player) {
+    await this.e.reply([
+      segment.at(player.id),
+      "发言时间已到，将自动进入下一位发言"
+    ]);
+    this.currentSpeakerIndex++;
+    await this.nextSpeaker();
+  }
+
   async onTimeout() {
-    this.e.reply("讨论时间结束，进入投票阶段");
-    // 直接进入投票阶段
-    this.game.changeState(new VoteState(this.game));
+    await this.e.reply("发言时间结束，进入投票阶段");
+    await this.game.changeState(new VoteState(this.game));
   }
 }
+

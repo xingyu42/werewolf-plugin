@@ -13,11 +13,10 @@ export class GameState {
       return;
     }
 
-
     // 设置超时处理
     if (this.timeLimit > 0) {
-      this.timer = setTimeout(() => {
-        this.onTimeout();
+      this.timer = setTimeout(async () => {
+        await this.onTimeout();
       }, this.timeLimit * 1000);
     }
   }

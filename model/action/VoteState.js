@@ -7,7 +7,6 @@ export class VoteState extends GameState {
     this.timeLimit = game.getConfig().game.voteTimeLimit // 投票时间限制
     this.votes = new Map(); // 记录投票情况
     this.votedPlayers = new Set(); // 已经投票的玩家
-    this.hunterShootTimeout = null; // 猎人开枪超时计时器
   }
 
   async onEnter() {

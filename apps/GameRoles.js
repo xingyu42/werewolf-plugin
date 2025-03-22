@@ -40,7 +40,11 @@ export class GameRoles extends plugin {
         {
           reg: '^#自爆$',
           fnc: 'wolfSuicide'
-        } //TODO:增加狼人空刀
+        },
+        {
+          reg: '^#空刀$',
+          fnc: 'wolfSkip'
+        }
       ]
     });
   }
@@ -331,6 +335,21 @@ export class GameRoles extends plugin {
       const currentState = game.getCurrentState();
       await currentState.handleAction(role.player, "skip", null);
 
+      return true;
+    } catch (error) {
+      e.reply(`操作失败: ${error.message}`);
+      return true;
+    }
+  }
+
+  async wolfSkip(e) {
+    try {
+      let game = this.getGame(e);
+      if (!game) return false;
+
+      const role = this.validateAction(game, e, "WolfRole");
+      await role.act(null, "vote"); // 提交空刀投票
+      e.reply("你已选择放弃击杀");
       return true;
     } catch (error) {
       e.reply(`操作失败: ${error.message}`);

@@ -1,20 +1,22 @@
 import { GameState } from "./GameState.js";
 import { HunterRole } from "../roles/HunterRole.js";
-//TODO:不能处理多位死亡玩家
+import { SheriffTransferState } from "./SheriffTransferState.js";
+
 export class LastWordsState extends GameState {
   constructor(game, nextState, deadPlayer) {
     super(game);
     this.deadPlayer = deadPlayer; // 死亡玩家
     this.nextState = nextState; // 下一个状态
-    this.timeLimit = game.getConfig().game.lastWordsTimeLimit // 遗言时间限制
+    this.timeLimit = game.getConfig().game.lastWordsTimeLimit; // 遗言时间限制
     this.speechTimeout = null; // 发言计时器
+    this.hasSpoken = false; // 是否已发言
   }
 
   async onEnter() {
     await super.onEnter();
 
     // 显示遗言提示
-    this.e.reply(`\n=== ${this.deadPlayer.name}的遗言时间 ===\n` +
+    await this.e.reply(`\n=== ${this.deadPlayer.name}的遗言时间 ===\n` +
       `剩余时间: ${this.timeLimit}秒\n` +
       '输入"#跳过"可以放弃遗言', true, { at: true });
 
@@ -37,16 +39,19 @@ export class LastWordsState extends GameState {
       this.speechTimeout = null;
     }
 
-    // 检查死亡玩家是否是猎人且可以开枪
+    // 检查死亡玩家是特殊角色
     const deadRole = this.game.roles.get(this.deadPlayer.id);
     if (deadRole instanceof HunterRole && deadRole.canAct()) {
-      // 遗言结束后触发猎人开枪
-      this.e.reply(`猎人 ${this.deadPlayer.name} 的遗言结束，现在可以开枪`);
+      await this.e.reply(`猎人 ${this.deadPlayer.name} 的遗言结束，现在可以开枪`);
       await deadRole.getActionPrompt();
-    } else {
-      // 非猎人或猎人无法开枪，直接进入下一状态
-      await this.game.changeState(this.nextState);
     }
+    if (this.deadPlayer.isSheriff) {
+      await this.e.reply(`警长 ${this.deadPlayer.name} 死亡，现在可以转移警长`);
+      await this.game.changeState(new SheriffTransferState(this.game, this.deadPlayer, this));
+    }
+
+    // 进入下一个状态
+    await this.game.changeState(this.nextState);
   }
 
   // 处理玩家行为
@@ -89,7 +94,7 @@ export class LastWordsState extends GameState {
 
       this.hasSpoken = true;
 
-      this.e.reply(`${player.name}放弃了遗言`);
+      await this.e.reply(`${player.name}放弃了遗言`);
 
       // 进入下一个状态
       await this.game.changeState(this.nextState);
@@ -113,7 +118,7 @@ export class LastWordsState extends GameState {
     try {
       if (!this.hasSpoken) {
         this.hasSpoken = true;
-        this.e.reply(`\n=== ${this.deadPlayer.name}的遗言结束 ===\n`);
+        await this.e.reply(`\n=== ${this.deadPlayer.name}的遗言结束 ===\n`);
 
         // 进入下一个状态
         await this.game.changeState(this.nextState);

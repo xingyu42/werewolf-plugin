@@ -67,21 +67,21 @@ export class WitchRole extends Role {
   async act(target, action) {
     if (!target) {
       if (action === "skip") {
-        this.e.reply(`${this.player.name}选择不使用任何药水`);
+        await this.e.reply(`${this.player.name}选择不使用任何药水`);
         return true;
       }
       return false;
     }
 
     if (!this.isValidTarget(target, action)) {
-      this.e.reply("非法目标");
+      await this.e.reply("非法目标");
       return false;
     }
 
     if (action === "save") {
       // 检查是否能自救
       if (target.id === this.player.id && !this.canSaveSelf) {
-        this.e.reply("你不能对自己使用解药");
+        await this.e.reply("你不能对自己使用解药");
         return false;
       }
 
@@ -89,13 +89,13 @@ export class WitchRole extends Role {
       this.hasAntidote = false;
       target.isAlive = true;
       target.deathReason = null;
-      this.e.reply(`${this.player.name}使用解药救活了${target.name}`);
+      await this.e.reply(`${this.player.name}使用解药救活了${target.name}`);
       return true;
     } else if (action === "poison") {
       // 使用毒药
       this.hasPoison = false;
       await this.game.handlePlayerDeath(target, 'POISON');
-      this.e.reply(`${this.player.name}使用毒药毒死了${target.name}`);
+      await this.e.reply(`${this.player.name}使用毒药毒死了${target.name}`);
       return true;
     }
 
@@ -104,7 +104,7 @@ export class WitchRole extends Role {
 
   // 跳过使用药水
   async skip(e) {
-    e.reply(`${this.player.name}选择不使用任何药水`);
+    await this.e.reply(`${this.player.name}选择不使用任何药水`);
     return true;
   }
 }

@@ -17,7 +17,7 @@ export class SheriffTransferState extends GameState {
     const candidates = [...this.game.players.values()].filter((p) => p.isAlive && p.id !== this.sheriff.id);
 
     // 通知警长选择继承人
-    this.e.reply(`\n=== 警长移交 ===\n` + `警长 ${this.sheriff.name} 请在 ${this.timeLimit} 秒内选择移交警徽的对象"#警长移交*号"\n` + `输入"跳过"可以放弃移交\n` + "可选玩家:\n" + candidates.map((p) => `${p.id}: ${p.name}`).join("\n") + "\n==================");
+    await this.e.reply(`\n=== 警长移交 ===\n` + `警长 ${this.sheriff.name} 请在 ${this.timeLimit} 秒内选择移交警徽的对象"#警长移交*号"\n` + `输入"跳过"可以放弃移交\n` + "可选玩家:\n" + candidates.map((p) => `${p.id}: ${p.name}`).join("\n") + "\n==================");
   }
 
   // 处理玩家行为
@@ -78,7 +78,7 @@ export class SheriffTransferState extends GameState {
       this.sheriff.isSheriff = false;
       target.isSheriff = true;
 
-      this.e.reply(`\n=== 警长移交结果 ===\n` + `原警长: ${this.sheriff.name}\n` + `新警长: ${target.name}\n` + "====================");
+      await this.e.reply(`\n=== 警长移交结果 ===\n` + `原警长: ${this.sheriff.name}\n` + `新警长: ${target.name}\n` + "====================");
 
       // 进入下一个状态
       await this.game.changeState(this.nextState);
@@ -92,7 +92,7 @@ export class SheriffTransferState extends GameState {
   async handleSkip(player) {
     try {
       this.hasTransferred = true;
-      this.e.reply(`\n=== 警长移交结果 ===\n` + `警长 ${this.sheriff.name} 选择带走警徽\n` + "====================");
+      await this.e.reply(`\n=== 警长移交结果 ===\n` + `警长 ${this.sheriff.name} 选择带走警徽\n` + "====================");
 
       // 进入下一个状态
       await this.game.changeState(this.nextState);
@@ -107,7 +107,7 @@ export class SheriffTransferState extends GameState {
   async onTimeout() {
     try {
       if (!this.hasTransferred) {
-        this.e.reply(`\n=== 警长移交结果 ===\n` + `警长 ${this.sheriff.name} 超时未移交,警徽将被带走\n` + "====================");
+        await this.e.reply(`\n=== 警长移交结果 ===\n` + `警长 ${this.sheriff.name} 超时未移交,警徽将被带走\n` + "====================");
 
         // 进入下一个状态
         await this.game.changeState(this.nextState);

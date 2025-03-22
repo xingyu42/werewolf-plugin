@@ -302,17 +302,6 @@ getAlivePlayers({
         case 'HUNTER_SHOT': //被猎人射杀
         default: 
       }
-      
-      // 3 处理警长死亡 //TODO:警长死亡会立即调用
-      if (player.isSheriff) {
-        const alivePlayers = this.getAlivePlayers({ excludeIds: [player.id] });
-        
-        if (alivePlayers.length > 0) {
-          await this.changeState(new SheriffTransferState(this, player, this.currentState));
-        } else {
-          player.isSheriff = false;
-        }
-      }
 
       // 4. 检查游戏是否结束
       await this.endGame();

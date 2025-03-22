@@ -271,7 +271,7 @@ export class GameAction extends plugin {
       }
 
       // 向所有狼人发送讨论内容
-      const wolves = game.getAliveWolves();
+      const wolves = game.getAlivePlayers({ roleType: "WolfRole", includeRole: true });
       wolves.filter(wolf => wolf.id !== player.id)
       for (const wolf of wolves) {
         if (wolf.id !== player.id) {

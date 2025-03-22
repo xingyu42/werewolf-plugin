@@ -1,29 +1,21 @@
 import { GameState } from "./GameState.js";
 import { DayState } from "./DayState.js";
-import { SheriffElectState } from "./SheriffElectState.js";
-import { WolfRole } from "../roles/WolfRole.js";
 
 export class NightState extends GameState {
   constructor(game) {
     super(game);
-    this.timeLimit = game.getConfig().game.nightTimeLimit; // 夜晚时间限制
     // 角色行动队列与状态控制
     this.actionQueue = ['GuardRole', 'ProphetRole', 'WolfRole', 'WitchRole']; // 角色行动顺序
     this.currentActionRole = null; // 当前行动角色
     this.actionLock = false; // 状态锁
     this.completedRoles = new Set(); // 已完成行动的角色
     this.roleActions = new Map(); // 记录各角色行动
-    // 狼人投票相关
-    this.wolfVotes = new Map(); // 记录狼人投票
-    this.wolfKillTarget = null; // 狼人击杀目标
   }
 
-  async onEnter() {
+  async onEnter() { 
     await super.onEnter();
     this.roleActions.clear();
     this.completedRoles.clear();
-    this.wolfVotes.clear();
-    this.wolfKillTarget = null;
 
     // 通知所有存活玩家夜晚开始
     const notifications = [];
@@ -112,25 +104,16 @@ export class NightState extends GameState {
   async handleAction(player, action, target) {
     if (this.actionLock) return false;
 
-    // 获取角色对象（只获取一次）
     const role = this.game.roles.get(player.id);
 
-    // 验证行动有效性
     if (!this.isValidAction(player, action, role)) {
       throw new Error("非法操作");
     }
 
     const roleType = role.constructor.name;
 
-    // 验证是否是当前行动角色
     if (roleType !== this.currentActionRole) {
       throw new Error(`现在是${this.currentActionRole}的行动时间，请等待你的回合`);
-    }
-
-    // 特殊处理狼人投票
-    if (roleType === "WolfRole" && action === "vote") {
-      await this.handleWolfVote(player, target, role);
-      return;
     }
 
     // 记录行动
@@ -143,206 +126,21 @@ export class NightState extends GameState {
     });
 
     // 执行角色行动
-    await role.act(this.game.players.get(target), action);
+    const result = await role.act(this.game.players.get(target), action);
 
-    // 检查该角色类型是否都已行动
-    const rolePlayers = this.game.getAlivePlayers({ roleType, includeRole: true });
-    const actedPlayers = [...this.roleActions.keys()]
-      .filter(id => {
-        const action = this.roleActions.get(id);
-        return action && action.roleType === roleType;
-      });
+    // 如果行动完成,检查是否需要进入下一阶段
+    if (result) {
+      const rolePlayers = this.game.getAlivePlayers({ roleType, includeRole: true });
+      const actedPlayers = [...this.roleActions.keys()]
+        .filter(id => {
+          const action = this.roleActions.get(id);
+          return action && action.roleType === roleType;
+        });
 
-    if (actedPlayers.length >= rolePlayers.length) {
-      this.completedRoles.add(roleType);
-      await this.startNextRoleAction();
-    }
-  }
-
-  // 处理狼人投票
-  async handleWolfVote(player, targetId, wolfRole) {
-    // 记录或更新狼人投票
-    this.wolfVotes.set(player.id, {
-      wolfId: player.id,
-      targetId: targetId,
-      timestamp: Date.now(),
-    });
-
-    // 通知其他狼人有新投票
-    await this.notifyWolfVoteUpdate(player, targetId);
-
-    // 检查是否所有狼人都已投票
-    if (this.isAllWolvesVoted()) {
-      // 统计投票结果
-      this.wolfKillTarget = this.tallyWolfVotes();
-
-      // 通知所有狼人最终结果
-      await this.notifyWolfVoteResult();
-
-      // 如果所有狼人都已投票，标记角色完成并进入下一阶段
-      this.completedRoles.add('WolfRole');
-
-      // 执行狼人杀人
-      if (this.wolfKillTarget) {
-        const target = this.game.players.get(this.wolfKillTarget);
-        if (target && wolfRole) {
-          await wolfRole.act(target);
-        }
+      if (actedPlayers.length >= rolePlayers.length) {
+        this.completedRoles.add(roleType);
+        await this.startNextRoleAction();
       }
-
-      await this.startNextRoleAction();
-    }
-  }
-
-  // 获取第一个存活特定角色的玩家角色实例
-  getFirstAlivePlayerRole(roleType) {
-    const players = this.game.getAlivePlayers({ roleType, includeRole: true });
-    if (players.length === 0) return null;
-    return players[0].role;
-  }
-
-  // 通知其他狼人有新投票
-  async notifyWolfVoteUpdate(voter, targetId) {
-    const wolves = this.game.getAliveWolves();
-    const target = this.game.players.get(targetId);
-    const voterNumber = this.game.getPlayerNumber(voter.id);
-
-    if (!target) return;
-
-    const message = `【投票更新】狼人${voterNumber}号(${voter.name})投票击杀${target.name}`;
-
-    // 获取当前投票状态信息
-    let voteStatus = "当前投票情况：\n";
-    const voteCounts = this.getWolfVoteCounts();
-
-    for (const [targetId, count] of voteCounts.entries()) {
-      const target = this.game.players.get(targetId);
-      if (target) {
-        voteStatus += `${target.name}: ${count}票\n`;
-      }
-    }
-
-    // 添加未投票狼人信息
-    const unvotedWolves = this.getUnvotedWolves();
-    if (unvotedWolves.length > 0) {
-      voteStatus += "\n未投票狼人：" + unvotedWolves.map((w) => w.name).join("、");
-    }
-
-    // 发送给所有存活狼人（除了投票者）
-    for (const wolf of wolves) {
-      if (wolf.id !== voter.id) {
-        try {
-          await this.e.bot.sendPrivateMsg(wolf.id, message + "\n\n" + voteStatus);
-        } catch (error) {
-          console.error(`向狼人 ${wolf.id} 发送投票更新失败:`, error);
-        }
-      }
-    }
-  }
-
-  // 通知所有狼人最终投票结果
-  async notifyWolfVoteResult() {
-    const wolves = this.game.getAliveWolves(); //TODO:需改正获取方法
-    let message;
-
-    if (this.wolfKillTarget) {
-      const target = this.game.players.get(this.wolfKillTarget);
-      message = `【最终结果】狼人队伍决定击杀${target.name}`;
-    } else {
-      message = "【最终结果】由于投票平局，今晚狼人无法达成一致，不会击杀任何人";
-    }
-
-    // 发送给所有存活狼人
-    for (const wolf of wolves) {
-      try {
-        await this.e.bot.sendPrivateMsg(wolf.id, message);
-      } catch (error) {
-        console.error(`狼人 ${wolf.id} 发送最终结果失败:`, error);
-      }
-    }
-  }
-
-  // 获取未投票的狼人
-  getUnvotedWolves() {
-    const aliveWolves = this.game.getAliveWolves();
-    return aliveWolves.filter((wolf) => !this.wolfVotes.has(wolf.id));
-  }
-
-  // 检查是否所有狼人都已投票
-  isAllWolvesVoted() {
-    const aliveWolves = this.game.getAliveWolves();
-    return aliveWolves.every((wolf) => this.wolfVotes.has(wolf.id));
-  }
-
-  // 统计狼人投票结果
-  getWolfVoteCounts() {
-    const voteCounts = new Map();
-
-    // 统计每个目标的票数
-    for (const vote of this.wolfVotes.values()) {
-      const targetId = vote.targetId;
-      const currentCount = voteCounts.get(targetId) || 0;
-      voteCounts.set(targetId, currentCount + 1);
-    }
-
-    return voteCounts;
-  }
-
-  // 确定最终击杀目标
-  tallyWolfVotes() {
-    // 如果只有一个狼人，直接采用其选择
-    const aliveWolves = this.game.getAliveWolves(); //TODO:需改正获取方法
-    if (aliveWolves.length === 1) {
-      const wolfId = aliveWolves[0].id;
-      const vote = this.wolfVotes.get(wolfId);
-      return vote ? vote.targetId : null;
-    }
-
-    // 统计票数
-    const voteCounts = this.getWolfVoteCounts();
-
-    // 找出最高票数
-    let maxVotes = 0;
-    let maxTargets = [];
-
-    for (const [targetId, count] of voteCounts.entries()) {
-      if (count > maxVotes) {
-        maxVotes = count;
-        maxTargets = [targetId];
-      } else if (count === maxVotes) {
-        maxTargets.push(targetId);
-      }
-    }
-
-    // 如果有平票，返回null表示无法达成一致
-    if (maxTargets.length > 1) {
-      return null;
-    }
-
-    // 返回最高票数的目标
-    return maxTargets[0];
-  }
-
-  // 检查行动是否有效
-  isValidAction(player, action, role) {
-    if (!player || !player.isAlive || !role) return false;
-
-    const roleType = role.constructor.name;
-
-    // 验证是否是当前行动角色
-    if (roleType !== this.currentActionRole) return false;
-
-    switch (roleType) {
-      case "WolfRole":
-        return ["vote", "cancelVote"].includes(action);
-      case "ProphetRole":
-        return action === "check";
-      case "WitchRole":
-        return ["save", "poison", "skip"].includes(action);
-      case "GuardRole":
-        return action === "protect";
-      default:
-        return false;
     }
   }
 
@@ -355,11 +153,7 @@ export class NightState extends GameState {
 
     // 状态转换
     if (this.game.turn === 0) {
-      // 如果是第一个夜晚，进入警长竞选阶段 //TODO:应该进入白天后进入警长
-      this.game.changeState(new SheriffElectState(this.game));
-    } else {
-      // 否则进入正常的白天阶段
-      this.game.changeState(new DayState(this.game));
+      await this.game.changeState(new DayState(this.game));
     }
   }
 
@@ -411,3 +205,5 @@ export class NightState extends GameState {
     await this.finishNightPhase();
   }
 }
+
+

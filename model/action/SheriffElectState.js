@@ -4,12 +4,12 @@ import { DayState } from "./DayState.js";
 export class SheriffElectState extends GameState {
   constructor(game) {
     super(game);
-    this.timeLimit = game.getConfig().game.sheriffElectTimeLimit // 竞选时间
-    this.SPEECH_TIME = game.getConfig().game.sheriffSpeechTime // 每人发言时间（秒）
+    this.SPEECH_TIME = game.getConfig().game.sheriffSpeechTime; // 每人发言时间（秒）
     this.phase = "REGISTER"; // 阶段：REGISTER(报名), SPEECH(发言), VOTE(投票)
     this.candidates = []; // 候选人
     this.votes = new Map(); // 投票记录
     this.votedPlayers = new Set(); // 已投票玩家
+    this.speechRecords = new Map(); // 发言记录
   }
 
   // 进入竞选阶段
@@ -17,7 +17,7 @@ export class SheriffElectState extends GameState {
     await super.onEnter();
 
     // 通知开始警长竞选
-    this.e.reply('开始竞选警长环节,想要竞选警长的玩家请发言"#竞选警长"');
+    await this.e.reply('开始竞选警长环节,想要竞选警长的玩家请发言"#竞选警长"');
   }
 
   async onExit() {
@@ -87,7 +87,7 @@ export class SheriffElectState extends GameState {
     if (this.candidates.length === 0) {
       // 无人竞选,直接进入白天
       await this.e.reply("无人竞选警长,直接进入白天");
-      this.game.changeState(new DayState(this.game));
+      await this.game.changeState(new DayState(this.game));
       return;
     }
 
@@ -96,7 +96,7 @@ export class SheriffElectState extends GameState {
     this.speakOrder = this.game.shuffle(candidateList);
 
     // 发送发言阶段开始通知
-    this.e.reply(`竞选者发言阶段开始，每人有${this.SPEECH_TIME}秒发言时间，时间到将自动轮到下一位`);
+    await this.e.reply(`竞选者发言阶段开始，每人有${this.SPEECH_TIME}秒发言时间，时间到将自动轮到下一位`);
 
     // 开始第一位发言者
     await this.startNextSpeaker(0);
@@ -122,7 +122,7 @@ export class SheriffElectState extends GameState {
     const speaker = this.game.players.get(this.currentSpeaker);
 
     // 使用引用回复和@功能提醒当前发言者
-    this.e.reply(`请${speaker.name}开始发言，您有${this.SPEECH_TIME}秒时间`, true, { at: true });
+    await this.e.reply(`请${speaker.name}开始发言，您有${this.SPEECH_TIME}秒时间`, true, { at: true });
 
     // 设置计时器，时间到后自动切换到下一位
     this.speechTimeout = setTimeout(async () => {
@@ -130,7 +130,7 @@ export class SheriffElectState extends GameState {
         // 如果玩家未发言，记录为超时未发言
         if (!this.speechRecords.has(this.currentSpeaker)) {
           this.speechRecords.set(this.currentSpeaker, "(超时未发言)");
-          this.e.reply(`${speaker.name}超时未发言`, true);
+          await this.e.reply(`${speaker.name}超时未发言`, true);
         }
 
         // 进入下一位发言
@@ -152,7 +152,7 @@ export class SheriffElectState extends GameState {
     }
 
     // 开始投票
-    this.e.reply("所有竞选者发言完毕,开始投票\n" + "请存活的玩家投票选出警长(输入#投票*号)");
+    await this.e.reply("所有竞选者发言完毕,开始投票\n" + "请存活的玩家投票选出警长(输入#投票*号)");
 
     // 显示候选人列表
     const candidateList = [...this.candidates]
@@ -162,7 +162,7 @@ export class SheriffElectState extends GameState {
       })
       .join("\n");
 
-    this.e.reply(candidateList);
+    await this.e.reply(candidateList);
   }
 
   // 处理投票
@@ -173,7 +173,7 @@ export class SheriffElectState extends GameState {
 
     this.votes.set(player.id, targetId);
 
-    this.e.reply(`${player.name}完成投票`);
+    await this.e.reply(`${player.name}完成投票`);
 
     // 检查是否所有人都投票完成
     if (this.isAllVoted()) {
@@ -211,18 +211,18 @@ export class SheriffElectState extends GameState {
 
     if (sheriffCandidates.length > 1) {
       // 平票,无人当选
-      this.e.reply("警长竞选出现平票,无人当选");
+      await this.e.reply("警长竞选出现平票,无人当选");
     } else {
       // 产生新警长
       const sheriffId = sheriffCandidates[0];
       const sheriff = this.game.players.get(sheriffId);
       sheriff.isSheriff = true;
 
-      this.e.reply(`${sheriff.name}当选为新警长`);
+      await this.e.reply(`${sheriff.name}当选为新警长`);
     }
 
     // 进入白天
-    this.game.changeState(new DayState(this.game));
+    await this.game.changeState(new DayState(this.game));
   }
 
   // 检查行动是否有效

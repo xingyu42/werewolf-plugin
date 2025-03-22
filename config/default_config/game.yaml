@@ -2,10 +2,8 @@
 minPlayers: 6
 #最大玩家数量
 maxPlayers: 12
-#讨论时间限制
-discussionTimeLimit: 180
-#夜晚时间限制
-nightTimeLimit: 40
+#发言时间限制
+speakTimeLimit: 60
 #投票时间限制
 voteTimeLimit: 15
 #遗言时间限制
@@ -16,3 +14,5 @@ sheriffSpeechTime: 30
 minVotesToKill: 2
 #屠边规则
 enableTubian: true
+#警长竞选开关
+sheriff: true
