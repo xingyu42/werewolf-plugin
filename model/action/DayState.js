@@ -106,7 +106,7 @@ export class DayState extends GameState {
     // 通知当前发言者
     await this.e.reply([
       segment.at(currentPlayer.id),
-      `轮到你发言了，请在${this.speakTimeLimit}秒内完成发言\n`,
+      `轮到你发言了，请在${this.speakTimeLimit}秒内完成发言\n发言完毕请输入 #结束发言\n`,
       nextPlayer ? `\n下一位发言者: ${nextPlayer.name}` : "\n你是最后一位发言者"
     ]);
 
@@ -124,6 +124,30 @@ export class DayState extends GameState {
     ]);
     this.currentSpeakerIndex++;
     await this.nextSpeaker();
+  }
+
+  // 处理结束发言
+  async handleEndSpeech(player) {
+    // 清除发言计时器
+    if (this.speakTimeout) {
+      clearTimeout(this.speakTimeout);
+      this.speakTimeout = null;
+    }
+
+    // 检查是否当前发言者
+    if (this.currentSpeakerIndex < this.speakOrder.length && 
+        this.speakOrder[this.currentSpeakerIndex].id === player.id) {
+      
+      await this.e.reply(`${player.name} 结束发言`);
+      
+      // 进入下一位发言者
+      this.currentSpeakerIndex++;
+      await this.nextSpeaker();
+      return true;
+    } else {
+      await this.e.reply(`${player.name} 现在不是你的发言时间`);
+      return false;
+    }
   }
 
   async onTimeout() {

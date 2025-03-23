@@ -14,12 +14,13 @@ export class GameAction extends plugin {
       priority: 5,
       rule: [
         { reg: "^#投票(\\d+)号$", fnc: "handleVote" },
-        { reg: "^#跳过$", fnc: "handleSkip" },
+        { reg: "^#结束遗言$", fnc: "handleSkip" },
         { reg: "^#竞选警长$", fnc: "handleSheriffElect" },
         { reg: "^#警长移交(\\d+)号$", fnc: "handleSheriffTransfer" },
         { reg: "^#放弃移交$", fnc: "handleGiveupTransfer" },
         { reg: "^#支持(\\d+)号$", fnc: "handleSupport" },
         { reg: "^#讨论(.*)$", fnc: "wolfDiscuss" },
+        { reg: "^#结束发言$", fnc: "handleEndSpeech" },
       ],
     });
   }
@@ -73,7 +74,7 @@ export class GameAction extends plugin {
     }
   }
 
-  // 处理跳过
+  // 处理结束遗言
   async handleSkip(e) {
     const game = this.getGame(e);
     if (!game) return false;
@@ -87,15 +88,15 @@ export class GameAction extends plugin {
 
       const currentState = game.getCurrentState();
       if (!(currentState instanceof LastWordsState)) {
-        e.reply("当前不是遗言阶段，无法跳过");
+        e.reply("当前不是遗言阶段，无法结束遗言");
         return false;
       }
 
       await currentState.handleAction(player, "skip");
       return true;
     } catch (err) {
-      console.error('[狼人杀] 跳过处理错误:', err);
-      e.reply("处理跳过操作时出现错误");
+      console.error('[狼人杀] 结束遗言处理错误:', err);
+      e.reply("处理结束遗言操作时出现错误");
       return false;
     }
   }
@@ -284,6 +285,38 @@ export class GameAction extends plugin {
     } catch (err) {
       console.error('[狼人杀] 狼人讨论错误:', err);
       e.reply("处理狼人讨论时出现错误");
+      return false;
+    }
+  }
+
+  // 处理结束发言
+  async handleEndSpeech(e) {
+    const game = this.getGame(e);
+    if (!game) return false;
+
+    try {
+      const player = game.getPlayerById(e.user_id);
+      if (!player) {
+        e.reply("您不是游戏参与者");
+        return false;
+      }
+
+      if (!player.isAlive) {
+        e.reply("死亡玩家无法结束发言");
+        return false;
+      }
+
+      const currentState = game.getCurrentState();
+      if (!(currentState.getName() === "DayState")) {
+        e.reply("当前不是白天发言阶段");
+        return false;
+      }
+
+      const result = await currentState.handleEndSpeech(player);
+      return result;
+    } catch (err) {
+      console.error('[狼人杀] 结束发言错误:', err);
+      e.reply("处理结束发言操作时出现错误");
       return false;
     }
   }

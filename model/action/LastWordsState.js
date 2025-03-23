@@ -18,7 +18,7 @@ export class LastWordsState extends GameState {
     // 显示遗言提示
     await this.e.reply(`\n=== ${this.deadPlayer.name}的遗言时间 ===\n` +
       `剩余时间: ${this.timeLimit}秒\n` +
-      '输入"#跳过"可以放弃遗言', true, { at: true });
+      '输入"#结束遗言"可以放弃遗言', true, { at: true });
 
     // 设置遗言计时器
     this.speechTimeout = setTimeout(async () => {
