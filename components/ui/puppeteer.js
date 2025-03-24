@@ -164,7 +164,7 @@ class PuppeteerManager {
       _plugin: `Werewolf-plugin`,
       _htmlPath: tplPath,
       pluResPath,
-      tplFile: `./plugins/Werewolf-plugin/resources/${tplPath}.html`,
+      tplFile: `resources/${tplPath}.html`,
       saveId: data.saveId || data.save_id || paths[paths.length - 1],
 
       // 截图参数
