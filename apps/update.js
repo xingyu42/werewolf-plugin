@@ -22,7 +22,7 @@ export class WerewolfUpdate extends plugin {
 
   async update(e = this.e) {
     if (!e.isMaster) return e.reply("你没有权限更新狼人杀插件")
-      e.msg = `#${e.msg.includes("强制") ? "强制" : ""}更新狼人杀-plugin`
+      e.msg = `#${e.msg.includes("强制") ? "强制" : ""}更新werewolf-plugin`
       const up = new Update(e)
       up.e = e
       return up.update()
@@ -34,7 +34,7 @@ export class WerewolfUpdate extends plugin {
     Update_Plugin.e = this.e
     Update_Plugin.reply = this.reply
     
-    Plugin_Name = "werewolf-plugin"
+    let Plugin_Name = "werewolf-plugin"
     if (Update_Plugin.getPlugin(Plugin_Name)) {
       this.e.reply(await Update_Plugin.getLog(Plugin_Name))
     }
