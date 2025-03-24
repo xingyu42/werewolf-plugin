@@ -22,10 +22,11 @@ for (let i in files) {
     logger.error(`载入插件错误：${logger.red(name)}`)
     logger.error(ret[i].reason)
     continue
+  } else {
+    logger.info(logger.green(`- 狼人杀插件载入成功 - ${name}`))
   }
   apps[name] = ret[i].value[Object.keys(ret[i].value)[0]]
 }
 
-logger.info(logger.green("- 狼人杀载入成功 -"));
 
 export { apps }
