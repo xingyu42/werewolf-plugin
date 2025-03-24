@@ -18,7 +18,7 @@
 2. 克隆本项目：
 
     ```bash
-    git clone https://github.com/xingyu42/werewolf-plugin.git ./plugin/werewolf-plugin
+    git clone https://github.com/xingyu42/werewolf-plugin.git ./plugins/werewolf-plugin
     ```
 
 3. 重启 Miao-yunzai
