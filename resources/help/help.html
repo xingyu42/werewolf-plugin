@@ -1,26 +1,32 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-  <meta http-equiv="content-type" content="text/html;charset=utf-8"/>
-  <link rel="stylesheet" type="text/css" href="{{_res_path}}/help/help.css"/>
-  <link rel="shortcut icon" href="#"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="./help.css">
+  <title>{{helpCfg.title}}</title>
 </head>
 <body>
   <div class="container">
+    <!-- 信息区域 -->
     <div class="info-box">
       <div class="title">{{helpCfg.title}}</div>
       <div class="desc">{{helpCfg.subTitle}}</div>
     </div>
+
+    <!-- 内容区域 -->
     <div class="cont-box">
       {{each helpGroup group}}
       <div class="help-group">
         <div class="group-title">{{group.group}}</div>
         <div class="help-table">
-          {{each group.list help}}
+          {{each group.list item}}
           <div class="help-item">
-            <div class="help-icon" style="{{help.css}}"></div>
-            <div class="help-title">{{help.title}}</div>
-            <div class="help-desc">{{help.desc}}</div>
+            <div class="help-icon" style="{{item.css}}"></div>
+            <div class="help-content">
+              <div class="help-title">{{item.title}}</div>
+              <div class="help-desc">{{item.desc}}</div>
+            </div>
           </div>
           {{/each}}
         </div>
