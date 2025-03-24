@@ -15,11 +15,10 @@
 
 1. 确保已安装 Miao-yunzai
 
-2. 在 Miao-yunzai 的 plugins 目录下克隆本项目：
+2. 克隆本项目：
 
     ```bash
-    cd Miao-yunzai/plugins
-    git clone https://github.com/xingyu42/werewolf-plugin.git
+    git clone https://github.com/xingyu42/werewolf-plugin.git ./plugin/werewolf-plugin
     ```
 
 3. 重启 Miao-yunzai
