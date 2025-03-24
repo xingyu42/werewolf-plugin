@@ -1,4 +1,3 @@
-import plugin from '../../lib/plugins/plugin.js'
 import PuppeteerManager from '../components/ui/puppeteer.js'
 
 export class GameHelp extends plugin {
