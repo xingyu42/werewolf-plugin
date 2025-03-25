@@ -8,177 +8,122 @@
 export const helpCfg = {
   title: '狼人杀帮助',
   subTitle: 'Yunzai-Bot & Werewolf-Plugin',
-  columnCount: 3,
-  colWidth: 265,
-  theme: 'all',
-  themeExclude: ['default'],
+  columnCount: 3, // 每行显示的指令数量
+  colWidth: 265, // 每列宽度
+  theme: 'all', // 主题
+  themeExclude: ['default'], // 排除主题
   style: {
-    fontColor: '#ceb78b',
-    descColor: '#eee',
-    contBgColor: 'rgba(6, 21, 31, .5)',
-    contBgBlur: 3,
-    headerBgColor: 'rgba(6, 21, 31, .4)',
-    rowBgColor1: 'rgba(6, 21, 31, .2)',
-    rowBgColor2: 'rgba(6, 21, 31, .35)'
+    fontColor: '#ceb78b', // 字体颜色
+    descColor: '#eee', // 描述颜色
+    contBgColor: 'rgba(6, 21, 31, .5)', // 内容背景颜色
+    contBgBlur: 3, // 内容背景模糊
+    headerBgColor: 'rgba(6, 21, 31, .4)', // 头部背景颜色
+    rowBgColor1: 'rgba(6, 21, 31, .2)', // 行背景颜色1
+    rowBgColor2: 'rgba(6, 21, 31, .35)' // 行背景颜色2
   }
 }
 
 export const helpList = [{
-  group: '游戏面板与信息查询',
+  group: '狼人杀开局',
   list: [{
     icon: 61,
-    title: '#角色 #角色卡片 #探索',
-    desc: '你的原神角色数据，数据来自米游社'
+    title: '#创建狼人杀',
+    desc: '创建狼人杀'
   }, {
     icon: 63,
-    title: '#面板 #更新面板',
-    desc: '查看已经获取面板信息的角色列表'
+    title: '#加入狼人杀',
+    desc: '加入狼人杀'
   }, {
     icon: 66,
-    title: '#雷神面板 #雷神伤害',
-    desc: '查看角色详细面板及伤害信息'
+    title: '#开始狼人杀',
+    desc: '开始狼人杀'
   }, {
     icon: 65,
-    title: '#圣遗物列表 #雷神圣遗物',
-    desc: '查看圣遗物列表 / 评分详情'
-  }, {
-    icon: 79,
-    title: '#面板帮助',
-    desc: '面板替换及其他帮助信息'
-  }, {
-    icon: 64,
-    title: '#深渊 #深渊12层',
-    desc: '深渊数据，打完请2小时后查询'
-  }, {
-    icon: 64,
-    title: '#幻想 #幻想真境剧诗',
-    desc: '幻想真境剧诗数据'
-  }, {
-    icon: 55,
-    title: '#202407幻想角色列表',
-    desc: '幻想真境剧诗入场角色查询'
-  }, {
-    icon: 67,
-    title: '#五星 #武器 #今日素材',
-    desc: '你的原神角色详情数据'
-  }, {
-    icon: 62,
-    title: '#五星列表 #练度统计',
-    desc: '角色列表数据'
-  }, {
-    icon: 77,
-    title: '#上传深渊数据',
-    desc: '上传您的深渊数据用于数据统计'
+    title: '#结束狼人杀',
+    desc: '结束狼人杀'
   }]
 }, {
-  group: '资料及图片',
+  group: '狼人杀行动',
   list: [{
     icon: 58,
-    title: '#刻晴 #心海',
-    desc: '你的原神角色卡片'
+    title: '#投票*号',
+    desc: '投票几号出局'
   }, {
     icon: 59,
-    title: '#老婆 #老公',
-    desc: '查看老婆、老公'
+    title: '#结束遗言',
+    desc: '结束遗言'
   }, {
     icon: 60,
-    title: '#老婆设置心海,雷神',
-    desc: '设置老婆列表，也可设置随机'
+    title: '#竞选警长',
+    desc: '竞选警长'
   }, {
     icon: 88,
-    title: '#老婆照片 #甘雨照片',
-    desc: '查看指定角色的图片'
+    title: '#警长移交*号',
+    desc: '警长移交'
   }, {
     icon: 53,
-    title: '#夜兰天赋 #胡桃命座',
-    desc: '查看角色的天赋与命座资料'
+    title: '#放弃移交',
+    desc: '放弃移交警长'
   }, {
     icon: 56,
-    title: '#深渊配队',
-    desc: '根据你的角色池推荐组队'
+    title: '#支持*号',
+    desc: '支持*号竞选警长'
   }, {
     icon: 78,
-    title: '#角色持有 #角色0命',
-    desc: '查看角色的持有率、0命统计'
+    title: '#讨论*',
+    desc: '狼人讨论室'
   }, {
     icon: 77,
-    title: '#深渊使用率 #深渊出场率',
-    desc: '查看本期深渊使用或出场统计'
-  }, {
-    icon: 20,
-    title: '#刻晴攻略',
-    desc: '西风驿站攻略'
-  }, {
-    icon: 60,
-    title: '#心海图鉴 #护摩',
-    desc: '角色武器图鉴'
+    title: '#结束发言',
+    desc: '结束发言'
   }]
 }, {
-  group: '个人信息查询及签到',
-  desc: '需要绑定cookie',
+  group: '狼人杀角色行动',
+  desc: '',
   list: [{
     icon: 15,
-    title: '#体力 #体力帮助',
-    desc: '查询体力，绑定Cookie帮助'
+    title: '#守护*号',
+    desc: '守护*号'
   }, {
     icon: 5,
-    title: '#原石 #原石统计',
-    desc: '札记数据，需要绑定Cookie'
+    title: '#反杀*号',
+    desc: '反杀*号'
   }, {
     icon: 10,
-    title: '#uid #绑定123456789',
-    desc: '查看绑定的uid 绑定uid'
+    title: '#查验*号',
+    desc: '查验*号'
   }, {
     icon: 22,
-    title: '#我的ck #删除ck',
-    desc: '查看绑定的cookie 删除cookie'
+    title: '#毒杀*号',
+    desc: '毒杀*号'
   }, {
     icon: 86,
-    title: '#签到',
-    desc: '米游社原神签到'
-  }]
-}, {
-  group: '其他查询指令',
-  list: [{
-    icon: 83,
-    title: '#日历 #日历列表',
-    desc: '查看活动日历'
+    title: '#救人',
+    desc: '救人'
+    }, {
+    icon: 11,
+    title: '#放弃',
+    desc: '放弃使用药水'
   }, {
-    icon: 6,
-    title: '#抽卡记录 #记录帮助',
-    desc: '统计游戏抽卡数据'
+    icon: 12,
+    title: '#刀*号',
+    desc: '刀*号'
   }, {
-    icon: 21,
-    title: '#角色统计 #武器统计',
-    desc: '按卡池统计抽卡数据'
+    icon: 13,
+    title: '#自爆',
+    desc: '狼人自爆跳夜晚'
   }, {
-    icon: 8,
-    title: '十连 十连2 定轨',
-    desc: '真实模拟抽卡'
-  }, {
-    icon: 74,
-    title: '添加哈哈 删除哈哈',
-    desc: '添加表情，回复哈哈触发'
-  }, {
-    icon: 79,
-    title: '#帮助 #版本 #喵喵版本',
-    desc: '其他命令'
+    icon: 14,
+    title: '#空刀',
+    desc: '狼人空刀'
   }]
 }, {
   group: '管理命令，仅管理员可用',
   auth: 'master',
   list: [{
     icon: 85,
-    title: '#用户统计',
-    desc: '查看用户CK-UID列表'
-  }, {
-    icon: 32,
-    title: '#喵喵设置',
-    desc: '配置喵喵功能'
-  }, {
-    icon: 35,
-    title: '#喵喵更新图像',
-    desc: '更新喵喵的增量角色图像素材'
+    title: '#狼人杀更新',
+    desc: '更新狼人杀插件'
   }]
 }]
 

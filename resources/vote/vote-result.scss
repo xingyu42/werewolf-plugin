@@ -1,0 +1,212 @@
+// 变量定义
+$bg-color: #304455;
+$row-bg-target: rgba(108, 142, 165, 0.8);
+$row-bg-normal: rgba(144, 144, 159, 0.8);
+$row-bg-abstain: rgba(108, 142, 165, 0.8);
+$text-color: #ffffff;
+$number-bg: #fff;
+$number-color: #304455;
+$arrow-color: #f1c40f;
+$label-bg-target: #e67e22;
+$label-bg-abstain: #7f8c8d;
+$result-bg: rgba(0, 0, 0, 0.7);
+$border-radius: 50%;
+$spacing: 8px;
+
+// 全局样式
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: $bg-color;
+    background-image: url("imgs/bg.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    font-family: "Microsoft YaHei", sans-serif;
+    color: $text-color;
+    padding: $spacing;
+    min-height: 100vh;
+}
+
+// 容器样式
+.vote-container {
+    max-width: 600px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing;
+}
+
+// 投票行样式
+.vote-row {
+    position: relative;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 6px;
+    backdrop-filter: blur(2px);
+    min-height: 70px; // 确保行高一致
+    display: flex;
+    align-items: center; // 垂直居中
+}
+
+.vote-row-target {
+    padding-top: 15px; // 放逐行不需要额外的上边距
+    background-color: $row-bg-target;
+}
+
+.vote-row-normal {
+    background-color: $row-bg-normal;
+}
+
+.vote-row-abstain {
+    background-color: $row-bg-abstain;
+}
+
+.vote-content {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; // 左对齐
+    gap: 20px; // 增加元素之间的间距
+    width: 100%;
+    margin-left: 15px; // 整体内容左侧留出空间
+}
+
+// 标签容器样式
+.vote-label-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
+}
+
+// 标签样式
+.vote-label {
+    color: white;
+    font-weight: bold;
+    min-width: 35px;
+    text-align: center;
+    font-size: 0.85em;
+    padding: 2px 7px;
+    border-radius: 0 0 5px 0;
+}
+
+// 行内标签样式
+.inline-label {
+    border-radius: 4px;
+    margin-right: 5px;
+    padding: 3px 8px;
+    font-size: 0.9em;
+}
+
+.vote-row-target .vote-label {
+    background-color: $label-bg-target;
+}
+
+.vote-row-abstain .vote-label {
+    background-color: $label-bg-abstain;
+}
+
+// 箭头样式
+.vote-arrow-container {
+    display: flex;
+    align-items: center;
+    min-width: 40px;
+    justify-content: center;
+    flex: 0 0 auto;
+}
+
+.vote-arrow {
+    width: 18px;
+    height: 18px;
+    border-top: 9px solid transparent;
+    border-bottom: 9px solid transparent;
+    border-right: 18px solid $arrow-color;
+}
+
+// 玩家号码容器
+.player-numbers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.player-numbers.target {
+    min-width: 45px;
+    justify-content: center;
+    flex: 0 0 auto;
+    margin-left: 5px; // 为放逐标签留出空间
+}
+
+.player-numbers.voters {
+    flex-grow: 0; // 不再拉伸
+    justify-content: flex-start;
+}
+
+// 号码样式
+.number {
+    width: 36px;
+    height: 36px;
+    background-color: $number-bg;
+    color: $number-color;
+    border-radius: $border-radius;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1em;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+.player-numbers.target .number {
+    width: 40px;
+    height: 40px;
+    font-size: 1.1em;
+}
+
+.number.selected {
+    background-color: $arrow-color;
+    color: white;
+}
+
+// 结果栏
+.vote-result-bar {
+    background-color: $result-bg;
+    color: $text-color;
+    padding: 10px;
+    text-align: center;
+    font-weight: bold;
+    border-radius: 4px;
+    margin-top: 10px;
+    backdrop-filter: blur(3px);
+}
+
+// 响应式设计
+@media (max-width: 480px) {
+    .vote-row {
+        padding: 12px;
+        min-height: 60px;
+    }
+    
+    .vote-content {
+        margin-left: 5px;
+        gap: 15px;
+    }
+    
+    .number {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9em;
+    }
+    
+    .player-numbers.target .number {
+        width: 36px;
+        height: 36px;
+        font-size: 1em;
+    }
+} 
