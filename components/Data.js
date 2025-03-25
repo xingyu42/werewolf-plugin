@@ -82,11 +82,11 @@ let Data = {
     return await Data.importModule(`components/optional-lib/${name}.js`)
   },
   async importCfg(key) {
-    let sysCfg = await Data.importModule(`config/model/${key}_model.js`)
+    let sysCfg = await Data.importModule(`config/system/${key}_default.js`)
     let diyCfg = await Data.importModule(`config/${key}.js`)
     if (diyCfg.isSys) {
-      console.error(`Cookie-plugin: config/${key}.js`)
-      console.error(`config/${key}_default.js为config/${key}.js`)
+      console.error(`werewolf-plugin: config/${key}.js无效，已忽略`)
+      console.error(`如需配置请复制config/${key}_default.js为config/${key}.js，请勿复制config/system下的系统文件`)
       diyCfg = {}
     }
     return {
