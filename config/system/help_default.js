@@ -50,6 +50,10 @@ export const helpList = [{
     desc: '投票几号出局'
   }, {
     icon: 59,
+    title: '#弃票',
+    desc: '放弃投票'
+  },{
+    icon: 59,
     title: '#结束遗言',
     desc: '结束遗言'
   }, {

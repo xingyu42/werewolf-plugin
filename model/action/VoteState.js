@@ -7,6 +7,7 @@ export class VoteState extends GameState {
     this.timeLimit = game.getConfig().game.voteTimeLimit // 投票时间限制
     this.votes = new Map(); // 记录投票情况
     this.votedPlayers = new Set(); // 已经投票的玩家
+    this.ABSTAIN = 'ABSTAIN'; // 弃票标记
   }
 
   async onEnter() {
@@ -38,11 +39,15 @@ export class VoteState extends GameState {
     }
 
     // 记录投票
-    this.votes.set(player.id, targetId);
+    if (action === "abstain") {
+      this.votes.set(player.id, this.ABSTAIN);
+      this.e.reply(`${player.name}选择弃票`);
+    } else {
+      this.votes.set(player.id, targetId);
+      this.e.reply(`${player.name}完成投票`);
+    }
+    
     this.votedPlayers.add(player.id); // 添加到已投票玩家集合
-
-    // 通知投票成功
-    this.e.reply(`${player.name}完成投票`);
 
     // 检查是否所有人都投票完成
     if (this.isAllVoted()) {
@@ -53,12 +58,14 @@ export class VoteState extends GameState {
   // 检查行动是否有效
   isValidAction(player, action, targetId) {
     if (!player || !player.isAlive) return false;
-    if (action !== "vote") return false;
+    if (action !== "vote" && action !== "abstain") return false;
     if (this.votes.has(player.id)) return false; // 已经投过票
 
-    // 验证目标是否有效
-    const target = this.game.players.get(targetId);
-    if (!target || !target.isAlive) return false;
+    // 如果是投票操作,验证目标是否有效
+    if (action === "vote") {
+      const target = this.game.players.get(targetId);
+      if (!target || !target.isAlive) return false;
+    }
 
     return true;
   }
@@ -73,7 +80,10 @@ export class VoteState extends GameState {
   tallyVotes() {
     const results = {};
     this.votes.forEach((targetId) => {
-      results[targetId] = (results[targetId] || 0) + 1;
+      // 不统计弃票
+      if (targetId !== this.ABSTAIN) {
+        results[targetId] = (results[targetId] || 0) + 1;
+      }
     });
     return results;
   }

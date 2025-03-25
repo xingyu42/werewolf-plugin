@@ -14,6 +14,7 @@ export class GameAction extends plugin {
       priority: 5,
       rule: [
         { reg: "^#投票(\\d+)号$", fnc: "handleVote" },
+        { reg: "^#弃票$", fnc: "handleAbstain" },
         { reg: "^#结束遗言$", fnc: "handleSkip" },
         { reg: "^#竞选警长$", fnc: "handleSheriffElect" },
         { reg: "^#警长移交(\\d+)号$", fnc: "handleSheriffTransfer" },
@@ -70,6 +71,33 @@ export class GameAction extends plugin {
     } catch (err) {
       console.error('[狼人杀] 投票处理错误:', err);
       e.reply("投票过程出现错误，请重试");
+      return false;
+    }
+  }
+
+  // 处理弃票
+  async handleAbstain(e) {
+    const game = this.getGame(e);
+    if (!game) return false;
+
+    try {
+      const player = game.getPlayerById(e.user_id);
+      if (!player) {
+        e.reply("您不是游戏参与者");
+        return false;
+      }
+
+      if (!player.isAlive) {
+        e.reply("死亡玩家无法投票");
+        return false;
+      }
+
+      const voteState = new VoteState(game);
+      await voteState.handleAction(player, "abstain");
+      return true;
+    } catch (err) {
+      console.error('[狼人杀] 弃票处理错误:', err);
+      e.reply("弃票过程出现错误，请重试");
       return false;
     }
   }
