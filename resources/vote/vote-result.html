@@ -1,59 +1,55 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>狼人杀投票结果</title>
     <link rel="stylesheet" href="vote-result.css">
 </head>
+
 <body>
     <div class="vote-container">
+        {{# if voteResult.exiled }}
         <div class="vote-row vote-row-target">
             <div class="vote-label-container">
                 <div class="vote-label">放逐</div>
             </div>
             <div class="vote-content">
                 <div class="player-numbers target">
-                    <div class="number selected">10</div>
+                    <div class="number selected">{{voteResult.exiled.number}}</div>
                 </div>
                 <div class="vote-arrow-container">
                     <div class="vote-arrow"></div>
                 </div>
                 <div class="player-numbers voters">
-                    <div class="number">3</div>
-                    <div class="number">5</div>
-                    <div class="number">8</div>
-                    <div class="number">9</div>
-                    <div class="number">12</div>
+                    {{# each voteResult.exiled.voters }}
+                    <div class="number">{{this}}</div>
+                    {{/each}}
                 </div>
             </div>
         </div>
+        {{/if}}
+
+        {{# each voteResult.others }}
         <div class="vote-row vote-row-normal">
             <div class="vote-content">
                 <div class="player-numbers target">
-                    <div class="number">2</div>
+                    <div class="number">{{this.number}}</div>
                 </div>
                 <div class="vote-arrow-container">
                     <div class="vote-arrow"></div>
                 </div>
                 <div class="player-numbers voters">
-                    <div class="number">2</div>
+                    {{# each this.voters }}
+                    <div class="number">{{this}}</div>
+                    {{/each}}
                 </div>
             </div>
         </div>
-        <div class="vote-row vote-row-normal">
-            <div class="vote-content">
-                <div class="player-numbers target">
-                    <div class="number">9</div>
-                </div>
-                <div class="vote-arrow-container">
-                    <div class="vote-arrow"></div>
-                </div>
-                <div class="player-numbers voters">
-                    <div class="number">10</div>
-                </div>
-            </div>
-        </div>
+        {{/each}}
+
+        {{# if voteResult.abstained.length }}
         <div class="vote-row vote-row-abstain">
             <div class="vote-content">
                 <div class="vote-label inline-label">弃票</div>
@@ -61,17 +57,22 @@
                     <div class="vote-arrow"></div>
                 </div>
                 <div class="player-numbers voters">
-                    <div class="number">1</div>
-                    <div class="number">4</div>
-                    <div class="number">6</div>
-                    <div class="number">7</div>
-                    <div class="number">11</div>
+                    {{# each voteResult.abstained }}
+                    <div class="number">{{this}}</div>
+                    {{/each}}
                 </div>
             </div>
         </div>
+        {{/if}}
+
         <div class="vote-result-bar">
-            [10号] 被放逐！
+            {{# if voteResult.exiled }}
+            [{{voteResult.exiled.number}}号] 被放逐！
+            {{else}}
+            无人出局
+            {{/if}}
         </div>
     </div>
 </body>
-</html> 
+
+</html>

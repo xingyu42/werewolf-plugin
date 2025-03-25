@@ -1,6 +1,8 @@
 import { GameState } from "./GameState.js";
 import { NightState } from "./NightState.js";
 import { LastWordsState } from "./LastWordsState.js";
+import puppeteer from "../../components/ui/puppeteer.js";
+
 export class VoteState extends GameState {
   constructor(game) {
     super(game);
@@ -111,6 +113,40 @@ export class VoteState extends GameState {
       }
     }
 
+    // 组织渲染数据
+    const voteData = {
+      exiled: null,
+      others: [],
+      abstained: []
+    };
+    
+    // 处理投票数据
+    this.votes.forEach((targetId, voterId) => {
+      if (targetId === this.ABSTAIN) {
+        voteData.abstained.push(voterId);
+      } else {
+        // 找到或创建目标玩家的投票记录
+        let targetVotes = voteData.others.find(v => v.number === parseInt(targetId));
+        if (!targetVotes) {
+          targetVotes = { number: parseInt(targetId), voters: [] };
+          voteData.others.push(targetVotes);
+        }
+        targetVotes.voters.push(voterId);
+      }
+    });
+    
+    // 如果有放逐目标,将其从others移到exiled
+    if (votedPlayers.length === 1) {
+      const exiledId = parseInt(votedPlayers[0]);
+      const exiledIndex = voteData.others.findIndex(v => v.number === exiledId);
+      if (exiledIndex !== -1) {
+        voteData.exiled = voteData.others.splice(exiledIndex, 1)[0];
+      }
+    }
+
+    // 渲染投票结果
+    await puppeteer.render('vote/vote-result', { voteResult: voteData }, { e: this.e });
+
     // 检查是否达到最低票数要求
     const minVotes = this.game.getConfig().game.minVotesToKill // 最少投票数
     if (maxVotes <= minVotes) {
@@ -133,6 +169,7 @@ export class VoteState extends GameState {
     // 先处理玩家死亡
     await this.game.handlePlayerDeath(votedPlayer, 'EXILE');
     this.e.reply(`${votedPlayer.name}被投票放逐出局`);
+    
     // 创建下一个状态（夜晚）
     const nextState = new NightState(this.game);
 
