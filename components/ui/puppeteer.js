@@ -11,7 +11,7 @@ const renderer = Renderer.getRenderer()
  * 狼人杀插件的 Puppeteer 管理器
  * 负责浏览器实例管理和渲染功能
  */
-class PuppeteerManager {
+class Puppeteer {
   constructor() {
     this.browser = null
     this.lock = false
@@ -184,8 +184,13 @@ class PuppeteerManager {
     }
 
     // 调用渲染器进行截图
-    return await renderer.screenshot(`werewolf-plugin/${tplPath}`, data)
+    let base64 = await renderer.screenshot(`werewolf-plugin/${tplPath}`, data)
+    let ret = true
+    if (base64) {
+      ret = await e.reply(base64)
+    }
+    return ret || true
   }
 }
 
-export default new PuppeteerManager()
+export default new Puppeteer()
