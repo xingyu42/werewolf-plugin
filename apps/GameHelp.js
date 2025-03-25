@@ -1,4 +1,5 @@
 import { Data, Puppeteer } from '../components/index.js'
+import lodash from 'lodash'
 export class GameHelp extends plugin {
   constructor() {
     super({
@@ -7,12 +8,16 @@ export class GameHelp extends plugin {
       event: "message",
       priority: 5000,
       rule: [
-        { reg: "^#狼人杀帮助$", fnc: "showHelp" },
+        { reg: "^#狼人杀帮助$", fnc: "message" },
       ],
     });
   }
 
-  async showHelp(e) {
+  async message() {
+    return await help(this.e)
+  }
+}
+  async function help(e) {
     let custom = {};
     let help = {};
 
@@ -52,6 +57,4 @@ export class GameHelp extends plugin {
         e,
         scale: 2.0,
     });
-
   }
-}

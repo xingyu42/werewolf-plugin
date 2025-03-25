@@ -146,6 +146,7 @@ class Puppeteer {
     tplPath = tplPath.replace(/.html$/, "")
     let paths = _.filter(tplPath.split("/"), (p) => !!p)
     tplPath = paths.join("/")
+    let { e } = cfg
 
     // 创建临时目录
     const tempDir = path.join(_path, 'temp', 'html', 'werewolf-plugin', tplPath)
