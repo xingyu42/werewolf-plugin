@@ -1,0 +1,177 @@
+// 变量定义
+$primary-color: #222;
+$secondary-color: #666;
+$light-color: #999;
+$bg-color: #f5f5f5;
+
+// 混合器
+@mixin glass-effect {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(5px);
+}
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin card {
+  background: rgba(245, 245, 245, 0.85);
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+// 基础样式
+body {
+  transform: scale(1);
+  width: 100%;
+  min-width: 1200px;
+  background: url("./imgs/default.jpg") center/cover fixed $bg-color;
+  margin: 0;
+  padding: 20px;
+  box-sizing: border-box;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+.container {
+  @include glass-effect;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  border-radius: 15px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+// 头部样式
+.head_box {
+  @include card;
+  margin: 0 0 20px;
+  padding: 15px 20px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+  }
+
+  .title {
+    font-size: 28px;
+    color: $primary-color;
+    margin-bottom: 8px;
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .sub-title {
+    font-size: 16px;
+    color: $secondary-color;
+    opacity: 0.8;
+  }
+}
+
+// 帮助内容区
+.help_box {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin: 0 -5px;
+}
+
+.help-group {
+  @include card;
+  padding: 15px;
+  transition: transform 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  .group-title {
+    color: $primary-color;
+    font-size: 18px;
+    padding: 8px 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.9);
+    font-weight: bold;
+    position: relative;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -3px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 50px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, $primary-color, transparent);
+    }
+  }
+}
+
+.group-commands {
+  padding: 5px;
+}
+
+// 帮助项样式
+.help-item {
+  @include flex-center;
+  justify-content: flex-start;
+  margin: 8px 0;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateX(5px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  .help-icon {
+    width: 45px;
+    height: 45px;
+    background: url("./icon.png") no-repeat;
+    background-size: 450px auto;
+    margin-right: 12px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+
+    &:hover {
+      transform: scale(1.1);
+    }
+  }
+
+  .help-title {
+    flex: 1;
+    font-size: 15px;
+    color: $primary-color;
+    font-weight: 500;
+  }
+
+  .help-desc {
+    font-size: 13px;
+    color: $secondary-color;
+    margin-left: 12px;
+    opacity: 0.85;
+  }
+}
+
+// 版权信息
+.copyright {
+  text-align: center;
+  font-size: 13px;
+  color: $light-color;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(0,0,0,0.05);
+} 

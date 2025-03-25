@@ -1,31 +1,32 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="./help.css">
-  <title>{{helpCfg.title}}</title>
+  <meta http-equiv="content-type" content="text/html;charset=utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" type="text/css" href="{{pluResPath}}help/help.css"/>
+  <link rel="shortcut icon" href="#"/>
 </head>
 <body>
-  <div class="container">
-    <!-- 信息区域 -->
-    <div class="info-box">
-      <div class="title">{{helpCfg.title}}</div>
-      <div class="desc">{{helpCfg.subTitle}}</div>
+  <div class="container" id="container">
+    <div class="head_box">
+      <div class="title">
+        {{helpCfg.title}}
+      </div>
+      <div class="sub-title">
+        {{helpCfg.subTitle}}
+      </div>
     </div>
-
-    <!-- 内容区域 -->
-    <div class="cont-box">
+    <div class="help_box">
       {{each helpGroup group}}
       <div class="help-group">
         <div class="group-title">{{group.group}}</div>
-        <div class="help-table">
-          {{each group.list item}}
+        <div class="group-commands">
+          {{each group.list help}}
           <div class="help-item">
-            <div class="help-icon" style="{{item.css}}"></div>
+            <div class="help-icon" style="{{help.css}}"></div>
             <div class="help-content">
-              <div class="help-title">{{item.title}}</div>
-              <div class="help-desc">{{item.desc}}</div>
+              <div class="help-title">{{help.title}}</div>
+              <div class="help-desc">{{help.desc}}</div>
             </div>
           </div>
           {{/each}}
@@ -33,6 +34,7 @@
       </div>
       {{/each}}
     </div>
+    <div class="copyright">Created By Miao-Yunzai & werewolf-plugin</div>
   </div>
 </body>
 </html>

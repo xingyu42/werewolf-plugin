@@ -148,23 +148,23 @@ class PuppeteerManager {
     tplPath = paths.join("/")
 
     // 创建临时目录
-    const tempDir = path.join(_path, 'temp', 'html', 'Werewolf-plugin', tplPath)
+    const tempDir = path.join(_path, 'temp', 'html', 'werewolf-plugin', tplPath)
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true })
     }
 
     // 计算资源路径
-    let pluResPath = `../../../${_.repeat("../", paths.length)}plugins/Werewolf-plugin/resources/`
+    let pluResPath = `../../../${_.repeat("../", paths.length)}plugins/werewolf-plugin/resources/`
 
     // 渲染数据
     data = {
       sys: {
         scale: 1.2
       },
-      _plugin: `Werewolf-plugin`,
+      _plugin: `werewolf-plugin`,
       _htmlPath: tplPath,
       pluResPath,
-      tplFile: `resources/${tplPath}.html`,
+      tplFile: `./plugins/werewolf-plugin/resources/${tplPath}.html`,
       saveId: data.saveId || data.save_id || paths[paths.length - 1],
 
       // 截图参数
@@ -184,7 +184,7 @@ class PuppeteerManager {
     }
 
     // 调用渲染器进行截图
-    return await renderer.screenshot(`Werewolf-plugin/${tplPath}`, data)
+    return await renderer.screenshot(`werewolf-plugin/${tplPath}`, data)
   }
 }
 
