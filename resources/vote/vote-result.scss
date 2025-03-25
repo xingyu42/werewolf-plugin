@@ -1,17 +1,24 @@
-// 变量定义
-$bg-color: #304455;
-$row-bg-target: rgba(108, 142, 165, 0.8);
-$row-bg-normal: rgba(144, 144, 159, 0.8);
-$row-bg-abstain: rgba(108, 142, 165, 0.8);
-$text-color: #ffffff;
-$number-bg: #fff;
-$number-color: #304455;
-$arrow-color: #f1c40f;
-$label-bg-target: #e67e22;
-$label-bg-abstain: #7f8c8d;
-$result-bg: rgba(0, 0, 0, 0.7);
-$border-radius: 50%;
-$spacing: 8px;
+// 变量定义 - 苹果风格配色与视觉设计
+$bg-color: #f5f5f7; // 苹果经典浅灰背景
+$row-bg-target: rgba(255, 255, 255, 0.9); // 统一使用白色背景,通过其他元素区分
+$row-bg-normal: rgba(255, 255, 255, 0.9);
+$row-bg-abstain: rgba(255, 255, 255, 0.9);
+$text-color: #1d1d1f; // 苹果深灰文字色
+$text-light: #86868b; // 苹果次要文字色
+$number-bg: #f5f5f7; // 号码背景色
+$number-color: #1d1d1f;
+$arrow-color: #06c; // 苹果蓝
+$label-bg-target: #ff453a; // 苹果红
+$label-bg-abstain: #8e8e93; // 苹果灰
+$sheriff-color: #ffcc00; // 警长颜色(苹果黄)
+$selected-bg: #ff453a; // 放逐目标颜色(苹果红)
+$result-bg: rgba(0, 0, 0, 0.8); // 结果栏深色背景
+$border-radius: 50%; // 圆形样式
+$card-radius: 16px; // 卡片圆角
+$spacing: 12px;
+$shadow-soft: 0 8px 16px rgba(0, 0, 0, 0.08); // 柔和阴影
+$shadow-strong: 0 8px 16px rgba(0, 0, 0, 0.1); // 轻微加强阴影
+$font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
 
 // 全局样式
 * {
@@ -27,36 +34,62 @@ body {
     background-position: center;
     background-repeat: no-repeat;
     background-attachment: fixed;
-    font-family: "Microsoft YaHei", sans-serif;
+    font-family: $font-family;
     color: $text-color;
-    padding: $spacing;
+    padding: $spacing * 1.5;
     min-height: 100vh;
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased; // 平滑字体渲染
+    -moz-osx-font-smoothing: grayscale;
 }
 
 // 容器样式
 .vote-container {
-    max-width: 600px;
+    max-width: 650px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: $spacing;
+    gap: $spacing * 1.2;
+    padding-bottom: $spacing * 2;
 }
 
 // 投票行样式
 .vote-row {
     position: relative;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 6px;
-    backdrop-filter: blur(2px);
-    min-height: 70px; // 确保行高一致
+    border-radius: $card-radius;
+    padding: 18px 20px;
+    margin-bottom: 8px;
+    min-height: 76px; // 确保行高一致
     display: flex;
     align-items: center; // 垂直居中
+    box-shadow: $shadow-soft;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px); // Safari支持
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    overflow: visible; // 允许内容溢出,避免标签被裁剪
+}
+
+// 放逐徽章
+.vote-badge {
+    position: absolute;
+    top: -14px; // 轻微上移
+    left: 8px; // 向左移动
+    background-color: $label-bg-target;
+    color: white;
+    font-weight: 600;
+    padding: 3px 8px; // 缩小内边距
+    border-radius: 6px; // 减小圆角
+    font-size: 0.8em; // 缩小字体
+    letter-spacing: 0.3px;
+    box-shadow: 0 2px 6px rgba($label-bg-target, 0.4);
+    border: 1.5px solid white; // 减小边框
+    z-index: 30;
 }
 
 .vote-row-target {
-    padding-top: 15px; // 放逐行不需要额外的上边距
     background-color: $row-bg-target;
+    margin-top: 16px; // 为徽章腾出空间
+    border-left: 4px solid $label-bg-target;
 }
 
 .vote-row-normal {
@@ -65,42 +98,55 @@ body {
 
 .vote-row-abstain {
     background-color: $row-bg-abstain;
+    border-left: 4px solid $label-bg-abstain;
 }
 
 .vote-content {
     display: flex;
     align-items: center;
     justify-content: flex-start; // 左对齐
-    gap: 20px; // 增加元素之间的间距
+    gap: 24px; // 增加元素之间的间距
     width: 100%;
-    margin-left: 15px; // 整体内容左侧留出空间
+}
+
+// 放逐行的内容特殊处理
+.target-content {
+    position: relative; // 相对定位
+    z-index: 1; // 低于标签
+    padding-top: 5px; // 轻微顶部内边距
 }
 
 // 标签容器样式
 .vote-label-container {
     position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 2;
+    z-index: 20; // 确保在最上层
 }
 
 // 标签样式
 .vote-label {
     color: white;
-    font-weight: bold;
-    min-width: 35px;
+    font-weight: 600;
+    min-width: 40px;
     text-align: center;
     font-size: 0.85em;
-    padding: 2px 7px;
-    border-radius: 0 0 5px 0;
+    padding: 4px 12px;
+    border-radius: 0 0 8px 0;
+    letter-spacing: 0.3px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    position: relative; // 确保背景完全覆盖
+    z-index: 20; // 提高z-index
 }
 
 // 行内标签样式
 .inline-label {
-    border-radius: 4px;
+    background-color: $label-bg-abstain;
+    color: white;
+    font-weight: 500;
+    border-radius: 6px;
     margin-right: 5px;
-    padding: 3px 8px;
+    padding: 4px 10px;
     font-size: 0.9em;
+    letter-spacing: 0.3px;
 }
 
 .vote-row-target .vote-label {
@@ -121,26 +167,27 @@ body {
 }
 
 .vote-arrow {
-    width: 18px;
-    height: 18px;
-    border-top: 9px solid transparent;
-    border-bottom: 9px solid transparent;
-    border-right: 18px solid $arrow-color;
+    width: 20px;
+    height: 20px;
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+    border-right: 20px solid $arrow-color;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+    opacity: 0.95;
 }
 
 // 玩家号码容器
 .player-numbers {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 12px;
     align-items: center;
 }
 
 .player-numbers.target {
-    min-width: 45px;
+    min-width: 60px; // 增加目标宽度
     justify-content: center;
     flex: 0 0 auto;
-    margin-left: 5px; // 为放逐标签留出空间
 }
 
 .player-numbers.voters {
@@ -150,63 +197,69 @@ body {
 
 // 号码样式
 .number {
-    width: 36px;
-    height: 36px;
+    width: 42px;
+    height: 42px;
     background-color: $number-bg;
     color: $number-color;
     border-radius: $border-radius;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: bold;
-    font-size: 1em;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+    font-weight: 600;
+    font-size: 1.05em;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    position: relative; // 相对定位用于警长标记
+    border: 2px solid white;
+    z-index: 1; // 确保在标签下方
+    
+    // 警长样式
+    &.sheriff {
+        background-color: $sheriff-color; // 金色背景
+        color: #1d1d1f; // 深色文字
+        border: 2px solid rgba(255, 255, 255, 0.8);
+        
+        &::after {
+            content: '★'; // 星星标记
+            position: absolute;
+            top: -10px;
+            right: -6px;
+            font-size: 14px;
+            color: $sheriff-color; // 金色星星
+            text-shadow: 0 0 3px rgba(0, 0, 0, 0.3); // 文字阴影
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+        }
+    }
+
+    // 被放逐目标样式
+    &.selected {
+        background-color: $selected-bg; // 红色背景
+        color: #fff;
+        box-shadow: 0 4px 12px rgba($selected-bg, 0.35);
+        border: 2px solid rgba(255, 255, 255, 0.8);
+        transform: scale(1.08); // 保留轻微放大但移除动效
+    }
 }
 
 .player-numbers.target .number {
-    width: 40px;
-    height: 40px;
-    font-size: 1.1em;
-}
-
-.number.selected {
-    background-color: $arrow-color;
-    color: white;
+    width: 46px;
+    height: 46px;
+    font-size: 1.15em;
+    position: relative;
+    z-index: 2; // 确保低于标签
 }
 
 // 结果栏
 .vote-result-bar {
     background-color: $result-bg;
-    color: $text-color;
-    padding: 10px;
+    color: white;
+    padding: 14px;
     text-align: center;
-    font-weight: bold;
-    border-radius: 4px;
-    margin-top: 10px;
-    backdrop-filter: blur(3px);
-}
-
-// 响应式设计
-@media (max-width: 480px) {
-    .vote-row {
-        padding: 12px;
-        min-height: 60px;
-    }
-    
-    .vote-content {
-        margin-left: 5px;
-        gap: 15px;
-    }
-    
-    .number {
-        width: 32px;
-        height: 32px;
-        font-size: 0.9em;
-    }
-    
-    .player-numbers.target .number {
-        width: 36px;
-        height: 36px;
-        font-size: 1em;
-    }
+    font-weight: 600;
+    border-radius: 12px;
+    margin-top: 14px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    letter-spacing: 0.5px;
+    box-shadow: $shadow-soft;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 } 

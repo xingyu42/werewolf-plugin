@@ -12,9 +12,7 @@
     <div class="vote-container">
         {{# if voteResult.exiled }}
         <div class="vote-row vote-row-target">
-            <div class="vote-label-container">
-                <div class="vote-label">放逐</div>
-            </div>
+            <div class="vote-badge">放逐</div>
             <div class="vote-content">
                 <div class="player-numbers target">
                     <div class="number selected">{{voteResult.exiled.number}}</div>
@@ -24,7 +22,7 @@
                 </div>
                 <div class="player-numbers voters">
                     {{# each voteResult.exiled.voters }}
-                    <div class="number">{{this}}</div>
+                    <div class="number {{#if isSheriff}}sheriff{{/if}}">{{number}}</div>
                     {{/each}}
                 </div>
             </div>
@@ -42,7 +40,7 @@
                 </div>
                 <div class="player-numbers voters">
                     {{# each this.voters }}
-                    <div class="number">{{this}}</div>
+                    <div class="number {{#if isSheriff}}sheriff{{/if}}">{{number}}</div>
                     {{/each}}
                 </div>
             </div>
@@ -58,7 +56,7 @@
                 </div>
                 <div class="player-numbers voters">
                     {{# each voteResult.abstained }}
-                    <div class="number">{{this}}</div>
+                    <div class="number {{#if isSheriff}}sheriff{{/if}}">{{number}}</div>
                     {{/each}}
                 </div>
             </div>

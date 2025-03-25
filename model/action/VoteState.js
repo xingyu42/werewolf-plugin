@@ -81,10 +81,13 @@ export class VoteState extends GameState {
   // 统计投票结果
   tallyVotes() {
     const results = {};
-    this.votes.forEach((targetId) => {
+    this.votes.forEach((targetId, voterId) => {
       // 不统计弃票
       if (targetId !== this.ABSTAIN) {
-        results[targetId] = (results[targetId] || 0) + 1;
+        // 获取投票者是否是警长
+        const voter = this.game.players.get(voterId);
+        const voteWeight = voter.isSheriff ? 1.5 : 1;
+        results[targetId] = (results[targetId] || 0) + voteWeight;
       }
     });
     return results;
@@ -122,8 +125,14 @@ export class VoteState extends GameState {
     
     // 处理投票数据
     this.votes.forEach((targetId, voterId) => {
+      const voter = this.game.players.get(voterId);
+      const voterInfo = {
+        number: voterId,
+        isSheriff: voter.isSheriff
+      };
+
       if (targetId === this.ABSTAIN) {
-        voteData.abstained.push(voterId);
+        voteData.abstained.push(voterInfo);
       } else {
         // 找到或创建目标玩家的投票记录
         let targetVotes = voteData.others.find(v => v.number === parseInt(targetId));
@@ -131,7 +140,7 @@ export class VoteState extends GameState {
           targetVotes = { number: parseInt(targetId), voters: [] };
           voteData.others.push(targetVotes);
         }
-        targetVotes.voters.push(voterId);
+        targetVotes.voters.push(voterInfo);
       }
     });
     
@@ -143,6 +152,13 @@ export class VoteState extends GameState {
         voteData.exiled = voteData.others.splice(exiledIndex, 1)[0];
       }
     }
+
+    // 按票数排序其他投票
+    voteData.others.sort((a, b) => {
+      const aVotes = a.voters.reduce((sum, voter) => sum + (voter.isSheriff ? 1.5 : 1), 0);
+      const bVotes = b.voters.reduce((sum, voter) => sum + (voter.isSheriff ? 1.5 : 1), 0);
+      return bVotes - aVotes;
+    });
 
     // 渲染投票结果
     await puppeteer.render('vote/vote-result', { voteResult: voteData }, { e: this.e });
