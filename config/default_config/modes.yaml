@@ -1,69 +1,9 @@
 roleConfigs:
   6: ["WOLF", "PROPHET", "WITCH", "VILLAGER", "VILLAGER", "WOLF"]
   7: ["WOLF", "PROPHET", "WITCH", "GUARD", "VILLAGER", "VILLAGER", "WOLF"]
-  8:
-    [
-      "WOLF",
-      "PROPHET",
-      "WITCH",
-      "GUARD",
-      "HUNTER",
-      "VILLAGER",
-      "VILLAGER",
-      "WOLF",
-    ]
-  9:
-    [
-      "WOLF",
-      "PROPHET",
-      "WITCH",
-      "GUARD",
-      "HUNTER",
-      "VILLAGER",
-      "VILLAGER",
-      "WOLF",
-      "WOLF",
-    ]
-  10:
-    [
-      "WOLF",
-      "PROPHET",
-      "WITCH",
-      "GUARD",
-      "HUNTER",
-      "VILLAGER",
-      "VILLAGER",
-      "VILLAGER",
-      "WOLF",
-      "WOLF",
-    ]
-  11:
-    [
-      "WOLF",
-      "PROPHET",
-      "WITCH",
-      "GUARD",
-      "HUNTER",
-      "MERCHANT",
-      "VILLAGER",
-      "VILLAGER",
-      "VILLAGER",
-      "WOLF",
-      "WOLF",
-    ]
-  12:
-    [
-      "WOLF",
-      "PROPHET",
-      "WITCH",
-      "GUARD",
-      "HUNTER",
-      "MERCHANT",
-      "VILLAGER",
-      "VILLAGER",
-      "VILLAGER",
-      "WOLF",
-      "WOLF",
-      "WOLF",
-    ]
+  8: ["WOLF", "PROPHET", "WITCH", "GUARD", "HUNTER", "VILLAGER", "VILLAGER", "WOLF"]
+  9: ["WOLF", "PROPHET", "WITCH", "GUARD", "HUNTER", "VILLAGER", "VILLAGER", "WOLF", "WOLF"]
+  10: ["WOLF", "PROPHET", "WITCH", "GUARD", "HUNTER", "VILLAGER", "VILLAGER", "VILLAGER", "WOLF", "WOLF"]
+  11: ["WOLF", "PROPHET", "WITCH", "GUARD", "HUNTER", "VILLAGER", "VILLAGER", "VILLAGER", "VILLAGER", "WOLF", "WOLF"]
+  12: ["WOLF", "PROPHET", "WITCH", "GUARD", "HUNTER", "VILLAGER", "VILLAGER", "VILLAGER", "VILLAGER", "WOLF", "WOLF", "WOLF"]
 
