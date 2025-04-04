@@ -139,9 +139,10 @@ class Puppeteer {
    * @param {string} tplPath 模板路径，相对于plugin resources目录
    * @param {Object} data 渲染数据
    * @param {Object} cfg 渲染配置
+   * @param {number|string} [user_id] 用户ID，如果提供则主动发送私聊消息，否则回复当前消息
    * @returns {Promise<import('icqq').segment.image>} 图片消息段
    */
-  async render(tplPath, data = {}, cfg = {}) {
+  async render(tplPath, data = {}, cfg = {}, user_id) {
     // 处理传入的path
     tplPath = tplPath.replace(/.html$/, "")
     let paths = _.filter(tplPath.split("/"), (p) => !!p)
@@ -188,7 +189,7 @@ class Puppeteer {
     let base64 = await renderer.screenshot(`werewolf-plugin/${tplPath}`, data)
     let ret = true
     if (base64) {
-      ret = await e.reply(base64)
+      ret = user_id ? await e.bot.sendPrivateMsg(user_id, base64) : await e.reply(base64)
     }
     return ret || true
   }

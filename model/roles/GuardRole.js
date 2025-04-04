@@ -12,7 +12,7 @@ export class GuardRole extends Role {
   }
 
   // 获取行动提示
-  async getActionPrompt(e) {
+  async getActionPrompt() {
     if (!this.canAct()) return null;
 
     let msg = "【守卫】请选择今晚的守护目标：\n";
