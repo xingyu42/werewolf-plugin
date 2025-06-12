@@ -5,6 +5,7 @@ import { RoleFactory } from "../roles/RoleFactory.js";
 import { EventEmitter } from 'node:events';
 import { GameError } from './GameError.js';
 import { isValidTransition } from './StateMachine.js';
+import { VictoryChecker } from './VictoryChecker.js';
 
 /**
  * 游戏核心类 - 负责管理游戏状态、玩家和角色
@@ -25,6 +26,19 @@ export class Game extends EventEmitter {
     this.maxHistoryLength = 50; // 最大历史记录长度
     this.playerNumberMap = new Map(); // 游戏内编号到玩家ID的映射
     this.stateTransitionContext = {}; // 存储状态转换相关的上下文信息
+    
+    // 缓存系统
+    this._cacheSystem = {
+      alivePlayers: {
+        cache: null,           // 基本存活玩家缓存
+        campExclusions: {},    // 按阵营排除的缓存
+        roleTypes: {},         // 按角色类型的缓存
+        lastInvalidation: Date.now() // 上次缓存失效时间
+      }
+    };
+    
+    // 胜利条件检查器
+    this.victoryChecker = new VictoryChecker();
   }
 
   // 初始化游戏
@@ -33,6 +47,7 @@ export class Game extends EventEmitter {
     this.gameManager = gameManager;
     await this.initPlayers();
     this.initState();
+    this._invalidateCache(); // 初始化时清空缓存
   }
 
   // 初始化玩家
@@ -72,6 +87,9 @@ export class Game extends EventEmitter {
         message: `你的游戏编号是：${gameNumber}号，角色是：${player.role}`
       });
     }
+    
+    // 初始化玩家后清空缓存
+    this._invalidateCache();
   }
 
   // 初始化游戏状态
@@ -229,47 +247,16 @@ export class Game extends EventEmitter {
 
   // 结束游戏
   async endGame() {
-    // 计算各阵营存活人数
-    const aliveWolves = this.getAlivePlayers({ excludeCamp: 'WOLF' }).length;
-    const aliveGods = this.getAlivePlayers({ excludeCamp: 'GOD' }).length;
-    const aliveVillagers = this.getAlivePlayers({ excludeCamp: 'VILLAGER' }).length;
-
-    // 胜利判定
-    let winner = null;
-    let gameOver = false;
-    let reason = "";
-    let tubian = this.config.game.enableTubian;
-
-    // 判断是否有阵营胜利
-    if (aliveWolves === 0) {
-      // 狼人全部死亡，好人胜利
-      winner = "好人";
-      reason = "狼人全部出局";
-      gameOver = true;
-    } else if (aliveGods === 0 && aliveVillagers === 0) {
-      // 所有神职和平民都死亡，狼人胜利
-      winner = "狼人";
-      reason = "好人全部出局";
-      gameOver = true;
-    } else if (tubian && aliveGods === 0) {
-      // 屠边规则：所有神职都死亡，狼人胜利
-      winner = "狼人";
-      reason = "神职全部出局";
-      gameOver = true;
-    } else if (tubian && aliveVillagers === 0) {
-      // 屠边规则：所有平民都死亡，狼人胜利
-      winner = "狼人";
-      reason = "平民全部出局";
-      gameOver = true;
-    }
-
+    // 使用胜利条件检查器检查游戏是否结束
+    const victoryResult = this.victoryChecker.checkVictory(this);
+    
     // 如果游戏结束，发出游戏结束事件
-    if (gameOver) {
+    if (victoryResult.gameOver) {
       const alivePlayersStr = this.getAlivePlayers({ showRole: true, showStatus: true }).map((p) => p.getDisplayInfo()).join("\n");
 
       this.emit('gameEnd', {
-        winner,
-        reason,
+        winner: victoryResult.winner,
+        reason: victoryResult.reason,
         alivePlayers: alivePlayersStr
       });
       
@@ -319,23 +306,84 @@ export class Game extends EventEmitter {
   getAlivePlayers({ 
     excludeIds = [], excludeCamp = null, roleType = null, includeRole = false, showRole = false, showStatus = false 
   } = {}) {
-    const filteredPlayers = [...this.players.values()].filter(player => {
-      // 检查是否存活
-      if (!player.isAlive) return false;
+    // 创建查询的缓存键
+    const cacheKey = this._getAlivePlayersCacheKey({ excludeIds, excludeCamp, roleType, includeRole });
+    
+    // 检查是否有已缓存的结果
+    const alivePlayersCache = this._cacheSystem.alivePlayers;
+    
+    // 针对不同查询类型使用不同缓存
+    if (excludeCamp && alivePlayersCache.campExclusions[excludeCamp]) {
+      return [...alivePlayersCache.campExclusions[excludeCamp]]; // 返回深拷贝
+    }
+    
+    if (roleType && alivePlayersCache.roleTypes[roleType]) {
+      // 返回角色类型缓存
+      const cachedResult = alivePlayersCache.roleTypes[roleType];
+      return includeRole ? [...cachedResult] : cachedResult.map(item => item.player);
+    }
+    
+    // 基本的所有存活玩家缓存
+    if (!excludeIds.length && !excludeCamp && !roleType) {
+      if (alivePlayersCache.cache) {
+        const cachedPlayers = alivePlayersCache.cache;
+        
+        if (!includeRole) {
+          return [...cachedPlayers]; // 返回存活玩家的深拷贝
+        }
+        
+        // 需要包含角色时转换
+        return cachedPlayers.map(player => ({
+          player,
+          role: this.roles.get(player.id)
+        }));
+      }
       
-      // 检查是否在排除列表中
-      if (excludeIds.includes(player.id)) return false;
+      // 缓存不存在，计算所有存活玩家
+      const allAlivePlayers = [...this.players.values()].filter(player => player.isAlive);
+      alivePlayersCache.cache = allAlivePlayers; // 缓存结果
       
-      const role = this.roles.get(player.id);
+      if (!includeRole) {
+        return [...allAlivePlayers];
+      }
       
-      // 检查阵营
-      if (excludeCamp && role?.getCamp() === excludeCamp) return false;
-      
-      // 检查角色类型
-      if (roleType && role?.constructor.name !== roleType) return false;
-      
-      return true;
-    });
+      // 包含角色时转换
+      return allAlivePlayers.map(player => ({
+        player,
+        role: this.roles.get(player.id)
+      }));
+    }
+    
+    // 复杂查询，执行完整过滤
+    const filteredPlayers = (alivePlayersCache.cache || [...this.players.values()].filter(player => player.isAlive))
+      .filter(player => {
+        // 检查是否在排除列表中
+        if (excludeIds.includes(player.id)) return false;
+        
+        const role = this.roles.get(player.id);
+        
+        // 检查阵营
+        if (excludeCamp && role?.getCamp() === excludeCamp) return false;
+        
+        // 检查角色类型
+        if (roleType && role?.constructor.name !== roleType) return false;
+        
+        return true;
+      });
+    
+    // 缓存特定查询结果
+    if (excludeCamp && !excludeIds.length && !roleType) {
+      alivePlayersCache.campExclusions[excludeCamp] = [...filteredPlayers];
+    }
+    
+    if (roleType && !excludeIds.length && !excludeCamp) {
+      const result = filteredPlayers.map(player => ({
+        player,
+        role: this.roles.get(player.id)
+      }));
+      alivePlayersCache.roleTypes[roleType] = result;
+      return includeRole ? result : result.map(item => item.player);
+    }
 
     // 如果需要包含角色对象，转换为{player, role}格式
     if (includeRole) {
@@ -344,6 +392,7 @@ export class Game extends EventEmitter {
         role: this.roles.get(player.id)
       }));
     }
+    
     return filteredPlayers;
   }
 
@@ -403,6 +452,9 @@ export class Game extends EventEmitter {
         default: 
       }
 
+      // 玩家状态改变，清空缓存
+      this._invalidateCache();
+
       // 通知玩家死亡
       this.emit('playerDeath', { 
         player, 
@@ -422,5 +474,35 @@ export class Game extends EventEmitter {
       ));
       return false;
     }
+  }
+
+  /**
+   * 清除缓存系统中的所有缓存
+   * @private
+   */
+  _invalidateCache() {
+    const now = Date.now();
+    this._cacheSystem.alivePlayers.cache = null;
+    this._cacheSystem.alivePlayers.campExclusions = {};
+    this._cacheSystem.alivePlayers.roleTypes = {};
+    this._cacheSystem.alivePlayers.lastInvalidation = now;
+  }
+
+  /**
+   * 获取缓存键
+   * @private
+   * @param {Object} options - 查询选项
+   * @returns {string} 缓存键
+   */
+  _getAlivePlayersCacheKey(options) {
+    const { excludeIds = [], excludeCamp = null, roleType = null, includeRole = false } = options;
+    
+    // 创建唯一缓存键
+    return JSON.stringify({
+      excludeIds: excludeIds.sort(), // 排序以确保相同内容产生相同键
+      excludeCamp,
+      roleType,
+      includeRole
+    });
   }
 }

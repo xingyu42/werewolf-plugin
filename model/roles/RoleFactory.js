@@ -3,6 +3,37 @@
  * 用于根据角色名称创建对应的角色实例
  */
 export class RoleFactory {
+  // 角色模块缓存
+  static roleModules = null;
+  
+  /**
+   * 预加载所有角色模块
+   * @returns {Promise<void>}
+   */
+  static async preloadRoleModules() {
+    if (RoleFactory.roleModules !== null) {
+      return; // 已经预加载过，直接返回
+    }
+    
+    // 初始化角色模块缓存
+    RoleFactory.roleModules = {};
+    
+    // 并行加载所有角色模块
+    const loadPromises = [
+      import('./WolfRole.js').then(module => RoleFactory.roleModules.WolfRole = module.WolfRole),
+      import('./VillagerRole.js').then(module => RoleFactory.roleModules.VillagerRole = module.VillagerRole),
+      import('./ProphetRole.js').then(module => RoleFactory.roleModules.ProphetRole = module.ProphetRole),
+      import('./WitchRole.js').then(module => RoleFactory.roleModules.WitchRole = module.WitchRole),
+      import('./HunterRole.js').then(module => RoleFactory.roleModules.HunterRole = module.HunterRole),
+      import('./GuardRole.js').then(module => RoleFactory.roleModules.GuardRole = module.GuardRole)
+    ];
+    
+    // 等待所有模块加载完成
+    await Promise.all(loadPromises);
+    
+    console.log('所有角色模块预加载完成');
+  }
+
   /**
    * 获取角色阵营
    * @param {string} roleName - 角色名称
@@ -34,27 +65,24 @@ export class RoleFactory {
    * @throws {Error} 当角色类型未知时抛出错误
    */
   static async createRole(roleName, game, player) {
-    // 动态导入角色类
-    const { WolfRole } = await import('./WolfRole.js');
-    const { VillagerRole } = await import('./VillagerRole.js');
-    const { ProphetRole } = await import('./ProphetRole.js');
-    const { WitchRole } = await import('./WitchRole.js');
-    const { HunterRole } = await import('./HunterRole.js');
-    const { GuardRole } = await import('./GuardRole.js');
-
+    // 如果角色模块尚未预加载，则进行预加载
+    if (RoleFactory.roleModules === null) {
+      await RoleFactory.preloadRoleModules();
+    }
+    
     switch (roleName) {
       case "WOLF": // 狼人
-        return new WolfRole(game, player);
+        return new RoleFactory.roleModules.WolfRole(game, player);
       case "VILLAGER": // 村民
-        return new VillagerRole(game, player);
+        return new RoleFactory.roleModules.VillagerRole(game, player);
       case "PROPHET": // 预言家
-        return new ProphetRole(game, player);
+        return new RoleFactory.roleModules.ProphetRole(game, player);
       case "WITCH": // 女巫
-        return new WitchRole(game, player);
+        return new RoleFactory.roleModules.WitchRole(game, player);
       case "HUNTER": // 猎人
-        return new HunterRole(game, player);
+        return new RoleFactory.roleModules.HunterRole(game, player);
       case "GUARD": // 守卫
-        return new GuardRole(game, player);
+        return new RoleFactory.roleModules.GuardRole(game, player);
       default:
         throw new Error(`未知角色: ${roleName}`);
     }

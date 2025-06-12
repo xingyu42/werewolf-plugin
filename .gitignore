@@ -6,3 +6,6 @@ tests/
 doc/
 .codeaskdata
 test/
+babel.config.cjs
+package-lock.json
+package.json

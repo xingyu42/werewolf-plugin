@@ -244,8 +244,8 @@ ${this.getAlivePlayersList()}
       throw new Error("当前游戏不允许狼人自爆");
     }
 
-    // 自爆会立即死亡
-    this.player.isAlive = false;
+    // 自爆会立即死亡，通过游戏核心处理死亡逻辑，而不是直接修改状态
+    await this.game.handlePlayerDeath(this.player, 'SUICIDE');
 
     // 通知所有玩家
     await this.e.reply(`${this.player.name}选择自爆,身份是狼人`);
