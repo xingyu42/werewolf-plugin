@@ -4,6 +4,7 @@ import { LastWordsState } from "../model/action/LastWordsState.js"; // 引入 La
 import { SheriffElectState } from "../model/action/SheriffElectState.js"; // 引入 SheriffElectState
 import { SheriffTransferState } from "../model/action/SheriffTransferState.js"; // 引入 SheriffTransferState
 import { WolfRole } from "../model/roles/WolfRole.js"; // 引入 WolfRole
+import { GameError } from '../model/core/GameError.js';
 
 export class GameAction extends plugin {
   constructor() {
@@ -65,12 +66,16 @@ export class GameAction extends plugin {
         return false;
       }
 
-      const voteState = new VoteState(game);
-      await voteState.handleAction(player, "vote", targetId);
+      // 直接使用Game的handleAction方法，不再需要创建VoteState实例
+      await game.handleAction(player, "vote", targetId);
       return true;
     } catch (err) {
       console.error('[狼人杀] 投票处理错误:', err);
-      e.reply("投票过程出现错误，请重试");
+      game.emit('error', new GameError(
+        "投票过程出现错误，请重试", 
+        "VOTE_ERROR",
+        { playerId: e.user_id, error: err }
+      ));
       return false;
     }
   }
@@ -92,8 +97,8 @@ export class GameAction extends plugin {
         return false;
       }
 
-      const voteState = new VoteState(game);
-      await voteState.handleAction(player, "abstain");
+      // 直接使用Game的handleAction方法
+      await game.handleAction(player, "abstain");
       return true;
     } catch (err) {
       console.error('[狼人杀] 弃票处理错误:', err);
@@ -120,7 +125,8 @@ export class GameAction extends plugin {
         return false;
       }
 
-      await currentState.handleAction(player, "skip");
+      // 直接使用Game的handleAction方法
+      await game.handleAction(player, "skip");
       return true;
     } catch (err) {
       console.error('[狼人杀] 结束遗言处理错误:', err);
@@ -152,11 +158,16 @@ export class GameAction extends plugin {
         return false;
       }
 
-      await currentState.handleAction(player, "register");
+      // 直接使用Game的handleAction方法
+      await game.handleAction(player, "register");
       return true;
     } catch (err) {
       console.error('[狼人杀] 警长竞选错误:', err);
-      e.reply("警长竞选过程出现错误");
+      game.emit('error', new GameError(
+        "警长竞选过程出现错误", 
+        "SHERIFF_ELECT_ERROR",
+        { playerId: e.user_id, error: err }
+      ));
       return false;
     }
   }
@@ -190,7 +201,8 @@ export class GameAction extends plugin {
         return false;
       }
 
-      await currentState.handleAction(player, "transfer", targetId);
+      // 直接使用Game的handleAction方法
+      await game.handleAction(player, "transfer", targetId);
       return true;
     } catch (err) {
       console.error('[狼人杀] 警长移交错误:', err);
@@ -199,7 +211,7 @@ export class GameAction extends plugin {
     }
   }
 
-  // 处理放弃移交
+  // 处理放弃移交警徽
   async handleGiveupTransfer(e) {
     const game = this.getGame(e);
     if (!game) return false;
@@ -212,7 +224,7 @@ export class GameAction extends plugin {
       }
 
       if (!player.isSheriff) {
-        e.reply("只有警长可以选择放弃移交");
+        e.reply("只有警长可以放弃移交警徽");
         return false;
       }
 
@@ -222,16 +234,17 @@ export class GameAction extends plugin {
         return false;
       }
 
-      await currentState.handleAction(player, "giveup");
+      // 直接使用Game的handleAction方法
+      await game.handleAction(player, "giveup");
       return true;
     } catch (err) {
-      console.error('[狼人杀] 放弃移交错误:', err);
-      e.reply("处理放弃移交时出现错误");
+      console.error('[狼人杀] 放弃警长移交错误:', err);
+      e.reply("放弃警长移交过程出现错误");
       return false;
     }
   }
 
-  // 处理支持
+  // 处理支持竞选者
   async handleSupport(e) {
     const game = this.getGame(e);
     if (!game) return false;
@@ -250,7 +263,7 @@ export class GameAction extends plugin {
       }
 
       if (!player.isAlive) {
-        e.reply("死亡玩家无法投票支持");
+        e.reply("死亡玩家无法投票");
         return false;
       }
 
@@ -260,20 +273,20 @@ export class GameAction extends plugin {
         return false;
       }
 
-      await currentState.handleAction(player, "support", targetId);
+      // 直接使用Game的handleAction方法
+      await game.handleAction(player, "support", targetId);
       return true;
     } catch (err) {
-      console.error('[狼人杀] 支持投票错误:', err);
-      e.reply("支持投票过程出现错误");
+      console.error('[狼人杀] 支持竞选错误:', err);
+      e.reply("支持竞选过程出现错误");
       return false;
     }
   }
 
-  // 狼人讨论
+  // 处理狼人讨论
   async wolfDiscuss(e) {
     const game = this.getGame(e);
     if (!game) return false;
-    if (e.isGroup) return false;
 
     try {
       const player = game.getPlayerById(e.user_id);
@@ -282,37 +295,32 @@ export class GameAction extends plugin {
         return false;
       }
 
-      if (!player.isAlive) {
-        e.reply("死亡玩家无法参与讨论");
-        return false;
-      }
-
+      // 检查是否为狼人
       const role = game.roles.get(player.id);
       if (!(role instanceof WolfRole)) {
         e.reply("只有狼人可以使用狼人讨论");
         return false;
       }
 
-      const content = e.msg.match(/^#讨论(.*)$/)?.[1]?.trim();
+      // 检查是否存活
+      if (!player.isAlive) {
+        e.reply("死亡狼人无法参与讨论");
+        return false;
+      }
+
+      // 获取讨论内容
+      const content = e.msg.replace(/^#讨论/, "").trim();
       if (!content) {
         e.reply("请输入讨论内容");
         return false;
       }
 
-      // 向所有狼人发送讨论内容
-      const wolves = game.getAlivePlayers({ roleType: "WolfRole", includeRole: true });
-      wolves.filter(wolf => wolf.id !== player.id)
-      for (const wolf of wolves) {
-        if (wolf.id !== player.id) {
-          await this.e.bot.sendPrivateMsg(wolf.id, `${player.name}：${content}`);
-        }
-      }
-
-      e.reply("已发送讨论内容给其他狼人");
+      // 直接使用Game的handleAction方法
+      await game.handleAction(player, "discuss", { content });
       return true;
     } catch (err) {
       console.error('[狼人杀] 狼人讨论错误:', err);
-      e.reply("处理狼人讨论时出现错误");
+      e.reply("狼人讨论过程出现错误");
       return false;
     }
   }
@@ -329,23 +337,18 @@ export class GameAction extends plugin {
         return false;
       }
 
-      if (!player.isAlive) {
-        e.reply("死亡玩家无法结束发言");
-        return false;
-      }
-
-      const currentState = game.getCurrentState();
-      if (!(currentState.getName() === "DayState")) {
-        e.reply("当前不是白天发言阶段");
-        return false;
-      }
-
-      const result = await currentState.handleEndSpeech(player);
-      return result;
+      // 直接使用Game的handleAction方法
+      await game.handleAction(player, "endSpeech");
+      return true;
     } catch (err) {
       console.error('[狼人杀] 结束发言错误:', err);
-      e.reply("处理结束发言操作时出现错误");
+      game.emit('error', new GameError(
+        "结束发言过程出现错误", 
+        "END_SPEECH_ERROR",
+        { playerId: e.user_id, error: err }
+      ));
       return false;
     }
   }
 }
+

@@ -2,8 +2,17 @@ import { SheriffTransferState } from "../action/SheriffTransferState.js";
 import { NightState } from "../action/NightState.js";
 import { Player } from "../Player.js";
 import { RoleFactory } from "../roles/RoleFactory.js";
-export class Game {
+import { EventEmitter } from 'node:events';
+import { GameError } from './GameError.js';
+import { isValidTransition } from './StateMachine.js';
+
+/**
+ * 游戏核心类 - 负责管理游戏状态、玩家和角色
+ * 继承EventEmitter实现事件驱动的通信机制
+ */
+export class Game extends EventEmitter {
   constructor() {
+    super(); // 调用EventEmitter构造函数
     this.players = new Map(); // 玩家信息
     this.roles = new Map(); // 角色实例
     this.currentState = null; // 当前游戏状态
@@ -15,6 +24,7 @@ export class Game {
     this.stateHistory = []; // 状态历史记录
     this.maxHistoryLength = 50; // 最大历史记录长度
     this.playerNumberMap = new Map(); // 游戏内编号到玩家ID的映射
+    this.stateTransitionContext = {}; // 存储状态转换相关的上下文信息
   }
 
   // 初始化游戏
@@ -56,8 +66,11 @@ export class Game {
       const role = RoleFactory.createRole(roleName, this, player);
       this.roles.set(player.id, role);
 
-      // 发送角色通知 - 加入编号信息
-      this.e.bot.sendPrivateMsg(player.id, `你的游戏编号是：${gameNumber}号，角色是：${player.role}`);
+      // 发送角色通知 - 使用事件取代直接通信
+      this.emit('roleNotify', {
+        playerId: player.id,
+        message: `你的游戏编号是：${gameNumber}号，角色是：${player.role}`
+      });
     }
   }
 
@@ -70,13 +83,37 @@ export class Game {
   // 状态转换
   async changeState(newState) {
     if (!newState) {
-      console.error("Game.changeState: 新状态为 undefined");
+      const error = new GameError("新状态为 undefined", "INVALID_STATE");
+      this.emit('error', error);
       return;
     }
 
     if (this._changingState) {
-      console.warn("状态切换被阻止:当前正在进行状态转换");
+      this.emit('message', {
+        type: 'group',
+        content: "状态切换被阻止:当前正在进行状态转换"
+      });
       return;
+    }
+
+    // 检查状态转换是否合法
+    if (this.currentState) {
+      const fromState = this.currentState.constructor.name;
+      const toState = newState.constructor.name;
+      
+      const validationResult = isValidTransition(fromState, toState, this, this.stateTransitionContext);
+      
+      if (!validationResult.allowed) {
+        const error = new GameError(
+          `非法的状态转换: ${validationResult.reason}`, 
+          "INVALID_STATE_TRANSITION"
+        );
+        this.emit('error', error);
+        return;
+      }
+      
+      // 如果状态转换被允许，记录状态历史
+      this.recordStateHistory(this.currentState);
     }
 
     this._changingState = true;
@@ -90,16 +127,54 @@ export class Game {
 
     } catch (err) {
       console.error("状态转换时出错:", err);
-      this.e.reply("游戏状态转换失败", { cause: err });
+      this.emit('error', new GameError(
+        "游戏状态转换失败", 
+        "STATE_TRANSITION_ERROR", 
+        { cause: err }
+      ));
     } finally {
       this._changingState = false;
     }
   }
 
+  /**
+   * 记录状态历史
+   * @param {GameState} state 要记录的状态
+   */
+  recordStateHistory(state) {
+    if (!state) return;
+    
+    // 记录状态类型和时间戳
+    const historyEntry = {
+      stateType: state.constructor.name,
+      timestamp: new Date(),
+      turn: this.turn
+    };
+    
+    // 添加到历史记录
+    this.stateHistory.push(historyEntry);
+    
+    // 限制历史记录长度
+    if (this.stateHistory.length > this.maxHistoryLength) {
+      this.stateHistory.shift();
+    }
+  }
+
+  /**
+   * 设置状态转换上下文
+   * @param {Object} context 上下文对象
+   */
+  setStateTransitionContext(context) {
+    this.stateTransitionContext = context || {};
+  }
+
   // 处理玩家行为
-  async handleAction(player, action, target, e) {
+  async handleAction(player, action, target) {
     if (!player) {
-      console.error("Game.handleAction: player 参数为 undefined");
+      this.emit('error', new GameError(
+        "player 参数为 undefined", 
+        "INVALID_PLAYER"
+      ));
       return;
     }
 
@@ -109,22 +184,39 @@ export class Game {
         const playerId = player;
         player = this.players.get(playerId);
         if (!player) {
-          e.reply(`玩家不存在: ${playerId}`);
+          this.emit('error', new GameError(
+            `玩家不存在: ${playerId}`, 
+            "PLAYER_NOT_FOUND"
+          ));
+          return;
         }
       }
+      
       if (!this.isValidAction(player, action)) {
-        e.reply("非法操作: 玩家无法执行该动作");
+        this.emit('error', new GameError(
+          "非法操作: 玩家无法执行该动作", 
+          "INVALID_ACTION"
+        ));
+        return;
       }
+      
       if (!this.currentState) {
-        e.reply("游戏状态错误: 当前没有活动状态");
+        this.emit('error', new GameError(
+          "游戏状态错误: 当前没有活动状态", 
+          "NO_ACTIVE_STATE"
+        ));
+        return;
       }
+      
       await this.currentState.handleAction(player, action, target);
     } catch (err) {
-      // 记录错误
+      // 记录错误并发出错误事件
       console.error("处理玩家行为时出错:", err);
-
-      // 通知玩家
-      e.reply(`操作失败: ${err.message}`);
+      this.emit('error', new GameError(
+        err.message, 
+        "ACTION_ERROR", 
+        { player, action, target }
+      ));
     }
   }
 
@@ -136,51 +228,56 @@ export class Game {
   }
 
   // 结束游戏
- async endGame() {
-  // 计算各阵营存活人数
-  const aliveWolves = this.getAlivePlayers({ excludeCamp: 'WOLF' }).length;
-  const aliveGods = this.getAlivePlayers({ excludeCamp: 'GOD' }).length;
-  const aliveVillagers = this.getAlivePlayers({ excludeCamp: 'VILLAGER' }).length;
+  async endGame() {
+    // 计算各阵营存活人数
+    const aliveWolves = this.getAlivePlayers({ excludeCamp: 'WOLF' }).length;
+    const aliveGods = this.getAlivePlayers({ excludeCamp: 'GOD' }).length;
+    const aliveVillagers = this.getAlivePlayers({ excludeCamp: 'VILLAGER' }).length;
 
-  // 胜利判定
-  let winner = null;
-  let gameOver = false;
-  let reason = "";
-  let tubian = this.config.game.enableTubian;
+    // 胜利判定
+    let winner = null;
+    let gameOver = false;
+    let reason = "";
+    let tubian = this.config.game.enableTubian;
 
-  // 判断是否有阵营胜利
-  if (aliveWolves === 0) {
-    // 狼人全部死亡，好人胜利
-    winner = "好人";
-    reason = "狼人全部出局";
-    gameOver = true;
-  } else if (aliveGods === 0 && aliveVillagers === 0) {
-    // 所有神职和平民都死亡，狼人胜利
-    winner = "狼人";
-    reason = "好人全部出局";
-    gameOver = true;
-  } else if (tubian && aliveGods === 0) {
-    // 屠边规则：所有神职都死亡，狼人胜利
-    winner = "狼人";
-    reason = "神职全部出局";
-    gameOver = true;
-  } else if (tubian && aliveVillagers === 0) {
-    // 屠边规则：所有平民都死亡，狼人胜利
-    winner = "狼人";
-    reason = "平民全部出局";
-    gameOver = true;
+    // 判断是否有阵营胜利
+    if (aliveWolves === 0) {
+      // 狼人全部死亡，好人胜利
+      winner = "好人";
+      reason = "狼人全部出局";
+      gameOver = true;
+    } else if (aliveGods === 0 && aliveVillagers === 0) {
+      // 所有神职和平民都死亡，狼人胜利
+      winner = "狼人";
+      reason = "好人全部出局";
+      gameOver = true;
+    } else if (tubian && aliveGods === 0) {
+      // 屠边规则：所有神职都死亡，狼人胜利
+      winner = "狼人";
+      reason = "神职全部出局";
+      gameOver = true;
+    } else if (tubian && aliveVillagers === 0) {
+      // 屠边规则：所有平民都死亡，狼人胜利
+      winner = "狼人";
+      reason = "平民全部出局";
+      gameOver = true;
+    }
+
+    // 如果游戏结束，发出游戏结束事件
+    if (gameOver) {
+      const alivePlayersStr = this.getAlivePlayers({ showRole: true, showStatus: true }).map((p) => p.getDisplayInfo()).join("\n");
+
+      this.emit('gameEnd', {
+        winner,
+        reason,
+        alivePlayers: alivePlayersStr
+      });
+      
+      return true;
+    }
+
+    return false;
   }
-
-  // 如果游戏结束，显示结果
-  if (gameOver) {
-    const alivePlayersStr = this.getAlivePlayers({ showRole: true, showStatus: true }).map((p) => p.getDisplayInfo()).join("\n");
-
-    this.e.reply(`游戏结束！\n获胜阵营：${winner}\n胜利原因：${reason}\n存活玩家：\n${alivePlayersStr}`);
-    return true;
-  }
-
-  return false;
-}
 
   // 工具方法:打乱数组
   shuffle(array) {
@@ -194,8 +291,8 @@ export class Game {
 
   async startNewDay() {
     this.turn++;
-    // 发送新的一天开始的消息
-    this.e.reply(`=== 第${this.turn}天 ===`);
+    // 发送新的一天开始的消息，使用事件替代直接通信
+    this.emit('newDay', { turn: this.turn });
   }
 
   // 根据游戏内编号获取玩家ID
@@ -210,44 +307,45 @@ export class Game {
     return this.players.get(playerId);
   }
 
-/**
- * 获取存活玩家列表
- * @param {Object} options - 选项
- * @param {string[]} [options.excludeIds=[]] - 需要排除的玩家ID列表
- * @param {string} [options.excludeCamp] - 排除特定阵营 (WOLF/GOD/VILLAGER)
- * @param {string} [options.roleType] - 指定角色类型 (通过constructor.name匹配)
- * @param {boolean} [options.includeRole=false] - 是否在返回结果中包含角色对象
- * @returns {(Player[]|Array<{player: Player, role: Role}>)} 存活玩家列表或玩家与角色的对象数组
- */
-getAlivePlayers({ 
-  excludeIds = [], excludeCamp = null,roleType = null,includeRole = false } = {}) {
-  const filteredPlayers = [...this.players.values()].filter(player => {
-    // 检查是否存活
-    if (!player.isAlive) return false;
-    
-    // 检查是否在排除列表中
-    if (excludeIds.includes(player.id)) return false;
-    
-    const role = this.roles.get(player.id);
-    
-    // 检查阵营
-    if (excludeCamp && role?.getCamp() === excludeCamp) return false;
-    
-    // 检查角色类型
-    if (roleType && role?.constructor.name !== roleType) return false;
-    
-    return true;
-  });
+  /**
+   * 获取存活玩家列表
+   * @param {Object} options - 选项
+   * @param {string[]} [options.excludeIds=[]] - 需要排除的玩家ID列表
+   * @param {string} [options.excludeCamp] - 排除特定阵营 (WOLF/GOD/VILLAGER)
+   * @param {string} [options.roleType] - 指定角色类型 (通过constructor.name匹配)
+   * @param {boolean} [options.includeRole=false] - 是否在返回结果中包含角色对象
+   * @returns {(Player[]|Array<{player: Player, role: Role}>)} 存活玩家列表或玩家与角色的对象数组
+   */
+  getAlivePlayers({ 
+    excludeIds = [], excludeCamp = null, roleType = null, includeRole = false, showRole = false, showStatus = false 
+  } = {}) {
+    const filteredPlayers = [...this.players.values()].filter(player => {
+      // 检查是否存活
+      if (!player.isAlive) return false;
+      
+      // 检查是否在排除列表中
+      if (excludeIds.includes(player.id)) return false;
+      
+      const role = this.roles.get(player.id);
+      
+      // 检查阵营
+      if (excludeCamp && role?.getCamp() === excludeCamp) return false;
+      
+      // 检查角色类型
+      if (roleType && role?.constructor.name !== roleType) return false;
+      
+      return true;
+    });
 
-  // 如果需要包含角色对象，转换为{player, role}格式
-  if (includeRole) {
-    return filteredPlayers.map(player => ({
-      player,
-      role: this.roles.get(player.id)
-    }));
+    // 如果需要包含角色对象，转换为{player, role}格式
+    if (includeRole) {
+      return filteredPlayers.map(player => ({
+        player,
+        role: this.roles.get(player.id)
+      }));
+    }
+    return filteredPlayers;
   }
-  return filteredPlayers;
-}
 
   // 获取当前游戏状态
   getCurrentState() {
@@ -265,10 +363,12 @@ getAlivePlayers({
   }
 
   // 开始游戏
-  async start(e) {
-
+  async start() {
     if (this.players.size < 6) {
-      e.reply("玩家数量不足，至少需要6名玩家");
+      this.emit('message', {
+        type: 'group',
+        content: "玩家数量不足，至少需要6名玩家"
+      });
       return false;
     }
 
@@ -303,12 +403,23 @@ getAlivePlayers({
         default: 
       }
 
+      // 通知玩家死亡
+      this.emit('playerDeath', { 
+        player, 
+        reason 
+      });
+
       // 4. 检查游戏是否结束
       await this.endGame();
 
       return true;
     } catch (err) {
       console.error("处理玩家死亡时出错:", err);
+      this.emit('error', new GameError(
+        "处理玩家死亡时出错", 
+        "PLAYER_DEATH_ERROR",
+        { playerId: player.id, reason, error: err }
+      ));
       return false;
     }
   }

@@ -2,6 +2,7 @@ import { Game } from "../model/core/Game.js";
 import GameConfig from "../components/GameConfig.js";
 import { GameManager } from "../model/GameManager.js";
 import { Player } from "../model/Player.js";
+import { GameEventHandler } from "../model/core/GameEventHandler.js";
 
 export class GameStart extends plugin {
   constructor() {
@@ -19,6 +20,7 @@ export class GameStart extends plugin {
     });
 
     this.mutedPlayers = new Map();
+    this.eventHandlers = new Map(); // 存储每个群的事件处理器
   }
 
   async createGame(e) {
@@ -29,7 +31,12 @@ export class GameStart extends plugin {
 
     const gameManager = new GameManager(GameConfig);
     const game = new Game();
-    // 初始化游戏,传入事件对象
+    
+    // 创建事件处理器，连接Game和e
+    const eventHandler = new GameEventHandler(game, e);
+    this.eventHandlers.set(e.group_id, eventHandler);
+    
+    // 初始化游戏，不再需要传入e
     await game.init(GameConfig, gameManager);
 
     GameManager.addGame(e.group_id, game);
@@ -69,13 +76,25 @@ export class GameStart extends plugin {
     const gameInstance = await this._getGameInstance(e);
     if (gameInstance === null) return;
 
-    await gameInstance.game.start(e);
+    // 调用start方法，不再需要传入e
+    await gameInstance.game.start();
     e.reply("游戏开始!");
     return true;
   }
 
   async endGame(e) {
     const groupId = e.group_id;
+    
+    // 移除事件处理器
+    if (this.eventHandlers.has(groupId)) {
+      // 移除所有事件监听器
+      const game = GameManager.getGame(groupId);
+      if (game) {
+        game.removeAllListeners();
+      }
+      this.eventHandlers.delete(groupId);
+    }
+    
     GameManager.removeGame(groupId);
     e.reply("游戏已结束");
     return true;

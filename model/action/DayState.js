@@ -2,6 +2,8 @@ import { GameState } from "./GameState.js";
 import { VoteState } from "./VoteState.js";
 import { LastWordsState } from "./LastWordsState.js";
 import { HunterRole } from "../roles/HunterRole.js";
+import { SheriffElectState } from "./SheriffElectState.js";
+import { SheriffTransferState } from "./SheriffTransferState.js";
 
 export class DayState extends GameState {
   constructor(game) {
@@ -25,7 +27,10 @@ export class DayState extends GameState {
       .filter(p => !p.isAlive && (p.deathReason === 'WOLF_KILL' || p.deathReason === 'POISON'));
 
     if (deadPlayers.length === 0) {
-      this.e.reply("昨晚是平安夜，没有玩家死亡");
+      this.game.emit('message', {
+        type: 'group',
+        content: "昨晚是平安夜，没有玩家死亡"
+      });
       return;
     }
 
@@ -35,10 +40,15 @@ export class DayState extends GameState {
       deathMsg += `${player.name}\n`;
     }
 
-    this.e.reply(deathMsg);
+    this.game.emit('message', {
+      type: 'group',
+      content: deathMsg
+    });
 
     // 处理头夜死亡玩家的遗言
     if (this.game.turn === 0 && deadPlayers.length > 0) {
+      // 设置状态转换上下文
+      this.game.setStateTransitionContext({ deadPlayer: deadPlayers[0] });
       await this.game.changeState(new LastWordsState(this.game, this, deadPlayers[0]));
       return;
     }
@@ -46,13 +56,23 @@ export class DayState extends GameState {
     // 首夜过后检查死亡玩家中特殊角色
     for (const player of deadPlayers) {
       const role = this.game.roles.get(player.id);
+      // 设置状态转换上下文
+      this.game.setStateTransitionContext({ deadPlayer: player });
+      
       if (role instanceof HunterRole && role.canAct()) {
-        this.e.reply(`猎人 ${player.name} 死亡，现在可以开枪`);
+        this.game.emit('message', {
+          type: 'group',
+          content: `猎人 ${player.name} 死亡，现在可以开枪`
+        });
         await role.getActionPrompt();
         return;
       }
+      
       if (player.isSheriff) {
-        this.e.reply(`警长 ${player.name} 死亡，现在可以转移警长`);
+        this.game.emit('message', {
+          type: 'group',
+          content: `警长 ${player.name} 死亡，现在可以转移警徽`
+        });
         await this.game.changeState(new SheriffTransferState(this.game, player, this));
         return;
       }
@@ -60,7 +80,9 @@ export class DayState extends GameState {
 
     // 如果是第一个夜晚，进入警长竞选阶段
     if (this.game.turn === 0 && this.game.getConfig().game.sheriff) {
-      this.game.changeState(new SheriffElectState(this.game));
+      // 清空状态转换上下文
+      this.game.setStateTransitionContext({});
+      await this.game.changeState(new SheriffElectState(this.game));
     }
   }
 

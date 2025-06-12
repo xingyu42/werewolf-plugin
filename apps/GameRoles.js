@@ -1,5 +1,7 @@
 import { GameManager } from "../model/GameManager.js";
 import { HunterRole } from "../model/roles/HunterRole.js";
+import { plugin } from '../../../lib/plugins/plugin.js';
+import { GameError } from '../model/core/GameError.js';
 
 export class GameRoles extends plugin {
   constructor() {
@@ -116,11 +118,20 @@ export class GameRoles extends plugin {
       await role.act(target);
 
       // 通知游戏状态该行动已完成
+      const currentState = game.getCurrentState();
       await currentState.handleAction(role.player, "protect", target.id);
 
       return true;
     } catch (error) {
-      e.reply(`操作失败: ${error.message}`);
+      if (game) {
+        game.emit('error', new GameError(
+          error.message,
+          "GUARD_ACTION_ERROR",
+          { playerId: e.user_id, error }
+        ));
+      } else {
+        e.reply(`操作失败: ${error.message}`);
+      }
       return true;
     }
   }
@@ -201,7 +212,15 @@ export class GameRoles extends plugin {
 
       return true;
     } catch (error) {
-      e.reply(`操作失败: ${error.message}`);
+      if (game) {
+        game.emit('error', new GameError(
+          error.message,
+          "PROPHET_ACTION_ERROR",
+          { playerId: e.user_id, error }
+        ));
+      } else {
+        e.reply(`操作失败: ${error.message}`);
+      }
       return true;
     }
   }
@@ -234,7 +253,15 @@ export class GameRoles extends plugin {
 
       return true;
     } catch (error) {
-      e.reply(`操作失败: ${error.message}`);
+      if (game) {
+        game.emit('error', new GameError(
+          error.message,
+          "WITCH_POISON_ERROR",
+          { playerId: e.user_id, error }
+        ));
+      } else {
+        e.reply(`操作失败: ${error.message}`);
+      }
       return true;
     }
   }
@@ -269,7 +296,15 @@ export class GameRoles extends plugin {
 
       return true;
     } catch (error) {
-      e.reply(`操作失败: ${error.message}`);
+      if (game) {
+        game.emit('error', new GameError(
+          error.message,
+          "WITCH_SAVE_ERROR",
+          { playerId: e.user_id, error }
+        ));
+      } else {
+        e.reply(`操作失败: ${error.message}`);
+      }
       return true;
     }
   }

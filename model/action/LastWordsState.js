@@ -1,6 +1,7 @@
 import { GameState } from "./GameState.js";
 import { HunterRole } from "../roles/HunterRole.js";
 import { SheriffTransferState } from "./SheriffTransferState.js";
+import { NightState } from "./NightState.js";
 
 export class LastWordsState extends GameState {
   constructor(game, nextState, deadPlayer) {
@@ -42,16 +43,33 @@ export class LastWordsState extends GameState {
     // 检查死亡玩家是特殊角色
     const deadRole = this.game.roles.get(this.deadPlayer.id);
     if (deadRole instanceof HunterRole && deadRole.canAct()) {
-      await this.e.reply(`猎人 ${this.deadPlayer.name} 的遗言结束，现在可以开枪`);
+      this.game.emit('message', {
+        type: 'group',
+        content: `猎人 ${this.deadPlayer.name} 的遗言结束，现在可以开枪`
+      });
       await deadRole.getActionPrompt();
     }
+    
+    // 设置状态转换上下文，包含死亡玩家信息
+    this.game.setStateTransitionContext({ deadPlayer: this.deadPlayer });
+    
+    // 如果死亡玩家是警长，转移到警长移交状态
     if (this.deadPlayer.isSheriff) {
-      await this.e.reply(`警长 ${this.deadPlayer.name} 死亡，现在可以转移警长`);
-      await this.game.changeState(new SheriffTransferState(this.game, this.deadPlayer, this));
+      this.game.emit('message', {
+        type: 'group',
+        content: `警长 ${this.deadPlayer.name} 死亡，现在可以转移警徽`
+      });
+      await this.game.changeState(new SheriffTransferState(this.game, this.deadPlayer, this.nextState));
+      return; // 已经转换状态，不需要进行下一步
     }
 
-    // 进入下一个状态
-    await this.game.changeState(this.nextState);
+    // 死亡玩家不是警长，直接进入下一个状态（通常是夜晚）
+    if (this.nextState) {
+      await this.game.changeState(this.nextState);
+    } else {
+      // 如果没有指定下一个状态，默认进入夜晚
+      await this.game.changeState(new NightState(this.game));
+    }
   }
 
   // 处理玩家行为

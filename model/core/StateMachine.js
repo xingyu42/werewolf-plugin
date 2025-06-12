@@ -1,0 +1,132 @@
+/**
+ * 状态机配置 - 定义游戏中所有合法的状态转换路径
+ * 此文件使复杂的游戏流程变得清晰、可预测、易于维护
+ */
+
+// 游戏状态枚举
+export const GameStateType = {
+  NIGHT: 'NightState',
+  DAY: 'DayState',
+  VOTE: 'VoteState',
+  LAST_WORDS: 'LastWordsState',
+  SHERIFF_ELECT: 'SheriffElectState',
+  SHERIFF_TRANSFER: 'SheriffTransferState'
+};
+
+/**
+ * 状态转换配置
+ * 
+ * 每个状态都有一个对象，其中定义了它可以转换到的目标状态
+ * 对于某些特殊情况，还可以定义条件检查函数
+ */
+export const StateTransitions = {
+  // 夜晚状态可以转换到白天状态
+  [GameStateType.NIGHT]: {
+    [GameStateType.DAY]: {
+      description: '夜晚结束，进入白天',
+      condition: (game) => true // 始终允许此转换
+    }
+  },
+  
+  // 白天状态可以转换到投票状态
+  [GameStateType.DAY]: {
+    [GameStateType.VOTE]: {
+      description: '白天讨论结束，进入投票',
+      condition: (game) => true // 始终允许此转换
+    },
+    [GameStateType.SHERIFF_ELECT]: {
+      description: '首日特殊流程，进入警长竞选',
+      condition: (game) => game.turn === 1 // 仅在第一天允许
+    }
+  },
+  
+  // 投票状态可以转换到遗言状态或夜晚状态
+  [GameStateType.VOTE]: {
+    [GameStateType.LAST_WORDS]: {
+      description: '投票决定驱逐某人，进入遗言',
+      condition: (game) => true // 始终允许此转换
+    },
+    [GameStateType.NIGHT]: {
+      description: '平票无人驱逐，直接进入夜晚',
+      condition: (game) => true // 始终允许此转换
+    }
+  },
+  
+  // 遗言状态转换到夜晚状态或警长移交状态
+  [GameStateType.LAST_WORDS]: {
+    [GameStateType.NIGHT]: {
+      description: '遗言结束，进入夜晚',
+      condition: (game, deadPlayer) => !deadPlayer.isSheriff // 死者不是警长
+    },
+    [GameStateType.SHERIFF_TRANSFER]: {
+      description: '死者是警长，需要移交警徽',
+      condition: (game, deadPlayer) => deadPlayer.isSheriff // 死者是警长
+    }
+  },
+  
+  // 警长竞选状态转换到白天状态
+  [GameStateType.SHERIFF_ELECT]: {
+    [GameStateType.DAY]: {
+      description: '警长选举结束，继续白天流程',
+      condition: (game) => true // 始终允许此转换
+    }
+  },
+  
+  // 警长移交状态可以转换到任何状态（根据构造函数中的nextState决定）
+  [GameStateType.SHERIFF_TRANSFER]: {
+    [GameStateType.NIGHT]: {
+      description: '警长移交结束，进入夜晚',
+      condition: (game) => true // 始终允许此转换
+    }
+  }
+};
+
+/**
+ * 检查状态转换是否合法
+ * @param {string} fromState 源状态类名
+ * @param {string} toState 目标状态类名
+ * @param {Game} game 游戏实例
+ * @param {Object} context 额外的上下文信息（如死亡的玩家）
+ * @returns {Object} 包含是否允许转换和原因的对象
+ */
+export function isValidTransition(fromState, toState, game, context = {}) {
+  // 获取源状态的可能转换
+  const possibleTransitions = StateTransitions[fromState];
+  
+  // 如果没有为源状态定义转换，则不允许
+  if (!possibleTransitions) {
+    return {
+      allowed: false,
+      reason: `未定义从 ${fromState} 的任何转换`
+    };
+  }
+  
+  // 检查是否可以转换到目标状态
+  const transition = possibleTransitions[toState];
+  
+  // 如果没有定义到目标状态的转换，则不允许
+  if (!transition) {
+    return {
+      allowed: false,
+      reason: `不允许从 ${fromState} 转换到 ${toState}`
+    };
+  }
+  
+  // 如果定义了条件函数，则检查条件
+  if (transition.condition && typeof transition.condition === 'function') {
+    const conditionMet = transition.condition(game, context.deadPlayer);
+    
+    if (!conditionMet) {
+      return {
+        allowed: false,
+        reason: `条件不满足: ${transition.description}`
+      };
+    }
+  }
+  
+  // 允许转换
+  return {
+    allowed: true,
+    reason: transition.description
+  };
+} 

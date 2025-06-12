@@ -78,7 +78,13 @@ export class SheriffTransferState extends GameState {
       this.sheriff.isSheriff = false;
       target.isSheriff = true;
 
-      await this.e.reply(`\n=== 警长移交结果 ===\n` + `原警长: ${this.sheriff.name}\n` + `新警长: ${target.name}\n` + "====================");
+      this.game.emit('message', {
+        type: 'group',
+        content: `\n=== 警长移交结果 ===\n` + 
+                 `原警长: ${this.sheriff.name}\n` + 
+                 `新警长: ${target.name}\n` + 
+                 "===================="
+      });
 
       // 进入下一个状态
       await this.game.changeState(this.nextState);
@@ -92,7 +98,13 @@ export class SheriffTransferState extends GameState {
   async handleSkip(player) {
     try {
       this.hasTransferred = true;
-      await this.e.reply(`\n=== 警长移交结果 ===\n` + `警长 ${this.sheriff.name} 选择带走警徽\n` + "====================");
+      
+      this.game.emit('message', {
+        type: 'group',
+        content: `\n=== 警长移交结果 ===\n` + 
+                 `警长 ${this.sheriff.name} 选择带走警徽\n` + 
+                 "===================="
+      });
 
       // 进入下一个状态
       await this.game.changeState(this.nextState);
