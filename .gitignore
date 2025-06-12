@@ -4,3 +4,4 @@ tests/
 .vscode/
 *.log
 doc/
+.codeaskdata
