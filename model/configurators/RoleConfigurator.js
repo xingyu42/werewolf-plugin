@@ -4,6 +4,7 @@
  */
 import { GameTemplates } from './GameTemplates.js';
 import { RoleData } from './RoleData.js';
+import { BalanceValidator } from './BalanceValidator.js';
 
 export class RoleConfigurator {
   // 配置缓存: 玩家人数 -> 角色配置数组
@@ -32,105 +33,79 @@ export class RoleConfigurator {
     }
     
     try {
-      // 检查缓存
-      const cacheKey = JSON.stringify({ playerCount, options });
-      if (RoleConfigurator.configCache.has(cacheKey)) {
-        return [...RoleConfigurator.configCache.get(cacheKey)];
+      // 1. 尝试从模板获取配置
+      let config = GameTemplates.getRandomTemplate(playerCount);
+      let validation = config ? BalanceValidator.validate(config) : { isValid: false };
+      
+      // 2. 如果模板无效或不存在，则程序化生成
+      if (!validation.isValid) {
+        if (config) {
+          console.warn(`[配置警告] ${playerCount}人模板'${GameTemplates.getTemplateMetadata(playerCount)?.name}'不平衡: ${validation.reason}`);
+        }
+        config = RoleConfigurator._generateProceduralConfig(playerCount);
+        validation = BalanceValidator.validate(config);
+        
+        // 如果程序化生成的配置仍然无效，抛出错误
+        if (!validation.isValid) {
+          throw new Error(`无法为${playerCount}人生成平衡的程序化配置: ${validation.reason}`);
+        }
       }
       
-      // 选择合适的角色配置 - V1版本基于预定义模板
-      let config = RoleConfigurator._selectTemplate(playerCount, options);
-      
-      // 如果启用避免重复，且该配置最近使用过，尝试生成变化
-      if (options.avoidRepeat !== false && RoleConfigurator._isRecentlyUsed(config)) {
-        config = RoleConfigurator._generateVariation(config, playerCount);
-      }
-      
-      // 验证配置平衡性
-      if (!RoleConfigurator.validateConfig(config)) {
-        console.warn(`生成的配置不平衡: ${config.join(',')}`);
-        // 尝试生成备选配置
-        config = RoleConfigurator._generateBalancedConfig(playerCount);
-      }
-      
-      // 记录本次配置
+      // 3. 记录并返回最终配置
       RoleConfigurator._recordConfig(config);
-      
-      // 缓存配置以提升性能
-      RoleConfigurator.configCache.set(cacheKey, [...config]);
-      
       return config;
-    } catch (error) {
-      console.error("角色配置生成失败:", error);
-      // 生成基础配置作为回退机制，确保游戏可以继续
-      return RoleConfigurator._generateFallbackConfig(playerCount);
-    }
-  }
-  
-  /**
-   * 验证配置是否平衡
-   * 基于PRD中的游戏平衡验证指标
-   * @param {Array<string>} config - 角色配置
-   * @returns {boolean} 是否平衡
-   */
-  static validateConfig(config) {
-    if (!config || config.length === 0) return false;
-    
-    // 计算阵营力量
-    let goodPower = 0;
-    let evilPower = 0;
-    let wolfCount = 0;
-    
-    // 临时简化版：根据角色类型计算权重
-    for (const role of config) {
-      const weight = RoleData.getWeight(role);
-      if (weight > 0) {
-        goodPower += weight;
-      } else if (weight < 0) {
-        evilPower += Math.abs(weight);
-      }
       
-      if (RoleData.isWolf(role)) {
-        wolfCount++;
-      }
+    } catch (error) {
+      console.error(`角色配置生成失败: ${error.message}`);
+      // 最终回退机制：一个绝对安全的极简配置
+      const wolfCount = Math.max(1, Math.floor(playerCount / 4));
+      const villagers = Array(playerCount - wolfCount).fill('VILLAGER');
+      const wolves = Array(wolfCount).fill('WOLF');
+      return [...wolves, ...villagers];
     }
-    
-    // 计算阵营力量比: 狼人阵营力量 / 总力量
-    const totalPower = goodPower + evilPower;
-    if (totalPower === 0) return false;
-    
-    const evilRatio = evilPower / totalPower;
-    
-    // 验证狼人比例: 15%-35%
-    const wolfRatio = wolfCount / config.length;
-    
-    // 基于PRD要求: 阵营力量比在0.4-0.6之间，狼人比例在15%-35%之间
-    return evilRatio >= 0.4 && evilRatio <= 0.6 && wolfRatio >= 0.15 && wolfRatio <= 0.35;
   }
   
   /**
-   * 选择合适的角色配置模板
+   * 统一的程序化配置生成器
    * @private
-   * @param {number} playerCount - 玩家人数
-   * @param {Object} options - 可选参数
-   * @returns {Array<string>} 角色配置数组
-   * @throws {Error} 如果没有合适的模板
    */
-  static _selectTemplate(playerCount, options) {
-    // V1版本：基于PRD中的标准配置表
-    // 在后续任务中将由GameTemplates类提供
-    const template = GameTemplates.getRandomTemplate(playerCount);
-    if (template) {
-      return template;
-    }
-
-    // 处理超出范围的情况
-    const extendedTemplate = GameTemplates.getNearestTemplate(playerCount);
-    if (extendedTemplate.template) {
-      return extendedTemplate.template;
+  static _generateProceduralConfig(playerCount) {
+    // 基于平方根法则确定狼人数量
+    const wolfCount = Math.floor(Math.sqrt(playerCount));
+    
+    // 获取当前人数可用的神民角色
+    const availableGods = RoleData.getRolesByCamp('GOD').filter(
+      role => RoleData.getUnlockCount(role) <= playerCount
+    );
+    
+    // 动态确定神民数量，例如总人数的1/4
+    const godCount = Math.min(availableGods.length, Math.floor(playerCount / 4));
+    
+    // 确定村民数量
+    const villagerCount = playerCount - wolfCount - godCount;
+    
+    // 构建配置
+    const config = [];
+    
+    // 添加狼人
+    for (let i = 0; i < wolfCount; i++) {
+      config.push("WOLF");
     }
     
-    throw new Error(`不支持${playerCount}人的游戏配置`);
+    // 添加神民 (随机选择)
+    const selectedGods = [];
+    while(selectedGods.length < godCount && availableGods.length > 0) {
+      const randomIndex = Math.floor(Math.random() * availableGods.length);
+      selectedGods.push(availableGods.splice(randomIndex, 1)[0]);
+    }
+    config.push(...selectedGods);
+    
+    // 添加村民
+    for (let i = 0; i < villagerCount; i++) {
+      config.push("VILLAGER");
+    }
+    
+    return config;
   }
   
   /**
@@ -190,74 +165,6 @@ export class RoleConfigurator {
           break;
         }
       }
-    }
-    
-    return config;
-  }
-  
-  /**
-   * 生成平衡的配置
-   * 在验证失败时使用此方法尝试生成平衡配置
-   * @private
-   * @param {number} playerCount - 玩家人数
-   * @returns {Array<string>} 平衡的角色配置
-   */
-  static _generateBalancedConfig(playerCount) {
-    // 基于平方根法则确定狼人数量
-    const wolfCount = Math.floor(Math.sqrt(playerCount));
-    
-    const availableRoles = RoleData.getAvailableRoles(playerCount);
-    const godRoles = availableRoles.filter(role => RoleData.isGod(role));
-    
-    // 确定神民数量 - 根据PRD解锁规则
-    let godCount = godRoles.length;
-    
-    // 确定村民数量
-    const villagerCount = playerCount - wolfCount - godCount;
-    
-    // 构建配置
-    const config = [];
-    
-    // 添加狼人
-    for (let i = 0; i < wolfCount; i++) {
-      config.push("WOLF");
-    }
-    
-    // 添加神民
-    for (const role of godRoles) {
-      config.push(role);
-    }
-    
-    // 添加村民
-    for (let i = 0; i < villagerCount; i++) {
-      config.push("VILLAGER");
-    }
-    
-    return config;
-  }
-  
-  /**
-   * 生成备选配置
-   * 当配置生成失败时的回退机制
-   * @private
-   * @param {number} playerCount - 玩家人数
-   * @returns {Array<string>} 备选角色配置
-   */
-  static _generateFallbackConfig(playerCount) {
-    console.warn(`为 ${playerCount} 人游戏生成回退配置`);
-    
-    // 基于平方根法则确定狼人数量
-    const wolfCount = Math.floor(Math.sqrt(playerCount));
-    
-    // 剩余的都是村民
-    const villagerCount = playerCount - wolfCount;
-    
-    const config = [];
-    for (let i = 0; i < wolfCount; i++) {
-      config.push("WOLF");
-    }
-    for (let i = 0; i < villagerCount; i++) {
-      config.push("VILLAGER");
     }
     
     return config;

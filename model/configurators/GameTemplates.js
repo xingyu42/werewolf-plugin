@@ -8,9 +8,8 @@
  * 
  * 遵循平方根法则、权重平衡系统和约束驱动生成的三大核心算法原则
  */
-import { RoleData } from './RoleData.js';
-// 导入游戏配置组件
 import GameConfig from '../../components/GameConfig.js';
+import { BalanceValidator } from './BalanceValidator.js';
 
 export class GameTemplates {
   // 配置缓存，避免重复读取配置文件
@@ -20,9 +19,7 @@ export class GameTemplates {
   
   /**
    * 从配置中加载游戏模板
-   * 支持两种配置格式：
-   * 1. 新格式：presets键值对 (推荐)
-   * 2. 旧格式：roleConfigs数组列表 (向后兼容)
+   * presets键值对 (推荐)
    * @private
    */
   static _loadTemplates() {
@@ -68,25 +65,7 @@ export class GameTemplates {
           };
         }
       }
-      
-      // 处理旧格式的roleConfigs配置（向后兼容）
-      if (modesConfig && modesConfig.roleConfigs && Object.keys(GameTemplates._configCache.templates).length === 0) {
-        for (const [playerCount, roleList] of Object.entries(modesConfig.roleConfigs)) {
-          const count = parseInt(playerCount, 10);
-          if (isNaN(count) || !Array.isArray(roleList)) continue;
-          
-          // 保存到缓存
-          GameTemplates._configCache.templates[count] = [...roleList];
-          
-          // 设置默认元数据
-          GameTemplates._configCache.metadata[count] = GameTemplates._configCache.metadata[count] || {
-            name: `${count}人标准局`,
-            description: roleList.join(', '),
-            balance: "标准"
-          };
-        }
-      }
-      
+            
       // 处理变种配置 (如果存在)
       if (modesConfig && modesConfig.variations) {
         for (const [playerCount, variationList] of Object.entries(modesConfig.variations)) {
@@ -107,6 +86,14 @@ export class GameTemplates {
             // 如果已经是数组格式，直接使用
             return [...variation];
           });
+        }
+      }
+
+      // (推荐) 对所有加载的模板进行一次性平衡性检查
+      for (const [playerCount, template] of Object.entries(GameTemplates._configCache.templates)) {
+        const validation = BalanceValidator.validate(template);
+        if (!validation.isValid) {
+          console.warn(`[模板警告] ${playerCount}人预设模板不平衡: ${validation.reason}`);
         }
       }
             
@@ -298,125 +285,4 @@ export class GameTemplates {
     
     return GameTemplates._configCache.metadata[playerCount] || null;
   }
-  
-  /**
-   * 验证配置是否平衡
-   * 基于PRD中的游戏平衡验证指标进行验证
-   * @param {Array<string>} template - 角色配置
-   * @returns {Object} 包含验证结果的对象 
-   */
-  static validateTemplate(template) {
-    if (!template || !Array.isArray(template) || template.length === 0) {
-      return { 
-        isValid: false, 
-        reason: "无效的配置模板" 
-      };
-    }
-    
-    const playerCount = template.length;
-    
-    // 计算阵营力量
-    let goodPower = 0;
-    let evilPower = 0;
-    let wolfCount = 0;
-    
-    for (const role of template) {
-      const weight = RoleData.getWeight(role);
-      if (weight > 0) {
-        goodPower += weight;
-      } else if (weight < 0) {
-        evilPower += Math.abs(weight);
-      }
-      
-      if (RoleData.isWolf(role)) {
-        wolfCount++;
-      }
-    }
-    
-    // 计算阵营力量比
-    const totalPower = goodPower + evilPower;
-    if (totalPower === 0) {
-      return { 
-        isValid: false, 
-        reason: "总权重为零，无法计算平衡性" 
-      };
-    }
-    
-    const evilRatio = evilPower / totalPower;
-    
-    // 计算狼人比例
-    const wolfRatio = wolfCount / playerCount;
-    
-    // 验证阵营力量比（应在0.4-0.6之间）
-    if (evilRatio < 0.4 || evilRatio > 0.6) {
-      return { 
-        isValid: false, 
-        reason: `阵营力量比不平衡: ${evilRatio.toFixed(2)}，应在0.4-0.6之间`,
-        evilRatio,
-        wolfRatio,
-        goodPower,
-        evilPower
-      };
-    }
-    
-    // 验证狼人比例（应在15%-35%之间）
-    if (wolfRatio < 0.15 || wolfRatio > 0.35) {
-      return { 
-        isValid: false, 
-        reason: `狼人比例不合理: ${(wolfRatio * 100).toFixed(0)}%，应在15%-35%之间`,
-        evilRatio,
-        wolfRatio,
-        goodPower,
-        evilPower
-      };
-    }
-    
-    // 验证特殊角色是否符合解锁规则
-    for (const role of template) {
-      const minCount = RoleData.getUnlockCount(role);
-      if (playerCount < minCount) {
-        return { 
-          isValid: false, 
-          reason: `角色${role}需要至少${minCount}名玩家才能解锁`,
-          evilRatio,
-          wolfRatio,
-          goodPower,
-          evilPower
-        };
-      }
-    }
-    
-    return { 
-      isValid: true, 
-      evilRatio,
-      wolfRatio,
-      goodPower,
-      evilPower,
-      balance: evilRatio > 0.45 && evilRatio < 0.55 ? "优秀" : "良好"
-    };
-  }
-  
-  /**
-   * 计算配置的平衡度评分
-   * @param {Array<string>} template - 角色配置
-   * @returns {number} 平衡度评分（0-100，越高越平衡）
-   */
-  static calculateBalanceScore(template) {
-    const validation = GameTemplates.validateTemplate(template);
-    if (!validation.isValid) {
-      return 0;
-    }
-    
-    // 理想的阵营力量比为0.5，与此的接近程度决定评分
-    const balanceDeviation = Math.abs(validation.evilRatio - 0.5);
-    // 理想的狼人比例为0.25，与此的接近程度也影响评分
-    const wolfRatioDeviation = Math.abs(validation.wolfRatio - 0.25);
-    
-    // 根据偏差计算评分，偏差越小，评分越高
-    const balanceScore = 100 - balanceDeviation * 200; // 最大偏差0.5，扣100分
-    const wolfRatioScore = 100 - wolfRatioDeviation * 500; // 最大偏差0.2，扣100分
-    
-    // 综合评分，平衡性占60%，狼人比例占40%
-    return Math.round(balanceScore * 0.6 + wolfRatioScore * 0.4);
-  }
-} 
+}

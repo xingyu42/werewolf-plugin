@@ -3,6 +3,7 @@ import GameConfig from "../components/GameConfig.js";
 import { GameManager } from "../model/GameManager.js";
 import { Player } from "../model/Player.js";
 import { GameEventHandler } from "../model/core/GameEventHandler.js";
+import { PlayerStats } from "../model/stats/PlayerStats.js";
 
 export class GameStart extends plugin {
   constructor() {
@@ -19,6 +20,7 @@ export class GameStart extends plugin {
       ],
     });
 
+    this.playerStats = new PlayerStats();
     this.mutedPlayers = new Map();
     this.eventHandlers = new Map(); // 存储每个群的事件处理器
   }
@@ -42,6 +44,11 @@ export class GameStart extends plugin {
 
     // 将游戏实例添加到管理器
     GameManager.addGame(e.group_id, game);
+
+    // 游戏结束时更新统计
+    game.on('gameEnd', (result) => {
+      this.playerStats.updateStats(game, result);
+    });
 
     // 创建的玩家自动加入游戏
     const player = Player.fromEvent(e);

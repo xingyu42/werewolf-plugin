@@ -177,16 +177,26 @@ export class RoleData {
   }
   
   /**
+   * 判断角色是否属于特定阵营
+   * @param {string} roleName - 角色名称
+   * @param {string} targetCamp - 目标阵营 ("WOLF" | "GOD" | "VILLAGER")
+   * @returns {boolean} 是否属于该阵营
+   */
+  static isCamp(roleName, targetCamp) {
+    try {
+      return RoleData.getCamp(roleName) === targetCamp;
+    } catch (error) {
+      return false;
+    }
+  }
+  
+  /**
    * 判断角色是否为狼人阵营
    * @param {string} roleName - 角色名称
    * @returns {boolean} 是否为狼人阵营
    */
   static isWolf(roleName) {
-    try {
-      return RoleData.getCamp(roleName) === "WOLF";
-    } catch (error) {
-      return false;
-    }
+    return RoleData.isCamp(roleName, "WOLF");
   }
   
   /**
@@ -195,11 +205,7 @@ export class RoleData {
    * @returns {boolean} 是否为神民
    */
   static isGod(roleName) {
-    try {
-      return RoleData.getCamp(roleName) === "GOD";
-    } catch (error) {
-      return false;
-    }
+    return RoleData.isCamp(roleName, "GOD");
   }
   
   /**
@@ -208,10 +214,6 @@ export class RoleData {
    * @returns {boolean} 是否为普通村民
    */
   static isVillager(roleName) {
-    try {
-      return roleName === "VILLAGER";
-    } catch (error) {
-      return false;
-    }
+    return roleName === "VILLAGER";
   }
 } 
