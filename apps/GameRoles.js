@@ -1,6 +1,5 @@
 import { GameManager } from "../model/GameManager.js";
 import { HunterRole } from "../model/roles/HunterRole.js";
-import { plugin } from '../../../lib/plugins/plugin.js';
 import { GameError } from '../model/core/GameError.js';
 
 export class GameRoles extends plugin {

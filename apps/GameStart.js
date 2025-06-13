@@ -36,12 +36,18 @@ export class GameStart extends plugin {
     const eventHandler = new GameEventHandler(game, e);
     this.eventHandlers.set(e.group_id, eventHandler);
     
-    // 初始化游戏，不再需要传入e
-    await game.init(GameConfig, gameManager);
+    // 只初始化游戏配置和管理器，但不初始化玩家，避免在没有玩家时报错
+    game.config = GameConfig;
+    game.gameManager = gameManager;
 
+    // 将游戏实例添加到管理器
     GameManager.addGame(e.group_id, game);
 
-    e.reply("游戏创建成功,请输入 #加入狼人杀 参与");
+    // 创建的玩家自动加入游戏
+    const player = Player.fromEvent(e);
+    gameManager.addPlayer(player);
+
+    e.reply(`游戏创建成功，${player.name} 已自动加入游戏，其他玩家请输入 #加入狼人杀 参与`);
     return true;
   }
 
@@ -76,9 +82,16 @@ export class GameStart extends plugin {
     const gameInstance = await this._getGameInstance(e);
     if (gameInstance === null) return;
 
-    // 调用start方法，不再需要传入e
-    await gameInstance.game.start();
-    e.reply("游戏开始!");
+    // 现在，只有在startGame时才会调用游戏的init和start方法
+    // 首先调用init方法初始化
+    await gameInstance.init(GameConfig, gameInstance.gameManager);
+    
+    // 然后再调用start方法开始游戏
+    const result = await gameInstance.start();
+    
+    if (result) {
+      e.reply("游戏开始!");
+    }
     return true;
   }
 
