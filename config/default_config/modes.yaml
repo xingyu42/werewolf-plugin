@@ -1,9 +1,88 @@
-roleConfigs:
-  6: ["WOLF", "PROPHET", "WITCH", "VILLAGER", "VILLAGER", "WOLF"]
-  7: ["WOLF", "PROPHET", "WITCH", "GUARD", "VILLAGER", "VILLAGER", "WOLF"]
-  8: ["WOLF", "PROPHET", "WITCH", "GUARD", "HUNTER", "VILLAGER", "VILLAGER", "WOLF"]
-  9: ["WOLF", "PROPHET", "WITCH", "GUARD", "HUNTER", "VILLAGER", "VILLAGER", "WOLF", "WOLF"]
-  10: ["WOLF", "PROPHET", "WITCH", "GUARD", "HUNTER", "VILLAGER", "VILLAGER", "VILLAGER", "WOLF", "WOLF"]
-  11: ["WOLF", "PROPHET", "WITCH", "GUARD", "HUNTER", "VILLAGER", "VILLAGER", "VILLAGER", "VILLAGER", "WOLF", "WOLF"]
-  12: ["WOLF", "PROPHET", "WITCH", "GUARD", "HUNTER", "VILLAGER", "VILLAGER", "VILLAGER", "VILLAGER", "WOLF", "WOLF", "WOLF"]
+# Werewolf game mode presets
+# Defines role configurations for different player counts.
+# Each entry is keyed by the player count.
+#
+# 'name': A descriptive name for the game mode.
+# 'description': A brief, human-readable summary of the role composition.
+# 'roles': An object where keys are role names (uppercase) and values are the count of that role.
+#
+# The sum of role counts MUST equal the player count key.
+# Example for an 8-player game:
+#   8:
+#     name: "8-Player Hunter's Game"
+#     description: "2 Wolves, 1 Prophet, 1 Witch, 1 Hunter, 1 Guard, 2 Villagers"
+#     roles:
+#       WOLF: 2
+#       PROPHET: 1
+#       WITCH: 1
+#       HUNTER: 1
+#       GUARD: 1
+#       VILLAGER: 2
 
+presets:
+  6:
+    name: "6人新手局"
+    description: "2狼, 1预, 1女, 2民"
+    roles:
+      WOLF: 2
+      PROPHET: 1
+      WITCH: 1
+      VILLAGER: 2
+  7:
+    name: "7人守卫局"
+    description: "2狼, 1预, 1女, 1守, 2民"
+    roles:
+      WOLF: 2
+      PROPHET: 1
+      WITCH: 1
+      GUARD: 1
+      VILLAGER: 2
+  8:
+    name: "8人标准预女猎守"
+    description: "2狼, 1预, 1女, 1猎, 1守, 2民"
+    roles:
+      WOLF: 2
+      PROPHET: 1
+      WITCH: 1
+      HUNTER: 1
+      GUARD: 1
+      VILLAGER: 2
+  9:
+    name: "9人标准预女猎"
+    description: "3狼, 1预, 1女, 1猎, 3民"
+    roles:
+      WOLF: 3
+      PROPHET: 1
+      WITCH: 1
+      HUNTER: 1
+      VILLAGER: 3
+  10:
+    name: "10人标准预女猎守"
+    description: "3狼, 1预, 1女, 1猎, 1守, 3民"
+    roles:
+      WOLF: 3
+      PROPHET: 1
+      WITCH: 1
+      HUNTER: 1
+      GUARD: 1
+      VILLAGER: 3
+  11:
+    name: "11人标准预女猎守"
+    description: "4狼, 1预, 1女, 1猎, 1守, 3民"
+    roles:
+      WOLF: 4
+      PROPHET: 1
+      WITCH: 1
+      HUNTER: 1
+      GUARD: 1
+      VILLAGER: 4
+  12:
+    name: "12人标准局"
+    description: "4狼, 1预, 1女, 1猎, 1守, 4民"
+    roles:
+      WOLF: 4
+      PROPHET: 1
+      WITCH: 1
+      HUNTER: 1
+      GUARD: 1
+      VILLAGER: 4

@@ -6,6 +6,7 @@ import { EventEmitter } from 'node:events';
 import { GameError } from './GameError.js';
 import { isValidTransition } from './StateMachine.js';
 import { VictoryChecker } from './VictoryChecker.js';
+import { RoleConfigurator } from "../configurators/RoleConfigurator.js";
 
 /**
  * 游戏核心类 - 负责管理游戏状态、玩家和角色
@@ -58,9 +59,9 @@ export class Game extends EventEmitter {
     this.playerNumberMap.clear(); // 清空编号映射
 
     // 分配角色
-    const roles = this.gameManager.getRoleList();
-    const shuffledRoles = this.shuffle(roles);
     const players = this.gameManager.getPlayers();
+    const roles = RoleConfigurator.generate(players.length);
+    const shuffledRoles = this.shuffle(roles);
 
     for (let i = 0; i < players.length; i++) {
       const playerInfo = players[i];
