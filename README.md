@@ -40,6 +40,14 @@
 - `config.js` - 基础配置
 - `role.js` - 角色配置
 - `game.js` - 游戏规则配置
+- `modes.yaml` - 角色分配模式配置（推荐自定义）
+
+### modes.yaml新格式说明
+
+- 采用键值对形式，每个玩家人数为一个键（如8、9、10等），对应一个配置对象。
+- 配置对象包含`name`（模式名称）、`description`（描述）、`roles`（角色分布，角色名需大写）。
+- 详细模板和注释见`config/default_config/modes.yaml`。
+- 角色分配机制已统一由modes.yaml驱动，所有模板均可通过编辑该文件实现扩展。
 
 ## 常见问题
 

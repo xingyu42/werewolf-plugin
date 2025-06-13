@@ -1,73 +1,140 @@
 /**
- * 游戏标准配置模板管理模块
- * 基于PRD中的标准配置表，为不同人数的游戏提供预定义的角色配置模板
+ * 游戏标准配置模板管理模块 * 
+ * 主要功能：
+ * - 从modes.yaml加载角色模板，支持自定义和扩展
+ * - 配置驱动角色分配机制，所有角色模板均可通过编辑modes.yaml实现
+ * - 提供配置缓存机制，提高性能
+ * 
+ * 
  * 遵循平方根法则、权重平衡系统和约束驱动生成的三大核心算法原则
  */
 import { RoleData } from './RoleData.js';
+// 导入游戏配置组件
+import GameConfig from '../../components/GameConfig.js';
 
 export class GameTemplates {
-  /**
-   * 标准配置模板
-   * 基于PRD中定义的标准配置表，为6-12人游戏提供标准角色配置
-   * 确保每个配置满足平衡度要求
-   */
-  static standardTemplates = {
-    6: ["WOLF", "WOLF", "PROPHET", "WITCH", "VILLAGER", "VILLAGER"],
-    7: ["WOLF", "WOLF", "PROPHET", "WITCH", "VILLAGER", "VILLAGER", "VILLAGER"],
-    8: ["WOLF", "WOLF", "PROPHET", "WITCH", "HUNTER", "VILLAGER", "VILLAGER", "VILLAGER"],
-    9: ["WOLF", "WOLF", "PROPHET", "WITCH", "HUNTER", "GUARD", "VILLAGER", "VILLAGER", "VILLAGER"],
-    10: ["WOLF", "WOLF", "WOLF", "PROPHET", "WITCH", "HUNTER", "GUARD", "VILLAGER", "VILLAGER", "VILLAGER"],
-    11: ["WOLF", "WOLF", "WOLF", "PROPHET", "WITCH", "HUNTER", "GUARD", "VILLAGER", "VILLAGER", "VILLAGER", "VILLAGER"],
-    12: ["WOLF", "WOLF", "WOLF", "WOLF", "PROPHET", "WITCH", "HUNTER", "GUARD", "VILLAGER", "VILLAGER", "VILLAGER", "VILLAGER"]
-  };
+  // 配置缓存，避免重复读取配置文件
+  static _configCache = null;
+  
+
   
   /**
-   * 模板变种配置
-   * 为每个标准人数提供一些变体配置，增加游戏多样性
-   * 每个变体都确保符合平衡度要求
+   * 从配置中加载游戏模板
+   * 支持两种配置格式：
+   * 1. 新格式：presets键值对 (推荐)
+   * 2. 旧格式：roleConfigs数组列表 (向后兼容)
+   * @private
    */
-  static templateVariations = {
-    // 8人变种：替换女巫为猎人
-    8: [
-      ["WOLF", "WOLF", "PROPHET", "HUNTER", "VILLAGER", "VILLAGER", "VILLAGER", "VILLAGER"]
-    ],
-    // 9人变种：替换守卫为女巫增强
-    9: [
-      ["WOLF", "WOLF", "PROPHET", "WITCH", "WITCH", "VILLAGER", "VILLAGER", "VILLAGER", "VILLAGER"]
-    ],
-    // 10人变种：不同的神民组合
-    10: [
-      ["WOLF", "WOLF", "WOLF", "PROPHET", "WITCH", "HUNTER", "VILLAGER", "VILLAGER", "VILLAGER", "VILLAGER"],
-      ["WOLF", "WOLF", "WOLF", "PROPHET", "GUARD", "GUARD", "VILLAGER", "VILLAGER", "VILLAGER", "VILLAGER"]
-    ]
-  };
+  static _loadTemplates() {
+    // 防止重复加载
+    if (GameTemplates._configCache !== null) {
+      return;
+    }
+    
+    // 初始化缓存
+    GameTemplates._configCache = {
+      templates: {},     // 标准模板
+      variations: {},    // 模板变种
+      metadata: {}       // 模板元数据
+    };
+
+    try {
+      // 获取modes配置
+      const modesConfig = GameConfig.modes;
+      
+      // 处理新格式的预设配置
+      if (modesConfig && modesConfig.presets) {
+        // 遍历所有预设，转换为数组形式
+        for (const [playerCount, preset] of Object.entries(modesConfig.presets)) {
+          const count = parseInt(playerCount, 10);
+          if (isNaN(count) || !preset || !preset.roles) continue;
+          
+          // 转换键值对格式为数组列表
+          const roleList = [];
+          for (const [role, number] of Object.entries(preset.roles)) {
+            for (let i = 0; i < number; i++) {
+              roleList.push(role);
+            }
+          }
+          
+          // 保存到缓存
+          GameTemplates._configCache.templates[count] = roleList;
+          
+          // 保存元数据
+          GameTemplates._configCache.metadata[count] = {
+            name: preset.name || `${count}人标准局`,
+            description: preset.description || "",
+            balance: "标准"
+          };
+        }
+      }
+      
+      // 处理旧格式的roleConfigs配置（向后兼容）
+      if (modesConfig && modesConfig.roleConfigs && Object.keys(GameTemplates._configCache.templates).length === 0) {
+        for (const [playerCount, roleList] of Object.entries(modesConfig.roleConfigs)) {
+          const count = parseInt(playerCount, 10);
+          if (isNaN(count) || !Array.isArray(roleList)) continue;
+          
+          // 保存到缓存
+          GameTemplates._configCache.templates[count] = [...roleList];
+          
+          // 设置默认元数据
+          GameTemplates._configCache.metadata[count] = GameTemplates._configCache.metadata[count] || {
+            name: `${count}人标准局`,
+            description: roleList.join(', '),
+            balance: "标准"
+          };
+        }
+      }
+      
+      // 处理变种配置 (如果存在)
+      if (modesConfig && modesConfig.variations) {
+        for (const [playerCount, variationList] of Object.entries(modesConfig.variations)) {
+          const count = parseInt(playerCount, 10);
+          if (isNaN(count) || !Array.isArray(variationList)) continue;
+          
+          GameTemplates._configCache.variations[count] = variationList.map(variation => {
+            // 如果变种是键值对格式，转换为数组
+            if (variation.roles) {
+              const roleList = [];
+              for (const [role, number] of Object.entries(variation.roles)) {
+                for (let i = 0; i < number; i++) {
+                  roleList.push(role);
+                }
+              }
+              return roleList;
+            }
+            // 如果已经是数组格式，直接使用
+            return [...variation];
+          });
+        }
+      }
+            
+      console.log("游戏模板配置加载完成");
+    } catch (error) {
+      console.error("加载游戏模板配置失败:", error);
+      // 使用硬编码的标准模板作为回退
+    }
+  }
   
-  /**
-   * 模板元数据
-   * 存储每个模板的额外信息，如平衡度评分、推荐人数等
-   */
-  static templateMetadata = {
-    6: { balance: "良好", recommendedFor: "入门游戏", difficulty: "简单" },
-    7: { balance: "良好", recommendedFor: "入门游戏", difficulty: "简单" },
-    8: { balance: "优秀", recommendedFor: "标准游戏", difficulty: "中等" },
-    9: { balance: "优秀", recommendedFor: "标准游戏", difficulty: "中等" },
-    10: { balance: "优秀", recommendedFor: "进阶游戏", difficulty: "中等" },
-    11: { balance: "良好", recommendedFor: "进阶游戏", difficulty: "困难" },
-    12: { balance: "良好", recommendedFor: "高级游戏", difficulty: "困难" }
-  };
+
   
   /**
    * 获取指定人数的标准配置模板
+   * 从配置缓存中获取，如果缓存不存在则先加载配置
    * @param {number} playerCount - 玩家人数
    * @returns {Array<string>|null} 角色配置数组或null（如果没有匹配的模板）
    */
   static getTemplate(playerCount) {
+    // 确保模板已加载
+    GameTemplates._loadTemplates();
+    
     if (!Number.isInteger(playerCount)) {
       console.warn("玩家人数必须是整数");
       return null;
     }
     
-    const template = GameTemplates.standardTemplates[playerCount];
+    const template = GameTemplates._configCache.templates[playerCount];
     if (!template) {
       return null;
     }
@@ -81,7 +148,9 @@ export class GameTemplates {
    * @returns {Array<number>} 支持的玩家人数数组
    */
   static getAvailablePlayerCounts() {
-    return Object.keys(GameTemplates.standardTemplates).map(Number).sort((a, b) => a - b);
+    // 确保模板已加载
+    GameTemplates._loadTemplates();
+    return Object.keys(GameTemplates._configCache.templates).map(Number).sort((a, b) => a - b);
   }
   
   /**
@@ -90,11 +159,14 @@ export class GameTemplates {
    * @returns {Array<Array<string>>} 该人数下的模板变种数组（如果没有变种，则返回空数组）
    */
   static getTemplateVariations(playerCount) {
+    // 确保模板已加载
+    GameTemplates._loadTemplates();
+    
     if (!Number.isInteger(playerCount)) {
       return [];
     }
     
-    const variations = GameTemplates.templateVariations[playerCount] || [];
+    const variations = GameTemplates._configCache.variations[playerCount] || [];
     // 返回变种的深拷贝
     return variations.map(variation => [...variation]);
   }
@@ -105,6 +177,9 @@ export class GameTemplates {
    * @returns {Array<string>|null} 角色配置数组或null（如果没有匹配的模板）
    */
   static getRandomTemplate(playerCount) {
+    // 确保模板已加载
+    GameTemplates._loadTemplates();
+    
     const standardTemplate = GameTemplates.getTemplate(playerCount);
     if (!standardTemplate) {
       return null;
@@ -129,6 +204,9 @@ export class GameTemplates {
    * @returns {Object} 包含template和actualCount的对象
    */
   static getNearestTemplate(playerCount) {
+    // 确保模板已加载
+    GameTemplates._loadTemplates();
+    
     if (!Number.isInteger(playerCount) || playerCount < 6) {
       return { template: null, actualCount: 0 };
     }
@@ -202,6 +280,23 @@ export class GameTemplates {
       template: extendedTemplate,
       actualCount: playerCount
     };
+  }
+  
+  /**
+   * 获取模板元数据
+   * 包含名称、描述、平衡度等信息
+   * @param {number} playerCount - 玩家人数
+   * @returns {Object|null} 模板元数据或null
+   */
+  static getTemplateMetadata(playerCount) {
+    // 确保模板已加载
+    GameTemplates._loadTemplates();
+    
+    if (!Number.isInteger(playerCount)) {
+      return null;
+    }
+    
+    return GameTemplates._configCache.metadata[playerCount] || null;
   }
   
   /**
@@ -299,19 +394,6 @@ export class GameTemplates {
       evilPower,
       balance: evilRatio > 0.45 && evilRatio < 0.55 ? "优秀" : "良好"
     };
-  }
-  
-  /**
-   * 获取模板的元数据信息
-   * @param {number} playerCount - 玩家人数
-   * @returns {Object|null} 模板元数据或null（如果没有匹配的模板）
-   */
-  static getTemplateMetadata(playerCount) {
-    if (!Number.isInteger(playerCount)) {
-      return null;
-    }
-    
-    return GameTemplates.templateMetadata[playerCount] || null;
   }
   
   /**

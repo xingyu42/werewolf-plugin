@@ -10,6 +10,13 @@
   - 将 `modes.yaml` 改为使用键值对形式定义角色数量，替代原有的数组列表
   - 增加配置名称和描述字段，便于识别不同游戏模式
   - 添加配置验证，确保角色总数与玩家数量匹配
+- 重构角色配置系统，提高代码一致性和可维护性
+  - 修改 `GameTemplates.js` 以从 `modes.yaml` 读取配置，替代硬编码方式
+  - 添加配置缓存机制，提高性能
+  - 移除 `GameManager.js` 中冗余的 `getRoleList()` 方法
+  - 统一使用 `RoleConfigurator.generate()` 进行角色分配
+  - 添加完整的测试套件，确保功能正常
+- modes.yaml新格式支持自定义，详细说明和注释已补充至README和GameTemplates.js文件头部。
 
 ## [0.2] - 2025-06-12
 

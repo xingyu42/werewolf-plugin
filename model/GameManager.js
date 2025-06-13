@@ -1,3 +1,6 @@
+import { Game } from "./core/Game.js"
+import { GameTemplates } from "./configurators/GameTemplates.js"
+
 export class GameManager {
     // 静态游戏实例存储
     static games = new Map();
@@ -76,35 +79,7 @@ export class GameManager {
         return this.players;
     }
 
-    // 获取当前玩家数量对应的角色列表
-    getRoleList() {
-        const playerCount = this.players.length;
-        // 从新的配置结构中获取预设
-        const preset = this.gameConfig.modes.presets[playerCount];
-
-        if (!preset || !preset.roles) {
-            throw new Error(`未配置${playerCount}人局的游戏模式`);
-        }
-
-        const roleCounts = preset.roles;
-        const roleList = [];
-
-        // 根据角色计数展开角色列表
-        for (const role in roleCounts) {
-            for (let i = 0; i < roleCounts[role]; i++) {
-                roleList.push(role);
-            }
-        }
-        
-        // 验证生成的角色列表数量是否与玩家数量匹配
-        if (roleList.length !== playerCount) {
-            // 在后台打印错误日志，而不是抛出异常给用户
-            console.error(`错误：${playerCount}人局的配置错误！预设角色总数为 ${roleList.length}，与玩家数不符。`);
-            // 也可以选择抛出异常
-            throw new Error(`服务器内部错误：${playerCount}人局配置异常，请联系管理员检查。`);
-        }
-
-        return roleList;
-    }
+    // 注意: getRoleList方法已移除
+    // 请使用RoleConfigurator.generate(playerCount)获取角色列表
 
 }
