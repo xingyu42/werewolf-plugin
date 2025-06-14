@@ -30,13 +30,13 @@ export class WerewolfUpdate extends plugin {
 
   async update_log() {
     // eslint-disable-next-line new-cap
-    let Update_Plugin = new Update()
-    Update_Plugin.e = this.e
-    Update_Plugin.reply = this.reply
+    let updatePlugin = new Update()
+    updatePlugin.e = this.e
+    updatePlugin.reply = this.reply
     
     let Plugin_Name = "werewolf-plugin"
-    if (Update_Plugin.getPlugin(Plugin_Name)) {
-      this.e.reply(await Update_Plugin.getLog(Plugin_Name))
+    if (updatePlugin.getPlugin(Plugin_Name)) {
+      this.e.reply(await updatePlugin.getLog(Plugin_Name))
     }
     return true
   }

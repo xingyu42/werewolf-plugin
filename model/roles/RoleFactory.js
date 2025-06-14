@@ -1,3 +1,4 @@
+import { ROLES, CAMPS } from '../core/Constants.js';
 /**
  * 角色工厂类
  * 用于根据角色名称创建对应的角色实例
@@ -42,15 +43,15 @@ export class RoleFactory {
    */
   static getRoleCamp(roleName) {
     switch (roleName) {
-      case "WOLF": // 狼人
-        return "WOLF";
-      case "PROPHET": // 预言家
-      case "WITCH": // 女巫
-      case "HUNTER": // 猎人
-      case "GUARD": // 守卫
-        return "GOD";
-      case "VILLAGER": // 村民
-        return "VILLAGER"; // 村民
+      case ROLES.WOLF: // 狼人
+        return CAMPS.WOLF;
+      case ROLES.PROPHET: // 预言家
+      case ROLES.WITCH: // 女巫
+      case ROLES.HUNTER: // 猎人
+      case ROLES.GUARD: // 守卫
+        return CAMPS.GOD;
+      case ROLES.VILLAGER: // 村民
+        return CAMPS.VILLAGER; // 村民
       default:
         throw new Error(`未知的角色类型: ${roleName}`);
     }
@@ -71,17 +72,17 @@ export class RoleFactory {
     }
     
     switch (roleName) {
-      case "WOLF": // 狼人
+      case ROLES.WOLF: // 狼人
         return new RoleFactory.roleModules.WolfRole(game, player);
-      case "VILLAGER": // 村民
+      case ROLES.VILLAGER: // 村民
         return new RoleFactory.roleModules.VillagerRole(game, player);
-      case "PROPHET": // 预言家
+      case ROLES.PROPHET: // 预言家
         return new RoleFactory.roleModules.ProphetRole(game, player);
-      case "WITCH": // 女巫
+      case ROLES.WITCH: // 女巫
         return new RoleFactory.roleModules.WitchRole(game, player);
-      case "HUNTER": // 猎人
+      case ROLES.HUNTER: // 猎人
         return new RoleFactory.roleModules.HunterRole(game, player);
-      case "GUARD": // 守卫
+      case ROLES.GUARD: // 守卫
         return new RoleFactory.roleModules.GuardRole(game, player);
       default:
         throw new Error(`未知角色: ${roleName}`);

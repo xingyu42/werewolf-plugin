@@ -4,14 +4,14 @@ import fs from "node:fs"
 import _ from "lodash"
 import cfg from "../../../lib/config/config.js"
 import YamlReader from "./YamlReader.js"
+import { PLUGIN_NAME, PLUGIN_PATH } from "./constants.js"
 
-const Path = process.cwd()
-const Plugin_Name = "werewolf-plugin"
-const Plugin_Path = `${Path}/plugins/${Plugin_Name}`
-const Log_Prefix = "[狼人杀插件]"
+const Log_Prefix = `[${PLUGIN_NAME}插件]`
 
 class GameConfig {
-  constructor() {
+  constructor(redis, logger) {
+    this.redis = redis;
+    this.logger = logger;
     this.config = {}
 
     /** 监听文件 */
@@ -22,8 +22,8 @@ class GameConfig {
 
   /** 初始化配置 */
   initCfg() {
-    let path = `${Plugin_Path}/config/config/`
-    let pathDef = `${Plugin_Path}/config/default_config/`
+    let path = `${PLUGIN_PATH}/config/config/`
+    let pathDef = `${PLUGIN_PATH}/config/default_config/`
 
     // 确保配置目录存在
     if (!fs.existsSync(path)) {
@@ -50,35 +50,39 @@ class GameConfig {
   }
 
   async mergeCfg(cfgPath, defPath, name) {
-    // 默认文件未变化不合并
-    let defData = fs.readFileSync(defPath, "utf8")
-    let redisData = await redis.get(`werewolf:mergeCfg:${name}`)
-    if (defData == redisData) return
-    redis.set(`werewolf:mergeCfg:${name}`, defData)
+    try {
+      // 默认文件未变化不合并
+      let defData = fs.readFileSync(defPath, "utf8")
+      let redisData = await this.redis.get(`werewolf:mergeCfg:${name}`)
+      if (defData == redisData) return
+      this.redis.set(`werewolf:mergeCfg:${name}`, defData)
 
-    const userDoc = YAML.parseDocument(fs.readFileSync(cfgPath, "utf8"))
-    const defDoc = YAML.parseDocument(defData)
-    let isUpdate = false
-    const merge = (user, def) => {
-      const existingKeys = new Map()
-      for (const item of user) {
-        existingKeys.set(item.key.value, item.value)
-      }
-      for (const item of def) {
-        if (item?.key?.commentBefore?.includes?.("noMerge")) continue
-        if (!existingKeys.has(item.key.value)) {
-          logger.info(`${Log_Prefix}[合并配置][${name}][${item.key.value}]`)
-          user.push(item)
-          isUpdate = true
-        } else if (YAML.isMap(item.value)) {
-          const userV = existingKeys.get(item.key.value).items
-          merge(userV, item.value.items)
+      const userDoc = YAML.parseDocument(fs.readFileSync(cfgPath, "utf8"))
+      const defDoc = YAML.parseDocument(defData)
+      let isUpdate = false
+      const merge = (user, def) => {
+        const existingKeys = new Map()
+        for (const item of user) {
+          existingKeys.set(item.key.value, item.value)
+        }
+        for (const item of def) {
+          if (item?.key?.commentBefore?.includes?.("noMerge")) continue
+          if (!existingKeys.has(item.key.value)) {
+            this.logger.info(`${Log_Prefix}[合并配置][${name}][${item.key.value}]`)
+            user.push(item)
+            isUpdate = true
+          } else if (YAML.isMap(item.value)) {
+            const userV = existingKeys.get(item.key.value).items
+            merge(userV, item.value.items)
+          }
         }
       }
+      merge(userDoc.contents.items, defDoc.contents.items)
+      let yaml = userDoc.toString()
+      isUpdate && fs.writeFileSync(cfgPath, yaml, "utf8")
+    } catch (e) {
+      this.logger.error(`${Log_Prefix}[合并配置文件失败][${name}]：${e}`)
     }
-    merge(userDoc.contents.items, defDoc.contents.items)
-    let yaml = userDoc.toString()
-    isUpdate && fs.writeFileSync(cfgPath, yaml, "utf8")
   }
 
   /** 主人QQ */
@@ -147,7 +151,7 @@ class GameConfig {
    * @param {string} name 名称
    */
   getYaml(type, name) {
-    let file = `${Plugin_Path}/config/${type}/${name}.yaml`
+    let file = `${PLUGIN_PATH}/config/${type}/${name}.yaml`
     let key = `${type}.${name}`
 
     if (this.config[key]) return this.config[key]
@@ -165,7 +169,7 @@ class GameConfig {
 
       return this.config[key]
     } catch (e) {
-      logger.error(`${Log_Prefix}[读取配置文件失败][${type}][${name}]：${e}`)
+      this.logger.error(`${Log_Prefix}[读取配置文件失败][${type}][${name}]：${e}`)
       return {}
     }
   }
@@ -186,7 +190,7 @@ class GameConfig {
     watcher.on("change", path => {
       delete this.config[key]
       if (typeof Bot == "undefined") return
-      logger.mark(`${Log_Prefix}[修改配置文件][${type}][${name}]`)
+      this.logger.mark(`${Log_Prefix}[修改配置文件][${type}][${name}]`)
       if (this[`change_${name}`]) {
         this[`change_${name}`]()
       }
@@ -205,7 +209,7 @@ class GameConfig {
    * @param {string} comment 注释
    */
   modify(name, key, value, type = "config", bot = false, comment = null) {
-    let path = `${bot ? Path : Plugin_Path}/config/${type}/${name}.yaml`
+    let path = `${bot ? process.cwd() : PLUGIN_PATH}/config/${type}/${name}.yaml`
 
     // 确保目录存在
     const dir = path.substring(0, path.lastIndexOf('/'))
@@ -217,8 +221,14 @@ class GameConfig {
     if (!fs.existsSync(path)) {
       fs.writeFileSync(path, "", "utf8")
     }
+    
+    try {
+      new YamlReader(path).set(key, value, comment)
+    } catch (e) {
+      this.logger.error(`${Log_Prefix}[修改配置文件失败][${name}]：${e}`)
+      return false
+    }
 
-    new YamlReader(path).set(key, value, comment)
     delete this.config[`${type}.${name}`]
     return true
   }
@@ -231,10 +241,16 @@ class GameConfig {
    * @param {boolean} bot 是否修改Bot的配置
    */
   deleteKey(name, key, type = "config", bot = false) {
-    let path = `${bot ? Path : Plugin_Path}/config/${type}/${name}.yaml`
+    let path = `${bot ? process.cwd() : PLUGIN_PATH}/config/${type}/${name}.yaml`
     if (!fs.existsSync(path)) return false
 
-    new YamlReader(path).deleteKey(key)
+    try {
+      new YamlReader(path).deleteKey(key)
+    } catch (e) {
+      this.logger.error(`${Log_Prefix}[删除配置文件键失败][${name}]：${e}`)
+      return false
+    }
+    
     delete this.config[`${type}.${name}`]
     return true
   }
@@ -249,7 +265,7 @@ class GameConfig {
    * @param {boolean} bot 是否修改Bot的配置
    */
   modifyArr(name, key, value, category = "add", type = "config", bot = false) {
-    let path = `${bot ? Path : Plugin_Path}/config/${type}/${name}.yaml`
+    let path = `${bot ? process.cwd() : PLUGIN_PATH}/config/${type}/${name}.yaml`
 
     // 确保目录存在
     const dir = path.substring(0, path.lastIndexOf('/'))

@@ -3,8 +3,8 @@ import path from 'path'
 import fs from 'fs'
 import _ from 'lodash'
 import Renderer from '../../../../lib/renderer/loader.js'
+import { _path, PLUGIN_NAME } from './constants.js'
 
-const _path = process.cwd()
 const renderer = Renderer.getRenderer()
 
 /**
@@ -12,10 +12,11 @@ const renderer = Renderer.getRenderer()
  * 负责浏览器实例管理和渲染功能
  */
 class Puppeteer {
-  constructor() {
+  constructor(logger) {
     this.browser = null
     this.lock = false
     this.shoting = []
+    this.logger = logger
     /** 截图数达到时重启浏览器 避免生成速度越来越慢 */
     this.restartNum = 100
     /** 截图次数 */
@@ -52,7 +53,7 @@ class Puppeteer {
     if (this.lock) return false
     this.lock = true
 
-    logger.mark('[狼人杀插件] Puppeteer 启动中...')
+    this.logger.mark('[狼人杀插件] Puppeteer 启动中...')
     const browserURL = 'http://127.0.0.1:51777'
     try {
       // 尝试连接已存在的浏览器实例
@@ -60,24 +61,24 @@ class Puppeteer {
     } catch (e) {
       // 连接失败，启动新的浏览器实例
       this.browser = await puppeteer.launch(this.config).catch((err) => {
-        logger.error(err.toString())
+        this.logger.error(err.toString())
         if (String(err).includes('correct Chromium')) {
-          logger.error('没有正确安装Chromium，可以尝试执行安装命令：node ./node_modules/puppeteer/install.js')
+          this.logger.error('没有正确安装Chromium，可以尝试执行安装命令：node ./node_modules/puppeteer/install.js')
         }
       })
     }
     this.lock = false
 
     if (!this.browser) {
-      logger.error('[狼人杀插件] Puppeteer 启动失败')
+      this.logger.error('[狼人杀插件] Puppeteer 启动失败')
       return false
     }
 
-    logger.mark('[狼人杀插件] Puppeteer 启动成功')
+    this.logger.mark('[狼人杀插件] Puppeteer 启动成功')
 
     /** 监听Chromium实例是否断开 */
     this.browser.on('disconnected', () => {
-      logger.info('[狼人杀插件] Chromium实例关闭或崩溃！')
+      this.logger.info('[狼人杀插件] Chromium实例关闭或崩溃！')
       this.browser = null
     })
     return this.browser
@@ -92,7 +93,7 @@ class Puppeteer {
       return false
     }
     return await this.browser.newPage().catch((err) => {
-      logger.error('[狼人杀插件] 创建页面失败：' + err)
+      this.logger.error('[狼人杀插件] 创建页面失败：' + err)
       return false
     })
   }
@@ -103,7 +104,7 @@ class Puppeteer {
    */
   async closePage(page) {
     if (page) {
-      await page.close().catch((err) => logger.error('[狼人杀插件] 页面关闭出错：' + err))
+      await page.close().catch((err) => this.logger.error('[狼人杀插件] 页面关闭出错：' + err))
       this.renderNum += 1
       this.restart()
     }
@@ -114,7 +115,7 @@ class Puppeteer {
    */
   async close() {
     if (this.browser) {
-      await this.browser.close().catch((err) => logger.error('[狼人杀插件] 浏览器关闭出错：' + err))
+      await this.browser.close().catch((err) => this.logger.error('[狼人杀插件] 浏览器关闭出错：' + err))
       this.browser = null
     }
   }
@@ -128,7 +129,7 @@ class Puppeteer {
       if (this.shoting.length <= 0) {
         setTimeout(async () => {
           await this.close()
-          logger.mark('[狼人杀插件] Puppeteer 关闭重启...')
+          this.logger.mark('[狼人杀插件] Puppeteer 关闭重启...')
         }, 100)
       }
     }
@@ -139,59 +140,62 @@ class Puppeteer {
    * @param {string} tplPath 模板路径，相对于plugin resources目录
    * @param {Object} data 渲染数据
    * @param {Object} cfg 渲染配置
-   * @returns {Promise<import('icqq').segment.image>} 图片消息段
+   * @returns {Promise<string|boolean>} base64 截图或false
    */
   async render(tplPath, data = {}, cfg = {}) {
-    // 处理传入的path
-    tplPath = tplPath.replace(/.html$/, "")
-    let paths = _.filter(tplPath.split("/"), (p) => !!p)
-    tplPath = paths.join("/")
-    let { e } = cfg
+    this.shoting.push(true);
+    try {
+      // 处理传入的path
+      tplPath = tplPath.replace(/.html$/, "")
+      let paths = _.filter(tplPath.split("/"), (p) => !!p)
+      tplPath = paths.join("/")
 
-    // 创建临时目录
-    const tempDir = path.join(_path, 'temp', 'html', 'werewolf-plugin', tplPath)
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true })
+      // 创建临时目录
+      const tempDir = path.join(_path, 'temp', 'html', PLUGIN_NAME, tplPath)
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true })
+      }
+
+      // 计算资源路径
+      let pluResPath = `../../../${_.repeat("../", paths.length)}plugins/${PLUGIN_NAME}/resources/`
+
+      // 渲染数据
+      data = {
+        sys: {
+          scale: 1.2
+        },
+        _plugin: PLUGIN_NAME,
+        _htmlPath: tplPath,
+        pluResPath,
+        tplFile: `./plugins/${PLUGIN_NAME}/resources/${tplPath}.html`,
+        saveId: data.saveId || data.save_id || paths[paths.length - 1],
+
+        // 截图参数
+        imgType: 'jpeg',
+        quality: 90,  // 图片质量
+        omitBackground: false,
+        pageGotoParams: {
+          waitUntil: "networkidle0"
+        },
+
+        ...data
+      }
+
+      // 处理beforeRender回调
+      if (cfg.beforeRender) {
+        data = cfg.beforeRender({ data }) || data
+      }
+
+      // 调用渲染器进行截图
+      let base64 = await renderer.screenshot(`${PLUGIN_NAME}/${tplPath}`, data)
+      if (base64) {
+        return base64
+      }
+      return false
+    } finally {
+      this.shoting.pop();
     }
-
-    // 计算资源路径
-    let pluResPath = `../../../${_.repeat("../", paths.length)}plugins/werewolf-plugin/resources/`
-
-    // 渲染数据
-    data = {
-      sys: {
-        scale: 1.2
-      },
-      _plugin: `werewolf-plugin`,
-      _htmlPath: tplPath,
-      pluResPath,
-      tplFile: `./plugins/werewolf-plugin/resources/${tplPath}.html`,
-      saveId: data.saveId || data.save_id || paths[paths.length - 1],
-
-      // 截图参数
-      imgType: 'jpeg',
-      quality: 90,  // 图片质量
-      omitBackground: false,
-      pageGotoParams: {
-        waitUntil: "networkidle0"
-      },
-
-      ...data
-    }
-
-    // 处理beforeRender回调
-    if (cfg.beforeRender) {
-      data = cfg.beforeRender({ data }) || data
-    }
-
-    // 调用渲染器进行截图
-    let base64 = await renderer.screenshot(`werewolf-plugin/${tplPath}`, data)
-    let ret = true
-    if (base64) {
-      ret = await e.reply(base64)
-    }
-    return ret || true
   }
 }
 
-export default new Puppeteer()
+export default Puppeteer

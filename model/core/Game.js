@@ -7,19 +7,19 @@ import { GameError } from './GameError.js';
 import { isValidTransition } from './StateMachine.js';
 import { VictoryChecker } from './VictoryChecker.js';
 import { RoleConfigurator } from "../configurators/RoleConfigurator.js";
+import { GameEventHandler } from "./GameEventHandler.js";
 
 /**
  * 游戏核心类 - 负责管理游戏状态、玩家和角色
  * 继承EventEmitter实现事件驱动的通信机制
  */
 export class Game extends EventEmitter {
-  constructor() {
+  constructor(e, config) {
     super(); // 调用EventEmitter构造函数
     this.players = new Map(); // 玩家信息
     this.roles = new Map(); // 角色实例
     this.currentState = null; // 当前游戏状态
-    this.config = null; // 游戏配置
-    this.gameManager = null; // 游戏管理器
+    this.config = config; // 游戏配置
     this.turn = 0; // 游戏轮次
     this._changingState = false; // 状态切换锁
     this.eventErrors = []; // 事件错误日志
@@ -27,6 +27,8 @@ export class Game extends EventEmitter {
     this.maxHistoryLength = 50; // 最大历史记录长度
     this.playerNumberMap = new Map(); // 游戏内编号到玩家ID的映射
     this.stateTransitionContext = {}; // 存储状态转换相关的上下文信息
+
+    this.eventHandler = new GameEventHandler(this, e);
     
     // 缓存系统
     this._cacheSystem = {
@@ -40,6 +42,18 @@ export class Game extends EventEmitter {
     
     // 胜利条件检查器
     this.victoryChecker = new VictoryChecker();
+  }
+
+  addPlayer(player) {
+    if (this.players.has(player.id)) {
+      return false; // Player already in game
+    }
+    this.players.set(player.id, player);
+    return true;
+  }
+
+  hasPlayer(playerId) {
+    return this.players.has(playerId);
   }
 
   // 初始化游戏
@@ -59,7 +73,7 @@ export class Game extends EventEmitter {
     this.playerNumberMap.clear(); // 清空编号映射
 
     // 分配角色
-    const players = this.gameManager.getPlayers();
+    const players = Array.from(this.players.values()); // Use internal player list
     const roles = RoleConfigurator.generate(players.length);
     const shuffledRoles = this.shuffle(roles);
 
@@ -68,24 +82,18 @@ export class Game extends EventEmitter {
       const roleName = shuffledRoles[i];
       const gameNumber = i + 1; // 分配游戏内编号，从1开始
 
-      // 创建玩家实例
-      const player = new Player({
-        ...playerInfo,
-        role: roleName,
-        gameNumber: gameNumber, // 设置游戏内编号
-      });
-
-      this.players.set(player.id, player); // 添加玩家到玩家列表
-      this.playerNumberMap.set(gameNumber.toString(), player.id); // 添加编号到ID的映射
+      // 更新玩家实例，而不是创建新的
+      playerInfo.role = roleName;
+      playerInfo.gameNumber = gameNumber;
 
       // 创建角色实例
-      const role = RoleFactory.createRole(roleName, this, player);
-      this.roles.set(player.id, role);
+      const role = RoleFactory.createRole(roleName, this, playerInfo);
+      this.roles.set(playerInfo.id, role);
 
       // 发送角色通知 - 使用事件取代直接通信
       this.emit('roleNotify', {
-        playerId: player.id,
-        message: `你的游戏编号是：${gameNumber}号，角色是：${player.role}`
+        playerId: playerInfo.id,
+        message: `你的游戏编号是：${gameNumber}号，角色是：${playerInfo.role}`
       });
     }
     
@@ -414,22 +422,20 @@ export class Game extends EventEmitter {
 
   // 开始游戏
   async start() {
-    if (this.players.size < 6) {
-      this.emit('message', {
-        type: 'group',
-        content: "玩家数量不足，至少需要6名玩家"
-      });
-      return false;
+    if (this.players.size < this.config.minPlayers) {
+        this.emit('message', {
+            type: 'group',
+            content: `游戏人数不足，无法开始（需要 ${this.config.minPlayers} 人，当前 ${this.players.size} 人）。`
+        });
+        return false;
     }
-
-    // 分配角色
     await this.initPlayers();
-
-    // 设置初始状态
     this.initState();
-
-    // 开始第一天
-    await this.startNewDay();
+    this._invalidateCache();
+    
+    this.emit('gameStart'); // Announce game start
+    
+    // The first state's onEnter will handle the initial messages
     return true;
   }
 

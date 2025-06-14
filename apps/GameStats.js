@@ -1,4 +1,4 @@
-import { PlayerStats } from '../model/stats/PlayerStats.js';
+import PlayerStats from '../model/stats/PlayerStats.js';
 
 export class GameStats extends plugin {
   constructor() {
@@ -13,7 +13,7 @@ export class GameStats extends plugin {
       ],
     });
 
-    this.playerStats = new PlayerStats();
+    this.playerStats = PlayerStats;
   }
 
   async showMyStats(e) {

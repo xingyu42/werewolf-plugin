@@ -1,16 +1,16 @@
-import Data from '../../components/Data.js';
-
 /**
  * 玩家统计数据管理器
  */
-export class PlayerStats {
-  constructor() {
+class PlayerStats {
+  constructor(data, redis) {
     this.dataFile = 'data/werewolf/player_stats.json';
-    this.stats = Data.readJSON(this.dataFile);
+    this.data = data;
+    this.redis = redis; // Though not used in constructor, good practice to have it if methods need it.
+    this.stats = this.data.readJSON(this.dataFile);
 
     // 如果文件不存在或为空，则初始化
     if (Object.keys(this.stats).length === 0) {
-      Data.writeJSON(this.dataFile, {});
+      this.data.writeJSON(this.dataFile, {});
     }
   }
 
@@ -65,7 +65,7 @@ export class PlayerStats {
       }
     }
 
-    Data.writeJSON(this.dataFile, this.stats);
+    this.data.writeJSON(this.dataFile, this.stats);
     console.log('[PlayerStats] 玩家统计数据已更新。');
   }
 
@@ -99,4 +99,7 @@ export class PlayerStats {
 
     return rankedPlayers;
   }
-} 
+}
+
+// 导出 PlayerStats 的单个实例
+export default PlayerStats; 

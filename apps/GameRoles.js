@@ -1,6 +1,6 @@
 import { GameManager } from "../model/GameManager.js";
-import { HunterRole } from "../model/roles/HunterRole.js";
-import { GameError } from '../model/core/GameError.js';
+import { ActionHandler } from '../model/services/ActionHandler.js';
+import { ACTIONS } from "../model/core/Constants.js";
 
 export class GameRoles extends plugin {
   constructor() {
@@ -96,88 +96,28 @@ export class GameRoles extends plugin {
 
   // 守卫守护
   async guardAction(e) {
-    try {
-      let game = this.getGame(e);
-      if (!game) return false;
-
-      // 从消息中提取目标号码
-      const gameNumber = e.msg.match(/^#守护(\d+)号$/)[1];
-
-      // 验证守卫角色
-      const role = this.validateAction(game, e, "GuardRole");
-
-      // 根据游戏内编号获取目标玩家
-      const target = game.getPlayerByNumber(gameNumber);
-      if (!target) {
-        e.reply("目标玩家不存在");
-        return true;
-      }
-
-      // 执行守护行动
-      await role.act(target);
-
-      // 通知游戏状态该行动已完成
-      const currentState = game.getCurrentState();
-      await currentState.handleAction(role.player, "protect", target.id);
-
-      return true;
-    } catch (error) {
-      if (game) {
-        game.emit('error', new GameError(
-          error.message,
-          "GUARD_ACTION_ERROR",
-          { playerId: e.user_id, error }
-        ));
-      } else {
-        e.reply(`操作失败: ${error.message}`);
-      }
-      return true;
-    }
+    await ActionHandler.handle(e, {
+      role: 'GuardRole',
+      target: { required: true, parse: (msg) => msg.match(/(\\d+)/)?.[1] },
+      action: async ({ role, targetPlayer, currentState }) => {
+        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作');
+        await role.act(targetPlayer);
+        await currentState.handleAction(role.player, ACTIONS.PROTECT, targetPlayer.id);
+      },
+    });
   }
 
   // 猎人射杀
   async hunterShoot(e) {
-    let game = this.getGame(e);
-    if (!game) return false;
-
-      // 从消息中提取目标号码
-      const gameNumber = e.msg.match(/^#反杀(\d+)号$/)[1];
-
-      // 获取玩家
-      const player = game.getPlayerById(e.user_id);
-      if (!player) {
-        e.reply("你不是游戏中的玩家");
-        return true;
-      }
-
-      // 获取猎人角色
-      const role = game.roles.get(player.id);
-      if (!role || !(role instanceof HunterRole)) {
-        e.reply("你不是猎人，无法执行此操作");
-        return true;
-      }
-
-      // 检查是否可以开枪
-      if (!role.canAct()) {
-        e.reply("你当前无法开枪");
-        return true;
-      }
-
-      // 根据游戏内编号获取目标玩家
-      const target = game.getPlayerByNumber(gameNumber);
-      if (!target) {
-        e.reply("目标玩家不存在");
-        return true;
-      }
-
-      // 执行射杀行动
-      await role.act(target);
-      return true;
-    } catch (error) {
-      e.reply(`操作失败: ${error.message}`);
-      return true;
-    }
-
+    await ActionHandler.handle(e, {
+      role: 'HunterRole',
+      target: { required: true, parse: (msg) => msg.match(/(\\d+)/)?.[1] },
+      action: async ({ role, targetPlayer }) => {
+        if (!role.canAct()) throw new Error('你当前无法开枪');
+        await role.act(targetPlayer);
+      },
+    });
+  }
 
   // 预言家查验
   async prophetCheck(e) {
@@ -185,209 +125,84 @@ export class GameRoles extends plugin {
       e.reply('请私聊发送命令');
       return false;
     }
-    try {
-      let game = this.getGame(e);
-      if (!game) return false;
-
-      // 从消息中提取目标号码
-      const gameNumber = e.msg.match(/^#查验(\d+)号$/)[1];
-
-      // 验证预言家角色
-      const role = this.validateAction(game, e, "ProphetRole");
-
-      // 根据游戏内编号获取目标玩家
-      const target = game.getPlayerByNumber(gameNumber);
-      if (!target) {
-        e.reply("目标玩家不存在");
-        return true;
-      }
-
-      // 执行查验行动
-      const result = await role.act(target);
-
-      // 通知游戏状态该行动已完成
-      const currentState = game.getCurrentState();
-      await currentState.handleAction(role.player, "check", target.id);
-
-      return true;
-    } catch (error) {
-      if (game) {
-        game.emit('error', new GameError(
-          error.message,
-          "PROPHET_ACTION_ERROR",
-          { playerId: e.user_id, error }
-        ));
-      } else {
-        e.reply(`操作失败: ${error.message}`);
-      }
-      return true;
-    }
+    await ActionHandler.handle(e, {
+      role: 'ProphetRole',
+      target: { required: true, parse: (msg) => msg.match(/(\\d+)/)?.[1] },
+      action: async ({ role, targetPlayer, currentState }) => {
+        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作');
+        await role.act(targetPlayer);
+        await currentState.handleAction(role.player, ACTIONS.CHECK, targetPlayer.id);
+      },
+    });
   }
 
   // 女巫毒人
   async witchPoison(e) {
-    try {
-      let game = this.getGame(e);
-      if (!game) return false;
-
-      // 从消息中提取目标号码
-      const gameNumber = e.msg.match(/^#毒杀(\d+)号$/)[1];
-
-      // 验证女巫角色
-      const role = this.validateAction(game, e, "WitchRole");
-
-      // 根据游戏内编号获取目标玩家
-      const target = game.getPlayerByNumber(gameNumber);
-      if (!target) {
-        e.reply("目标玩家不存在");
-        return true;
-      }
-
-      // 执行毒杀行动
-      await role.act(target, "poison");
-
-      // 通知游戏状态该行动已完成
-      const currentState = game.getCurrentState();
-      await currentState.handleAction(role.player, "poison", target.id);
-
-      return true;
-    } catch (error) {
-      if (game) {
-        game.emit('error', new GameError(
-          error.message,
-          "WITCH_POISON_ERROR",
-          { playerId: e.user_id, error }
-        ));
-      } else {
-        e.reply(`操作失败: ${error.message}`);
-      }
-      return true;
-    }
+    await ActionHandler.handle(e, {
+      role: 'WitchRole',
+      target: { required: true, parse: (msg) => msg.match(/(\\d+)/)?.[1] },
+      action: async ({ role, targetPlayer, currentState }) => {
+        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作');
+        await role.act(targetPlayer, "poison");
+        await currentState.handleAction(role.player, ACTIONS.POISON, targetPlayer.id);
+      },
+    });
   }
 
   // 女巫救人
   async witchSave(e) {
-    try {
-      let game = this.getGame(e);
-      if (!game) return false;
-
-      // 验证女巫角色
-      const role = this.validateAction(game, e, "WitchRole");
-
-      // 获取当前被狼人杀的玩家
-      const currentState = game.getCurrentState();
-      if (!currentState.wolfKillTarget) {
-        e.reply("当前没有可以救的人");
-        return true;
-      }
-
-      const target = game.players.get(currentState.wolfKillTarget);
-      if (!target) {
-        e.reply("目标玩家不存在");
-        return true;
-      }
-
-      // 执行救人行动
-      await role.act(target, "save");
-
-      // 通知游戏状态该行动已完成
-      await currentState.handleAction(role.player, "save", target.id);
-
-      return true;
-    } catch (error) {
-      if (game) {
-        game.emit('error', new GameError(
-          error.message,
-          "WITCH_SAVE_ERROR",
-          { playerId: e.user_id, error }
-        ));
-      } else {
-        e.reply(`操作失败: ${error.message}`);
-      }
-      return true;
-    }
+    await ActionHandler.handle(e, {
+      role: 'WitchRole',
+      action: async ({ role, currentState }) => {
+        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作');
+        await role.act(null, "save");
+        await currentState.handleAction(role.player, ACTIONS.SAVE);
+      },
+    });
   }
 
   // 狼人杀人
   async wolfKill(e) {
-    try {
-      let game = this.getGame(e);
-      if (!game) return false;
-
-      // 从消息中提取目标号码
-      const gameNumber = e.msg.match(/^#刀(\d+)号$/)[1];
-
-      // 验证狼人角色
-      const role = this.validateAction(game, e, "WolfRole");
-
-      // 根据游戏内编号获取目标玩家
-      const target = game.getPlayerByNumber(gameNumber);
-      if (!target) {
-        e.reply("目标玩家不存在");
-        return true;
-      }
-      // 执行投票行动
-      await role.act(target, "vote");
-      return true;
-    } catch (error) {
-      e.reply(`操作失败: ${error.message}`);
-      return true;
-    }
+    await ActionHandler.handle(e, {
+      role: 'WolfRole',
+      target: { required: true, parse: (msg) => msg.match(/(\\d+)/)?.[1] },
+      action: async ({ role, targetPlayer, currentState }) => {
+        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作');
+        await currentState.handleAction(role.player, ACTIONS.KILL, targetPlayer.id);
+      },
+    });
   }
 
   // 狼人自爆
   async wolfSuicide(e) {
-    try {
-      let game = this.getGame(e);
-      if (!game) return false;
-
-      // 验证狼人角色
-      const role = this.validateAction(game, e, "WolfRole");
-
-      // 执行自爆行动
-      await role.suicide();
-      return true;
-    } catch (error) {
-      e.reply(`操作失败: ${error.message}`);
-      return true;
-    }
+    await ActionHandler.handle(e, {
+      role: 'WolfRole',
+      checkAlive: true,
+      action: async ({ role, currentState }) => {
+        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作');
+        await currentState.handleAction(role.player, ACTIONS.SUICIDE);
+      },
+    });
   }
 
   // 女巫放弃用药
   async witchSkip(e) {
-    try {
-      let game = this.getGame(e);
-      if (!game) return false;
-
-      // 验证女巫角色
-      const role = this.validateAction(game, e, "WitchRole");
-
-      // 执行放弃行动
-      await role.act(null, "skip");
-
-      // 通知游戏状态该行动已完成
-      const currentState = game.getCurrentState();
-      await currentState.handleAction(role.player, "skip", null);
-
-      return true;
-    } catch (error) {
-      e.reply(`操作失败: ${error.message}`);
-      return true;
-    }
+    await ActionHandler.handle(e, {
+      role: 'WitchRole',
+      action: async ({ role, currentState }) => {
+        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作');
+        await currentState.handleAction(role.player, ACTIONS.SKIP);
+      },
+    });
   }
 
   async wolfSkip(e) {
-    try {
-      let game = this.getGame(e);
-      if (!game) return false;
-
-      const role = this.validateAction(game, e, "WolfRole");
-      await role.act(null, "vote"); // 提交空刀投票
-      e.reply("你已选择放弃击杀");
-      return true;
-    } catch (error) {
-      e.reply(`操作失败: ${error.message}`);
-      return true;
-    }
+    await ActionHandler.handle(e, {
+      role: 'WolfRole',
+      action: async ({ role, currentState }) => {
+        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作');
+        await currentState.handleAction(role.player, ACTIONS.SKIP);
+      },
+    });
   }
 }

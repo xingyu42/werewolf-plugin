@@ -1,7 +1,7 @@
 import { GameState } from "./GameState.js";
 import { NightState } from "./NightState.js";
 import { LastWordsState } from "./LastWordsState.js";
-import puppeteer from "../../components/ui/puppeteer.js";
+import { Puppeteer } from "../../components/services.js";
 
 export class VoteState extends GameState {
   constructor(game) {
@@ -161,7 +161,10 @@ export class VoteState extends GameState {
     });
 
     // 渲染投票结果
-    await puppeteer.render('vote/vote-result', { voteResult: voteData }, { e: this.e });
+    const base64 = await Puppeteer.render('vote/vote-result', { voteResult: voteData });
+    if (base64) {
+      this.e.reply(base64);
+    }
 
     // 检查是否达到最低票数要求
     const minVotes = this.game.getConfig().game.minVotesToKill // 最少投票数

@@ -8,7 +8,7 @@
  * 
  * 遵循平方根法则、权重平衡系统和约束驱动生成的三大核心算法原则
  */
-import GameConfig from '../../components/GameConfig.js';
+import { GameConfig } from '../../components/services.js';
 import { BalanceValidator } from './BalanceValidator.js';
 
 export class GameTemplates {

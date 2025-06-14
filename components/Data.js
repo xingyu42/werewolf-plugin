@@ -1,12 +1,12 @@
 import lodash from 'lodash'
 import fs from 'fs'
-const _path = process.cwd()
-const plugin = 'werewolf-plugin'
+import { _path, PLUGIN_NAME } from './constants.js'
+
 const getRoot = (root = '') => {
   if (root === 'root' || root === 'yunzai') {
     root = `${_path}/`
   } else if (!root) {
-    root = `${_path}/plugins/${plugin}/`
+    root = `${_path}/plugins/${PLUGIN_NAME}/`
   }
   return root
 }
@@ -15,17 +15,16 @@ let Data = {
     root = getRoot(root)
     let pathList = path.split('/')
     let nowPath = root
-    pathList.forEach((name, idx) => {
-      name = name.trim()
-      if (!includeFile && idx <= pathList.length - 1) {
-        nowPath += name + '/'
-        if (name) {
-          if (!fs.existsSync(nowPath)) {
-            fs.mkdirSync(nowPath)
-          }
+    const loopTo = includeFile ? pathList.length - 1 : pathList.length;
+    for (let i = 0; i < loopTo; i++) {
+      const name = pathList[i].trim();
+      if (name) {
+        nowPath += name + '/';
+        if (!fs.existsSync(nowPath)) {
+          fs.mkdirSync(nowPath);
         }
       }
-    })
+    }
   },
   readJSON(file = '', root = '') {
     root = getRoot(root)
@@ -45,7 +44,7 @@ let Data = {
     delete data._res
     return fs.writeFileSync(`${root}/${file}`, JSON.stringify(data, null, space))
   },
-  async getCacheJSON(key) {
+  async getCacheJSON(redis, key) {
     try {
       let txt = await redis.get(key)
       if (txt) {
@@ -56,7 +55,7 @@ let Data = {
     }
     return {}
   },
-  async setCacheJSON(key, data, EX = 3600 * 24 * 90) {
+  async setCacheJSON(redis, key, data, EX = 3600 * 24 * 90) {
     await redis.set(key, JSON.stringify(data), { EX })
   },
   async importModule(file, root = '') {
@@ -147,7 +146,7 @@ let Data = {
   },
   eachStr: (arr, fn) => {
     if (lodash.isString(arr)) {
-      arr = arr.replace(/\s*(;|；|、|，)\s*/, ',')
+      arr = arr.replace(/\s*(;|；|、|，)\s*/g, ',')
       arr = arr.split(',')
     } else if (lodash.isNumber(arr)) {
       arr = [arr.toString()]
