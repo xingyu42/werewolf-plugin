@@ -1,30 +1,11 @@
-import { Game } from "./core/Game.js"
-import { GameTemplates } from "./configurators/GameTemplates.js"
+import { Game } from '../core/Game.js';
+import { GameRegistry } from './GameRegistry.js';
+import { StateMachine } from '../core/StateMachine.js';
+import { PlayerQueryService } from './PlayerQueryService.js';
+import { VictoryChecker } from '../core/VictoryChecker.js';
+import { GameEventHandler } from '../core/GameEventHandler.js';
 
-export class GameManager {
-    // 静态游戏实例存储
-    static games = new Map();
-
-    // 获取游戏实例
-    static getGame(groupId) {
-        return this.games.get(groupId);
-    }
-
-    // 添加游戏实例
-    static addGame(groupId, gameInstance) {
-        this.games.set(groupId, gameInstance);
-    }
-
-    // 移除游戏实例
-    static removeGame(groupId) {
-        this.games.delete(groupId);
-    }
-
-    // 检查游戏是否存在
-    static hasGame(groupId) {
-        return this.games.has(groupId);
-    }
-
+export class GameLobby {
     constructor(gameConfig) {
         this.gameConfig = gameConfig;
         this.players = [];
@@ -79,7 +60,25 @@ export class GameManager {
         return this.players;
     }
 
-    // 注意: getRoleList方法已移除
-    // 请使用RoleConfigurator.generate(playerCount)获取角色列表
+    createGame(groupId, e) {
+        const stateMachine = new StateMachine();
+        const playerQueryService = new PlayerQueryService();
+        const victoryChecker = new VictoryChecker();
+        const eventHandler = new GameEventHandler(null, e); // Game context will be set inside Game constructor
 
-}
+        const game = new Game({
+            e,
+            config: this.gameConfig,
+            players: this.players,
+            stateMachine,
+            playerQueryService,
+            victoryChecker,
+            eventHandler
+        });
+
+        eventHandler.setGame(game); // Set the game context now that it's created
+
+        GameRegistry.addGame(groupId, game);
+        return game;
+    }
+} 

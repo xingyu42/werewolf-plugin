@@ -129,4 +129,91 @@ export function isValidTransition(fromState, toState, game, context = {}) {
     allowed: true,
     reason: transition.description
   };
+}
+
+export class StateMachine {
+    constructor(initialState) {
+        this.currentState = initialState;
+        this._changingState = false;
+        this.stateHistory = [];
+        this.maxHistoryLength = 50;
+        this.stateTransitionContext = {};
+        this.game = null; // To be set later
+    }
+
+    setContext(game) {
+        this.game = game;
+    }
+
+    async changeState(newState) {
+        if (!newState) {
+            // In a real scenario, you'd probably want to emit an error or log it.
+            console.error("StateMachine: newState is undefined");
+            return;
+        }
+
+        if (this._changingState) {
+            console.warn("StateMachine: State change blocked, already changing state.");
+            return;
+        }
+
+        if (this.currentState) {
+            const fromState = this.currentState.constructor.name;
+            const toState = newState.constructor.name;
+
+            const validationResult = isValidTransition(fromState, toState, this.game, this.stateTransitionContext);
+
+            if (!validationResult.allowed) {
+                console.error(`StateMachine: Invalid state transition from ${fromState} to ${toState}. Reason: ${validationResult.reason}`);
+                // Optionally, emit an event or throw an error
+                return;
+            }
+
+            this.recordStateHistory(this.currentState);
+        }
+
+        this._changingState = true;
+        try {
+            if (this.currentState) {
+                await this.currentState.onExit();
+            }
+
+            this.currentState = newState;
+            // The new state needs a reference to the game context.
+            // This assumes states have a setContext or similar method, or are constructed with it.
+            if (typeof this.currentState.setContext === 'function') {
+                this.currentState.setContext(this.game);
+            }
+            await this.currentState.onEnter();
+
+        } catch (err) {
+            console.error("StateMachine: Error during state transition:", err);
+        } finally {
+            this._changingState = false;
+        }
+    }
+
+    recordStateHistory(state) {
+        if (!state) return;
+
+        const historyEntry = {
+            stateType: state.constructor.name,
+            timestamp: new Date(),
+            turn: this.game ? this.game.turn : null // Access turn from game context
+        };
+
+        this.stateHistory.push(historyEntry);
+
+        if (this.stateHistory.length > this.maxHistoryLength) {
+            this.stateHistory.shift();
+        }
+    }
+
+    setStateTransitionContext(context) {
+        this.stateTransitionContext = context || {};
+    }
+
+    getCurrentState() {
+        return this.currentState;
+    }
 } 

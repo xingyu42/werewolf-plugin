@@ -1,4 +1,3 @@
-import { GameManager } from "../model/GameManager.js";
 import { LastWordsState } from "../model/action/LastWordsState.js"; // 引入 LastWordsState
 import { SheriffElectState } from "../model/action/SheriffElectState.js"; // 引入 SheriffElectState
 import { SheriffTransferState } from "../model/action/SheriffTransferState.js"; // 引入 SheriffTransferState
@@ -26,22 +25,6 @@ export class GameAction extends plugin {
         { reg: "^#结束发言$", fnc: "handleEndSpeech" },
       ],
     });
-  }
-
-  /**
-   * 获取当前群的游戏实例
-   * @param {object} e 消息事件对象
-   * @returns {Game|false} 游戏实例或 false
-   */
-  getGame(e) {
-    // 获取游戏实例
-    const gameInstance = GameManager.getGame(e.group_id);
-    // 游戏实例检查
-    if (!gameInstance) {
-      e.reply("当前群没有进行中的游戏");
-      return false;
-    }
-    return gameInstance;
   }
 
   async handleVote(e) {

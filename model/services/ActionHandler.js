@@ -1,4 +1,4 @@
-import { GameManager } from '../GameManager.js';
+import { GameRegistry } from './GameRegistry.js';
 import { GameError } from '../core/GameError.js';
 
 export class ActionHandler {
@@ -28,7 +28,7 @@ export class ActionHandler {
     try {
       let game = null;
       if (checkGame) {
-        game = GameManager.getGame(e.group_id);
+        game = GameRegistry.getGame(e.group_id);
         if (!game) {
           throw new GameError('当前群没有进行中的游戏。');
         }

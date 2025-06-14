@@ -1,4 +1,3 @@
-import { GameManager } from "../model/GameManager.js";
 import { ActionHandler } from '../model/services/ActionHandler.js';
 import { ACTIONS } from "../model/core/Constants.js";
 
@@ -48,50 +47,6 @@ export class GameRoles extends plugin {
         }
       ]
     });
-  }
-
-  getGame(e) {
-    let game = GameManager.getGame(e.group_id);
-    if (!game) {
-      e.reply('当前群没有进行中的游戏');
-      return false;
-    }
-    return game;
-  }
-
-  // 验证角色行动
-  validateAction(game, e, roleType) {
-    // 检查发送消息的玩家是否在游戏中
-    const player = game.getPlayerById(e.user_id);
-
-    if (!player) {
-      throw new Error('你不是游戏中的玩家');
-    }
-
-    // 获取玩家角色实例
-    const role = game.roles.get(player.id);
-
-    if (!role) {
-      throw new Error('未找到角色信息');
-    }
-
-    // 检查角色类型
-    if (role.getName() !== roleType) {
-      throw new Error(`你不是${roleType}，无法执行此操作`);
-    }
-
-    // 检查当前游戏状态是否允许该角色行动
-    const currentState = game.getCurrentState();
-    if (!role.canAct(currentState)) {
-      throw new Error('当前阶段不能执行此操作');
-    }
-
-    // 检查是否是当前行动角色的回合
-    if (currentState.currentActionRole !== roleType) {
-      throw new Error(`现在是${currentState.currentActionRole}的行动时间，请等待你的回合`);
-    }
-
-    return role;
   }
 
   // 守卫守护
