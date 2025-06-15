@@ -1,6 +1,6 @@
 import Data from './Data.js';
 import GameConfig from './GameConfig.js';
-import Puppeteer from './ui/puppeteer.js';
+import Puppeteer from './puppeteer.js';
 import PlayerStats from '../model/stats/PlayerStats.js';
 
 // Assume redis and logger are available globally in the execution environment.
