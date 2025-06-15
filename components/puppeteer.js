@@ -2,7 +2,7 @@ import puppeteer from 'puppeteer'
 import path from 'path'
 import fs from 'fs'
 import _ from 'lodash'
-import Renderer from '../../../../lib/renderer/loader.js'
+import Renderer from '../../../lib/renderer/loader.js'
 import { _path, PLUGIN_NAME } from './constants.js'
 
 const renderer = Renderer.getRenderer()
