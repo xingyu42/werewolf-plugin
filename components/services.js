@@ -1,5 +1,6 @@
 import Data from './Data.js';
 import GameConfig from './GameConfig.js';
+import YamlReader from './YamlReader.js';
 import Puppeteer from './puppeteer.js';
 import PlayerStats from '../model/stats/PlayerStats.js';
 
@@ -22,6 +23,7 @@ const playerStatsInstance = new PlayerStats(dataWithRedis, redisInstance);
 export {
   dataWithRedis as Data,
   gameConfigInstance as GameConfig,
+  YamlReader,
   puppeteerInstance as Puppeteer,
   playerStatsInstance as PlayerStats,
-}; 
+};

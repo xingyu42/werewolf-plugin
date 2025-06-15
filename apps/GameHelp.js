@@ -1,4 +1,4 @@
-import { Data, Puppeteer } from '../components/index.js'
+import { Data, Puppeteer } from '../components/services.js'
 import lodash from 'lodash'
 
 export class GameHelp extends plugin {
@@ -9,7 +9,7 @@ export class GameHelp extends plugin {
       event: "message",
       priority: 5000,
       rule: [
-        { reg: "^#狼人杀帮助$", fnc: "showHelp" },
+        { reg: "^#?狼人杀帮助$", fnc: "showHelp" },
       ],
     });
   }

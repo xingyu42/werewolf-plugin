@@ -4,6 +4,7 @@ tests/
 .vscode/
 *.log
 doc/
+data/
 .codeaskdata
 test/
 babel.config.cjs

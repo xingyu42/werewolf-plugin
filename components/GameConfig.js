@@ -11,7 +11,7 @@ const Log_Prefix = `[${PLUGIN_NAME}插件]`
 class GameConfig {
   constructor(redis, logger) {
     this.redis = redis;
-    this.logger = logger;
+    this.logger = logger || console; // 使用 console 作为默认 logger
     this.config = {}
 
     /** 监听文件 */
@@ -42,7 +42,15 @@ class GameConfig {
         if (!fs.existsSync(`${path}${file}`)) {
           fs.copyFileSync(`${pathDef}${file}`, `${path}${file}`)
         } else {
-          this.other.autoMergeCfg && this.mergeCfg(`${path}${file}`, `${pathDef}${file}`, file)
+          // 安全地检查 autoMergeCfg 配置，避免在初始化时出现循环依赖
+          try {
+            const otherConfig = this.getYaml("config", "other");
+            const autoMergeCfg = otherConfig?.autoMergeCfg !== false; // 默认为 true
+            autoMergeCfg && this.mergeCfg(`${path}${file}`, `${pathDef}${file}`, file);
+          } catch (e) {
+            // 如果读取配置失败，默认进行合并
+            this.mergeCfg(`${path}${file}`, `${pathDef}${file}`, file);
+          }
         }
         this.watch(`${path}${file}`, file.replace(".yaml", ""), "config")
       }
@@ -53,9 +61,27 @@ class GameConfig {
     try {
       // 默认文件未变化不合并
       let defData = fs.readFileSync(defPath, "utf8")
-      let redisData = await this.redis.get(`werewolf:mergeCfg:${name}`)
+
+      // 安全地访问 redis，如果 redis 不可用则跳过缓存检查
+      let redisData = null;
+      if (this.redis) {
+        try {
+          redisData = await this.redis.get(`werewolf:mergeCfg:${name}`);
+        } catch (e) {
+          this.logger.warn(`${Log_Prefix}[Redis访问失败][${name}]：${e}`);
+        }
+      }
+
       if (defData == redisData) return
-      this.redis.set(`werewolf:mergeCfg:${name}`, defData)
+
+      // 安全地设置 redis 缓存
+      if (this.redis) {
+        try {
+          this.redis.set(`werewolf:mergeCfg:${name}`, defData);
+        } catch (e) {
+          this.logger.warn(`${Log_Prefix}[Redis设置失败][${name}]：${e}`);
+        }
+      }
 
       const userDoc = YAML.parseDocument(fs.readFileSync(cfgPath, "utf8"))
       const defDoc = YAML.parseDocument(defData)
@@ -296,4 +322,4 @@ class GameConfig {
 
 }
 
-export default new GameConfig()
+export default GameConfig

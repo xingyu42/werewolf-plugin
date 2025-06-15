@@ -142,13 +142,14 @@ class Puppeteer {
    * @param {Object} cfg 渲染配置
    * @returns {Promise<string|boolean>} base64 截图或false
    */
-  async render(tplPath, data = {}, cfg = {}) {
+  async render(tplPath, data = {}, cfg = {}, user_id) {
     this.shoting.push(true);
     try {
       // 处理传入的path
       tplPath = tplPath.replace(/.html$/, "")
       let paths = _.filter(tplPath.split("/"), (p) => !!p)
       tplPath = paths.join("/")
+      let { e } = cfg
 
       // 创建临时目录
       const tempDir = path.join(_path, 'temp', 'html', PLUGIN_NAME, tplPath)
@@ -188,10 +189,10 @@ class Puppeteer {
 
       // 调用渲染器进行截图
       let base64 = await renderer.screenshot(`${PLUGIN_NAME}/${tplPath}`, data)
+      let ret = true
       if (base64) {
-        return base64
-      }
-      return false
+        ret = user_id ? await e.bot.sendPrivateMsg(user_id, base64) : await e.reply(base64)      }
+      return ret || true
     } finally {
       this.shoting.pop();
     }
