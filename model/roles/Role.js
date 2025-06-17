@@ -1,160 +1,177 @@
 import { ValidationUtils } from '../utils/ValidationUtils.js'
 
+/**
+ * 角色基类 - 所有游戏角色的抽象基类
+ * 
+ * 提供角色的基本功能，包括：
+ * - 角色身份管理
+ * - 目标验证
+ * - 消息发送
+ * - 存活玩家查询
+ * 
+ * 所有具体角色类都应继承此基类并实现相应的抽象方法
+ * 
+ * @class Role
+ */
 export class Role {
+  /**
+   * 创建角色实例
+   * 
+   * @param {Object} game - 游戏实例，提供游戏状态和方法
+   * @param {Object} player - 玩家对象，包含玩家基本信息
+   * @param {Object} e - 事件对象，用于消息发送和事件处理
+   */
   constructor (game, player, e) {
     this.game = game
     this.player = player
     this.e = e
   }
 
-  // 获取角色名称
+  /**
+   * 获取角色名称
+   * 
+   * @returns {string} 角色名称
+   */
   getName () {
     return this.player.role
   }
 
   /**
    * 获取角色阵营
-   * @returns {string} 角色阵营
+   * 
+   * @async
+   * @returns {Promise<string>} 角色阵营（如 'GOOD', 'WOLF'）
    */
   async getCamp () {
     const { RoleFactory } = await import('./RoleFactory.js')
     return RoleFactory.getRoleCamp(this.player.role)
   }
 
-  // 检查是否可以在当前阶段行动
+  /**
+   * 检查是否可以在当前阶段行动
+   * 
+   * @param {Object} state - 当前游戏状态对象
+   * @returns {boolean} 是否可以行动
+   */
   canAct (state) {
     return false
   }
 
-  // 执行行动
+  /**
+   * 执行角色行动 - 抽象方法，需要在子类中实现
+   * 
+   * @abstract
+   * @async
+   * @param {Object} target - 行动目标玩家对象
+   * @param {string} [action] - 行动类型
+   * @returns {Promise<boolean|Object>} 行动结果
+   * @throws {Error} 如果子类未实现此方法
+   */
   async act (target) {
     throw new Error('需要在子类中实现act方法')
   }
 
-  // 获取行动提示
+  /**
+   * 获取行动提示消息
+   * 
+   * @returns {string} 行动提示文本
+   */
   getActionPrompt () {
     return ''
   }
 
-  // 验证目标是否合法
+  /**
+   * 验证目标是否合法 - 基础验证
+   * 
+   * @param {Object} target - 目标玩家对象
+   * @returns {boolean} 目标是否合法
+   */
   isValidTarget (target) {
-    // 使用 ValidationUtils 进行统一验证
-    const validation = ValidationUtils.validateTarget(target)
+    if (!target) return false
 
-    if (!validation.isValid) {
-      console.debug(`isValidTarget: ${validation.error.message}`)
-      return false
-    }
-
-    return true
+    // 检查目标是否存活
+    return target.isAlive
   }
 
-  // 简洁的消息发送方法
   /**
-   * 发送群消息
-   * @param {string} message 消息内容
-   * @param {boolean} quote 是否引用回复
-   * @param {object} options 其他选项
+   * 发送群聊消息
+   * 
+   * @async
+   * @param {string} message - 要发送的消息内容
+   * @returns {Promise<boolean>} 发送是否成功
    */
-  async reply (message, quote = false, options = {}) {
+  async reply (message) {
     if (!this.e) {
-      console.warn('[Role] 无法发送群消息：通信对象不可用')
+      console.error('[Role] reply: 通信对象不可用')
       return false
     }
 
     if (typeof this.e.reply !== 'function') {
-      console.warn('[Role] 无法发送群消息：reply方法不可用')
+      console.error('[Role] reply: reply方法不可用')
       return false
     }
 
     try {
-      return await this.e.reply(message, quote, options)
+      await this.e.reply(message)
+      return true
     } catch (error) {
-      console.warn('[Role] 群消息发送失败:', error.message)
+      console.error('[Role] reply: 发送群聊消息失败:', error)
       return false
     }
   }
 
   /**
    * 发送私聊消息
-   * @param {string} message 消息内容
-   * @param {string} userId 用户ID，默认为当前玩家
+   * 
+   * @async
+   * @param {string} message - 要发送的消息内容
+   * @param {string} [targetId] - 目标玩家ID，默认为当前玩家
+   * @returns {Promise<boolean>} 发送是否成功
    */
-  async sendPrivate (message, userId = null) {
-    const targetId = userId || this.player?.id
-    if (!targetId) {
-      console.warn('[Role] 无法发送私聊消息：缺少目标用户ID')
-      return false
-    }
+  async sendPrivate (message, targetId = null) {
+    const target = targetId || this.player.id
 
     if (!this.e) {
-      console.warn('[Role] 无法发送私聊消息：通信对象不可用')
+      console.error('[Role] sendPrivate: 通信对象不可用')
       return false
     }
 
-    if (!this.e.bot) {
-      console.warn('[Role] 无法发送私聊消息：bot对象不可用')
+    if (typeof this.e.friend !== 'function') {
+      console.error('[Role] sendPrivate: friend方法不可用')
       return false
     }
 
     try {
-      // 优先尝试 pickFriend 方法
-      if (typeof this.e.bot.pickFriend === 'function') {
-        const friend = await this.e.bot.pickFriend(targetId)
-        await friend.sendMsg(message)
-        return true
-      }
-
-      // 备选方案：尝试 pickUser 方法
-      if (typeof this.e.bot.pickUser === 'function') {
-        const user = await this.e.bot.pickUser(targetId)
-        await user.sendMsg(message)
-        return true
-      }
-
-      console.warn(`[Role] 私聊API不可用，无法发送消息给用户 ${targetId}`)
-      return false
+      await this.e.friend(target).sendMsg(message)
+      return true
     } catch (error) {
-      console.warn(`[Role] 私聊发送失败 ${targetId}:`, error.message)
+      console.error(`[Role] sendPrivate: 发送私聊消息失败 (目标: ${target}):`, error)
       return false
     }
   }
 
-  // 获取存活玩家列表
+  /**
+   * 获取存活玩家列表
+   * 
+   * @returns {string[]} 存活玩家的显示信息数组，错误时返回空数组
+   */
   getAlivePlayersList () {
-    // 使用 ValidationUtils 验证游戏对象
-    if (!this.game) {
-      console.error('getAlivePlayersList: game 对象未初始化')
-      return '游戏未初始化'
-    }
-
-    if (!this.game.players || typeof this.game.players.values !== 'function') {
-      console.error('getAlivePlayersList: game.players 无效')
-      return '玩家数据无效'
-    }
-
     try {
-      const players = Array.from(this.game.players.values())
-        .filter((player) => {
-          // 使用 ValidationUtils 验证玩家对象
-          const validation = ValidationUtils.validatePlayer(player, { checkAlive: true })
-          if (!validation.isValid) {
-            console.debug(`getAlivePlayersList: 跳过无效玩家: ${validation.error.message}`)
-            return false
-          }
-          return true
-        })
-        .map((player) => {
-          // 安全的字符串构建
-          const gameNumber = player.gameNumber || '?'
-          const name = player.name || '未知'
-          return `${gameNumber}号 ${name}`
-        })
+      if (!this.game) {
+        console.error('[Role] getAlivePlayersList: 游戏对象未初始化')
+        return []
+      }
 
-      return players.length > 0 ? players.join('\n') : '暂无存活玩家'
+      if (!this.game.players) {
+        console.error('[Role] getAlivePlayersList: 玩家数据未初始化')
+        return []
+      }
+
+      const alivePlayers = Array.from(this.game.players.values()).filter(player => player.isAlive)
+      return alivePlayers.map(player => `${player.gameNumber}号 ${player.name}`)
     } catch (error) {
-      console.error('getAlivePlayersList: 获取玩家列表时发生错误:', error)
-      return '获取玩家列表失败'
+      console.error('[Role] getAlivePlayersList: 获取存活玩家列表失败:', error)
+      return []
     }
   }
 }

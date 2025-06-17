@@ -1,7 +1,3 @@
-// {{CHENGQI:
-// Action: Created; Timestamp: 2025-01-16 06:05:00; Reason: Shrimp Task ID: #992f3b47-a84d-440a-8b3a-8e1d11476383, 创建StateManager类分离状态管理职责;
-// }}
-// {{START MODIFICATIONS}}
 
 import { NightState } from '../action/NightState.js'
 import { GameError } from '../core/GameError.js'

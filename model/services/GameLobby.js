@@ -73,7 +73,8 @@ export class GameLobby {
       stateMachine,
       playerQueryService,
       victoryChecker,
-      eventHandler
+      eventHandler,
+      groupId // 传递groupId作为游戏ID
     })
 
     eventHandler.setGame(game) // Set the game context now that it's created

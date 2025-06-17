@@ -2,6 +2,7 @@ import { GameConfig, PlayerStats } from '../components/services.js'
 import { GameRegistry } from '../model/services/GameRegistry.js'
 import { GameLobby } from '../model/services/GameLobby.js'
 import { Player } from '../model/Player.js'
+import { defaultErrorHandler } from '../model/core/ErrorHandler.js'
 
 // A simple in-memory store for active lobbies
 const lobbies = new Map()
@@ -113,22 +114,41 @@ export class GameStart extends plugin {
       return true
     }
 
-    // Create the game from the lobby
-    const game = await lobby.createGame(e.group_id, e)
+    try {
+      // Create the game from the lobby
+      const game = await lobby.createGame(e.group_id, e)
 
-    // Set up event listeners
-    game.on('gameEnd', (result) => {
-      this.playerStats.updateStats(game, result)
-    })
+      // Set up event listeners
+      game.on('gameEnd', (result) => {
+        this.playerStats.updateStats(game, result)
+      })
 
-    // The game's start method should handle its own initialization
-    const result = await game.start()
+      const result = await game.start()
 
-    if (result) {
-      e.reply('游戏开始!')
-      // Clean up the lobby once the game starts
-      this.cleanupLobby(e.group_id)
+      if (result) {
+        e.reply('游戏开始!')
+        // Clean up the lobby once the game starts
+        this.cleanupLobby(e.group_id)
+      }
+    } catch (error) {
+      // 使用统一的错误处理器
+      const context = {
+        groupId: e.group_id,
+        playerCount: lobby.getPlayers().length,
+        action: 'startGame'
+      }
+      
+      defaultErrorHandler.handle(error, context, e)
+
+      // 清理资源：移除可能已创建的游戏实例
+      try {
+        const { GameRegistry } = await import('../model/services/GameRegistry.js')
+        GameRegistry.removeGame(e.group_id)
+      } catch (cleanupError) {
+        console.warn('[GameStart] 清理游戏资源时出错:', cleanupError)
+      }
     }
+    
     return true
   }
 
@@ -170,24 +190,6 @@ export class GameStart extends plugin {
             console.log(`[GameStart] 玩家 ${player.name}(${player.id}) 不是机器人好友 (pickFriend失败)`)
           }
         }
-
-        // 方法2：备选方案，尝试发送测试消息
-        if (e.bot?.pickUser) {
-          try {
-            const user = e.bot.pickUser(player.id)
-            // 尝试发送一个很短的测试消息（不会真正发送，只是测试权限）
-            // 注意：这里我们不实际发送消息，只是检查是否有发送权限
-            const friend = user.asFriend(true) // strict=true
-            if (friend && friend.info) {
-              console.log(`[GameStart] 玩家 ${player.name}(${player.id}) 已是机器人好友`)
-              continue
-            }
-          } catch (userError) {
-            console.log(`[GameStart] 玩家 ${player.name}(${player.id}) 用户检测失败:`, userError.message)
-          }
-        }
-
-        // 如果所有方法都失败，认为不是好友
         nonFriends.push(player)
         console.log(`[GameStart] 玩家 ${player.name}(${player.id}) 最终判定为非好友`)
 

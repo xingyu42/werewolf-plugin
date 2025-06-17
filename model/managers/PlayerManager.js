@@ -1,7 +1,3 @@
-// {{CHENGQI:
-// Action: Created; Timestamp: 2025-01-16 06:00:00; Reason: Shrimp Task ID: #992f3b47-a84d-440a-8b3a-8e1d11476383, 创建PlayerManager类分离玩家管理职责;
-// }}
-// {{START MODIFICATIONS}}
 
 import { RoleFactory } from '../roles/RoleFactory.js'
 import { GameError } from '../core/GameError.js'

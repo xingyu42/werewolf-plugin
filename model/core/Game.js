@@ -1,4 +1,4 @@
-import { EventEmitter } from 'node:events'
+import { EventEmitter } from 'events'
 import { VictoryChecker } from './VictoryChecker.js'
 import { RoleConfigurator } from '../configurators/RoleConfigurator.js'
 import { GameEventHandler } from './GameEventHandler.js'
@@ -8,15 +8,19 @@ import { StateManager } from '../managers/StateManager.js'
 /**
  * 游戏核心类 - 重构后的核心协调器
  * 负责协调各个管理器，保持游戏的整体流程控制
- * 继承EventEmitter实现事件驱动的通信机制
  */
 export class Game extends EventEmitter {
-  constructor ({ e, config, players, stateMachine, playerQueryService, victoryChecker, eventHandler }) {
-    super() // 调用EventEmitter构造函数
+  constructor ({ e, config, players, stateMachine, playerQueryService, victoryChecker, eventHandler, groupId }) {
+    super()
 
+    // 设置游戏ID，优先使用传入的groupId，否则使用时间戳+随机数
+    this.id = groupId
     this.e = e // 保存 e 对象引用，供角色类使用
     this.config = config
     this.eventErrors = []
+    
+    // 清理状态标志，防止重复清理
+    this._isCleanedUp = false
 
     // 初始化管理器
     this.playerManager = new PlayerManager(this)
@@ -76,6 +80,11 @@ export class Game extends EventEmitter {
 
   getAlivePlayers (options) {
     return this.playerManager.getAlivePlayers(options)
+  }
+
+  // 获取玩家集合 - 保持向后兼容性
+  get players () {
+    return this.playerManager.getAllPlayers()
   }
 
   // 初始化游戏
@@ -204,10 +213,6 @@ export class Game extends EventEmitter {
     }
     await this.initPlayers()
     this.initState()
-
-    this.emit('gameStart') // Announce game start
-
-    // The first state's onEnter will handle the initial messages
     return true
   }
 
@@ -226,12 +231,75 @@ export class Game extends EventEmitter {
   }
 
   /**
+   * 统一设置玩家保护状态
+   * @param {Object} player - 玩家对象
+   * @param {boolean} status - 保护状态 (true=受保护, false=不受保护)
+   */
+  setProtectedStatus (player, status) {
+    if (!player) {
+      console.error('[Game] setProtectedStatus: 玩家对象为空')
+      return false
+    }
+
+    player.protected = status
+    console.debug(`[Game] 玩家 ${player.name} 保护状态设置为: ${status}`)
+    return true
+  }
+
+  /**
+   * 统一复活玩家
+   * @param {Object} player - 要复活的玩家对象
+   */
+  revivePlayer (player) {
+    if (!player) {
+      console.error('[Game] revivePlayer: 玩家对象为空')
+      return false
+    }
+
+    player.isAlive = true
+    player.deathReason = null
+    console.debug(`[Game] 玩家 ${player.name} 已复活`)
+    
+    // 发出复活事件，供其他组件监听
+    this.emit('playerRevived', { player })
+    return true
+  }
+
+  /**
+   * 批量清除所有玩家的保护状态
+   */
+  clearAllProtectedStatus () {
+    const players = this.playerManager.getAllPlayers()
+    let clearedCount = 0
+    
+    for (const player of players.values()) {
+      if (player.protected) {
+        player.protected = false
+        clearedCount++
+      }
+    }
+    
+    console.debug(`[Game] 已清除 ${clearedCount} 个玩家的保护状态`)
+    return clearedCount
+  }
+
+  /**
    * 清理游戏资源，防止内存泄漏
    */
   cleanup () {
-    console.log(`[Game] 开始清理游戏资源 (ID: ${this.id || 'unknown'})`)
+    // 防止重复清理
+    if (this._isCleanedUp) {
+      console.log(`[Game] 游戏资源已清理过，跳过重复清理 (ID: ${this.id})`)
+      return
+    }
+
+    console.log(`[Game] 开始清理游戏资源 (ID: ${this.id})`)
+    this._isCleanedUp = true
 
     try {
+      // 清理WolfRole静态属性，防止跨游戏污染
+      this.cleanupWolfRoleStatics()
+
       // 清理事件监听器
       if (typeof this.removeAllListeners === 'function') {
         this.removeAllListeners()
@@ -256,9 +324,42 @@ export class Game extends EventEmitter {
         this.eventErrors.length = 0
       }
 
-      console.log(`[Game] 游戏资源清理完成 (ID: ${this.id || 'unknown'})`)
+      console.log(`[Game] 游戏资源清理完成 (ID: ${this.id})`)
     } catch (error) {
-      console.error('[Game] 清理游戏资源时发生错误:', error)
+      console.error(`[Game] 清理游戏资源时发生错误 (ID: ${this.id}):`, error)
+    }
+  }
+
+  /**
+   * 清理WolfRole静态属性，防止跨游戏数据污染
+   */
+  cleanupWolfRoleStatics () {
+    try {
+      // 动态导入WolfRole并调用其cleanup方法
+      import('../roles/WolfRole.js').then(({ WolfRole }) => {
+        if (WolfRole && typeof WolfRole.cleanup === 'function') {
+          WolfRole.cleanup()
+        }
+      }).catch(error => {
+        console.warn('[Game] 清理WolfRole静态属性时发生错误:', error)
+      })
+    } catch (error) {
+      console.warn('[Game] 无法清理WolfRole静态属性:', error)
+    }
+  }
+
+  /**
+   * 获取狼人投票统计 - 集中化管理
+   */
+  getWolfVoteStats () {
+    try {
+      // 动态导入WolfRole获取统计信息
+      return import('../roles/WolfRole.js').then(({ WolfRole }) => {
+        return WolfRole.getStats ? WolfRole.getStats() : { voteCount: 0, hasKillTarget: false }
+      }).catch(() => ({ voteCount: 0, hasKillTarget: false }))
+    } catch (error) {
+      console.warn('[Game] 获取狼人投票统计失败:', error)
+      return { voteCount: 0, hasKillTarget: false }
     }
   }
 
