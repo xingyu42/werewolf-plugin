@@ -8,4 +8,4 @@ export {
   _path,
   PLUGIN_NAME,
   PLUGIN_PATH
-} 
+}

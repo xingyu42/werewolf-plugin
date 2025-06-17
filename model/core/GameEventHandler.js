@@ -1,137 +1,211 @@
-import { EventEmitter } from 'node:events';
+import { ErrorHandler } from './ErrorHandler.js'
+import { DEATH_REASONS } from './Constants.js'
 
 /**
- * 游戏事件处理器 - 负责处理Game实例发出的事件并转发到通信层
- * 用于解耦游戏核心逻辑与外部通信
+ * 游戏事件处理器 - 负责处理Game实例发出的非消息事件并转发到通信层
+ * 处理游戏状态变化事件：gameEnd、newDay、roleNotify、playerDeath、error
+ * 消息发送功能已简化，由角色类直接处理
  */
 export class GameEventHandler {
   /**
    * 创建游戏事件处理器
    * @param {Game} game 游戏实例
    * @param {Object} e 通信句柄
+   * @param {ErrorHandler} errorHandler 错误处理器（可选）
    */
-  constructor(game, e) {
-    this.game = game;
-    this.e = e;
-    
-    // 设置游戏事件监听
-    this.setupEventListeners();
+  constructor (game, e, errorHandler = null) {
+    this.game = game
+    this.e = e
+    this.errorHandler = errorHandler || new ErrorHandler(global.logger || console)
+
+    // 事件监听器引用存储，用于清理
+    this.eventListeners = new Map()
+
+    // 标记是否已清理
+    this.isCleanedUp = false
+
+    // 只有当game不为null时才设置事件监听
+    if (this.game) {
+      this.setupEventListeners()
+    }
   }
-  
+
+  /**
+   * 设置游戏引用并初始化事件监听器
+   */
+  setGame (game) {
+    this.game = game
+    if (game && this.eventListeners.size === 0) {
+      this.setupEventListeners()
+    }
+  }
+
   /**
    * 设置事件监听器
    */
-  setupEventListeners() {
-    // 监听消息事件
-    this.game.on('message', (data) => {
-      const { type, content, target } = data;
-      
-      if (type === 'group') {
-        // 发送群消息
-        this.e.reply(content);
-      } else if (type === 'private') {
-        // 发送私聊消息
-        this.e.bot.sendPrivateMsg(target, content);
+  setupEventListeners () {
+    // 检查game是否存在
+    if (!this.game) {
+      console.warn('[GameEventHandler] Game实例不存在，无法设置事件监听器')
+      return
+    }
+
+    // 防止重复设置监听器
+    if (this.eventListeners.size > 0) {
+      console.warn('[GameEventHandler] 事件监听器已设置，跳过重复设置')
+      return
+    }
+
+    // 监听错误事件 - 使用统一错误处理框架
+    const errorHandler = (error) => {
+      if (this.isCleanedUp) return // 已清理则忽略事件
+
+      // 使用统一错误处理器处理错误
+      const context = {
+        gameId: this.game.id || 'unknown',
+        turn: this.game.turn || 0,
+        playerCount: this.game.players ? this.game.players.size : 0,
+        currentState: this.game.getCurrentState ? this.game.getCurrentState()?.constructor?.name : 'unknown'
       }
-    });
-    
-    // 监听错误事件
-    this.game.on('error', (error) => {
-      // 记录详细错误信息
-      console.error('游戏错误:', error.getFormattedMessage(), error.toJSON());
-      
-      // 根据错误类型提供友好的用户反馈
-      let userMessage = `操作失败: ${error.message}`;
-      
-      // 对特定错误类型提供更友好的提示
-      switch (error.code) {
-        case 'INVALID_PLAYER':
-          userMessage = '无效的玩家操作，请确认您是游戏参与者';
-          break;
-        case 'PLAYER_NOT_FOUND':
-          userMessage = '玩家不存在，请确认游戏号码';
-          break;
-        case 'INVALID_ACTION':
-          userMessage = '当前阶段无法执行该操作';
-          break;
-        case 'STATE_TRANSITION_ERROR':
-          userMessage = '游戏状态转换错误，请联系管理员';
-          break;
-        case 'NO_ACTIVE_STATE':
-          userMessage = '游戏尚未开始或已结束';
-          break;
-        case 'VOTE_ERROR':
-          userMessage = '投票操作失败，请检查目标是否有效';
-          break;
-        case 'SHERIFF_ELECT_ERROR':
-          userMessage = '警长竞选操作失败，请稍后再试';
-          break;
-        case 'GUARD_ACTION_ERROR':
-        case 'PROPHET_ACTION_ERROR':
-        case 'WITCH_POISON_ERROR':
-        case 'WITCH_SAVE_ERROR':
-          userMessage = `${error.message} (角色操作失败)`;
-          break;
-        // 可根据需要添加更多错误类型的处理
-      }
-      
-      // 发送反馈给用户
-      this.e.reply(userMessage);
-      
-      // 记录错误到游戏实例以供后续分析
+
+      // 委托给错误处理器
+      const result = this.errorHandler.handle(error, context, this.e)
+
+      // 记录错误到游戏实例以供后续分析（保持向后兼容）
       if (this.game.eventErrors) {
         this.game.eventErrors.push({
           timestamp: new Date(),
-          error: error.toJSON()
-        });
-        
+          error: error.toJSON(),
+          handled: result.handled,
+          userMessage: result.userMessage
+        })
+
         // 限制错误日志数量，避免内存泄漏
         if (this.game.eventErrors.length > 100) {
-          this.game.eventErrors.shift();
+          this.game.eventErrors.shift()
         }
       }
-    });
-    
+    }
+
+    this.game.on('error', errorHandler)
+    this.eventListeners.set('error', errorHandler)
+
     // 监听游戏结束事件
-    this.game.on('gameEnd', (data) => {
-      const { winner, reason, alivePlayers } = data;
-      this.e.reply(`游戏结束！\n获胜阵营：${winner}\n胜利原因：${reason}\n存活玩家：\n${alivePlayers}`);
-    });
-    
+    const gameEndHandler = (data) => {
+      if (this.isCleanedUp) return
+
+      const { winner, reason, alivePlayers } = data
+      this.e.reply(`游戏结束！\n获胜阵营：${winner}\n胜利原因：${reason}\n存活玩家：\n${alivePlayers}`)
+
+      // 游戏结束后自动清理事件监听器
+      setTimeout(() => this.cleanup(), 1000)
+    }
+
+    this.game.on('gameEnd', gameEndHandler)
+    this.eventListeners.set('gameEnd', gameEndHandler)
+
     // 监听新一天开始事件
-    this.game.on('newDay', (data) => {
-      const { turn } = data;
-      this.e.reply(`=== 第${turn}天 ===`);
-    });
-    
+    const newDayHandler = (data) => {
+      if (this.isCleanedUp) return
+
+      const { turn } = data
+      this.e.reply(`=== 第${turn}天 ===`)
+    }
+
+    this.game.on('newDay', newDayHandler)
+    this.eventListeners.set('newDay', newDayHandler)
+
     // 监听角色通知事件
-    this.game.on('roleNotify', (data) => {
-      const { playerId, message } = data;
-      this.e.bot.sendPrivateMsg(playerId, message);
-    });
-    
+    const roleNotifyHandler = async (data) => {
+      if (this.isCleanedUp) return
+
+      const { playerId, message } = data
+      try {
+        // 直接使用通信对象发送私聊消息
+        if (this.e.bot?.pickFriend) {
+          await this.e.bot.pickFriend(playerId).sendMsg(message)
+        } else if (this.e.bot?.pickUser) {
+          await this.e.bot.pickUser(playerId).sendMsg(message)
+        } else {
+          console.warn(`[GameEventHandler] 私聊API不可用，无法发送角色通知给用户 ${playerId}`)
+        }
+      } catch (error) {
+        console.warn(`[GameEventHandler] 角色通知私聊发送失败 ${playerId}:`, error.message)
+      }
+    }
+
+    this.game.on('roleNotify', roleNotifyHandler)
+    this.eventListeners.set('roleNotify', roleNotifyHandler)
+
     // 监听玩家死亡事件
-    this.game.on('playerDeath', (data) => {
-      const { player, reason } = data;
-      let deathMessage = `玩家 ${player.gameNumber}号 ${player.name} 已死亡`;
-      
+    const playerDeathHandler = (data) => {
+      if (this.isCleanedUp) return
+
+      const { player, reason } = data
+      let deathMessage = `玩家 ${player.gameNumber}号 ${player.name} 已死亡`
+
       // 根据死亡原因提供不同的消息
       switch (reason) {
-        case 'WOLF_KILL':
-          deathMessage += "（被狼人杀死）";
-          break;
-        case 'EXILE':
-          deathMessage += "（被放逐出村）";
-          break;
-        case 'POISON':
-          deathMessage += "（中毒身亡）";
-          break;
-        case 'HUNTER_SHOT':
-          deathMessage += "（被猎人射杀）";
-          break;
+        case DEATH_REASONS.WOLF_KILL:
+          deathMessage += '（被狼人杀死）'
+          break
+        case DEATH_REASONS.EXILE:
+          deathMessage += '（被放逐出村）'
+          break
+        case DEATH_REASONS.POISON:
+          deathMessage += '（中毒身亡）'
+          break
+        case DEATH_REASONS.HUNTER_SHOT:
+          deathMessage += '（被猎人射杀）'
+          break
       }
-      
-      this.e.reply(deathMessage);
-    });
+
+      this.e.reply(deathMessage)
+    }
+
+    this.game.on('playerDeath', playerDeathHandler)
+    this.eventListeners.set('playerDeath', playerDeathHandler)
   }
-} 
+
+  /**
+   * 清理事件监听器和相关资源
+   */
+  cleanup () {
+    if (this.isCleanedUp) {
+      console.debug('[GameEventHandler] 已经清理过，跳过重复清理')
+      return
+    }
+
+    console.log('[GameEventHandler] 开始清理事件监听器...')
+
+    try {
+      // 移除所有事件监听器
+      for (const [eventName, handler] of this.eventListeners.entries()) {
+        if (this.game && typeof this.game.removeListener === 'function') {
+          this.game.removeListener(eventName, handler)
+        }
+      }
+
+      // 清空监听器引用
+      this.eventListeners.clear()
+
+      // 标记为已清理
+      this.isCleanedUp = true
+
+      console.log('[GameEventHandler] 事件监听器清理完成')
+    } catch (error) {
+      console.error('[GameEventHandler] 清理事件监听器时发生错误:', error)
+    }
+  }
+
+  /**
+   * 获取事件监听器统计信息
+   */
+  getStats () {
+    return {
+      listenerCount: this.eventListeners.size,
+      isCleanedUp: this.isCleanedUp,
+      registeredEvents: Array.from(this.eventListeners.keys())
+    }
+  }
+}

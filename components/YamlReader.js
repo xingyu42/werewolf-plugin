@@ -1,6 +1,6 @@
-import fs from "node:fs"
-import YAML from "yaml"
-import _ from "lodash"
+import fs from 'node:fs'
+import YAML from 'yaml'
+import _ from 'lodash'
 
 /**
  * YAML读取和修改工具类
@@ -10,9 +10,9 @@ class YamlReader {
    * 构造函数
    * @param {string} path YAML文件路径
    */
-  constructor(path) {
+  constructor (path) {
     this.path = path
-    this.document = YAML.parseDocument(fs.readFileSync(path, "utf8") || "{}")
+    this.document = YAML.parseDocument(fs.readFileSync(path, 'utf8') || '{}')
     this.data = this.document.toJSON()
   }
 
@@ -21,7 +21,7 @@ class YamlReader {
    * @param {string} path 路径，使用.分隔
    * @returns {any} 值
    */
-  get(path) {
+  get (path) {
     return _.get(this.data, path)
   }
 
@@ -32,12 +32,12 @@ class YamlReader {
    * @param {string} comment 注释
    * @returns {boolean} 是否成功
    */
-  set(path, value, comment = "") {
-    if (path == "") {
+  set (path, value, comment = '') {
+    if (path == '') {
       this.document = YAML.parseDocument(YAML.stringify(value))
       this.data = value
     } else {
-      let paths = path.split(".")
+      let paths = path.split('.')
       let last = paths.pop()
       let doc = this.document
       for (let p of paths) {
@@ -61,12 +61,12 @@ class YamlReader {
    * @param {string} path 路径，使用.分隔
    * @returns {boolean} 是否成功
    */
-  delete(path) {
-    if (path == "") {
-      this.document = YAML.parseDocument("")
+  delete (path) {
+    if (path == '') {
+      this.document = YAML.parseDocument('')
       this.data = {}
     } else {
-      let paths = path.split(".")
+      let paths = path.split('.')
       let last = paths.pop()
       let doc = this.document
       for (let p of paths) {
@@ -91,7 +91,7 @@ class YamlReader {
    * @param {string} path 路径，使用.分隔
    * @returns {boolean} 是否成功
    */
-  deleteKey(path) {
+  deleteKey (path) {
     return this.delete(path)
   }
 
@@ -101,7 +101,7 @@ class YamlReader {
    * @param {any} value 要添加的值
    * @returns {boolean} 是否成功
    */
-  addIn(path, value) {
+  addIn (path, value) {
     let arr = this.get(path)
     if (!arr) {
       this.set(path, [value])
@@ -122,7 +122,7 @@ class YamlReader {
    * @param {any} value 要移除的值
    * @returns {boolean} 是否成功
    */
-  delFrom(path, value) {
+  delFrom (path, value) {
     let arr = this.get(path)
     if (Array.isArray(arr)) {
       let index = arr.indexOf(value)
@@ -138,9 +138,9 @@ class YamlReader {
   /**
    * 保存文件
    */
-  save() {
+  save () {
     let yaml = this.document.toString()
-    fs.writeFileSync(this.path, yaml, "utf8")
+    fs.writeFileSync(this.path, yaml, 'utf8')
   }
 }
 

@@ -1,12 +1,10 @@
 .cursor/
 node_modules/
-tests/
 .vscode/
 *.log
 doc/
 data/
 .codeaskdata
-test/
-babel.config.cjs
-package-lock.json
-package.json
+tests/
+Docs/
+coverage/

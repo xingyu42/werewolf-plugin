@@ -11,11 +11,11 @@ export const GameStateType = {
   LAST_WORDS: 'LastWordsState',
   SHERIFF_ELECT: 'SheriffElectState',
   SHERIFF_TRANSFER: 'SheriffTransferState'
-};
+}
 
 /**
  * 状态转换配置
- * 
+ *
  * 每个状态都有一个对象，其中定义了它可以转换到的目标状态
  * 对于某些特殊情况，还可以定义条件检查函数
  */
@@ -27,7 +27,7 @@ export const StateTransitions = {
       condition: (game) => true // 始终允许此转换
     }
   },
-  
+
   // 白天状态可以转换到投票状态
   [GameStateType.DAY]: {
     [GameStateType.VOTE]: {
@@ -39,7 +39,7 @@ export const StateTransitions = {
       condition: (game) => game.turn === 1 // 仅在第一天允许
     }
   },
-  
+
   // 投票状态可以转换到遗言状态或夜晚状态
   [GameStateType.VOTE]: {
     [GameStateType.LAST_WORDS]: {
@@ -51,7 +51,7 @@ export const StateTransitions = {
       condition: (game) => true // 始终允许此转换
     }
   },
-  
+
   // 遗言状态转换到夜晚状态或警长移交状态
   [GameStateType.LAST_WORDS]: {
     [GameStateType.NIGHT]: {
@@ -63,7 +63,7 @@ export const StateTransitions = {
       condition: (game, deadPlayer) => deadPlayer.isSheriff // 死者是警长
     }
   },
-  
+
   // 警长竞选状态转换到白天状态
   [GameStateType.SHERIFF_ELECT]: {
     [GameStateType.DAY]: {
@@ -71,7 +71,7 @@ export const StateTransitions = {
       condition: (game) => true // 始终允许此转换
     }
   },
-  
+
   // 警长移交状态可以转换到任何状态（根据构造函数中的nextState决定）
   [GameStateType.SHERIFF_TRANSFER]: {
     [GameStateType.NIGHT]: {
@@ -79,7 +79,7 @@ export const StateTransitions = {
       condition: (game) => true // 始终允许此转换
     }
   }
-};
+}
 
 /**
  * 检查状态转换是否合法
@@ -89,131 +89,130 @@ export const StateTransitions = {
  * @param {Object} context 额外的上下文信息（如死亡的玩家）
  * @returns {Object} 包含是否允许转换和原因的对象
  */
-export function isValidTransition(fromState, toState, game, context = {}) {
+export function isValidTransition (fromState, toState, game, context = {}) {
   // 获取源状态的可能转换
-  const possibleTransitions = StateTransitions[fromState];
-  
+  const possibleTransitions = StateTransitions[fromState]
+
   // 如果没有为源状态定义转换，则不允许
   if (!possibleTransitions) {
     return {
       allowed: false,
       reason: `未定义从 ${fromState} 的任何转换`
-    };
+    }
   }
-  
+
   // 检查是否可以转换到目标状态
-  const transition = possibleTransitions[toState];
-  
+  const transition = possibleTransitions[toState]
+
   // 如果没有定义到目标状态的转换，则不允许
   if (!transition) {
     return {
       allowed: false,
       reason: `不允许从 ${fromState} 转换到 ${toState}`
-    };
+    }
   }
-  
+
   // 如果定义了条件函数，则检查条件
   if (transition.condition && typeof transition.condition === 'function') {
-    const conditionMet = transition.condition(game, context.deadPlayer);
-    
+    const conditionMet = transition.condition(game, context.deadPlayer)
+
     if (!conditionMet) {
       return {
         allowed: false,
         reason: `条件不满足: ${transition.description}`
-      };
+      }
     }
   }
-  
+
   // 允许转换
   return {
     allowed: true,
     reason: transition.description
-  };
+  }
 }
 
 export class StateMachine {
-    constructor(initialState) {
-        this.currentState = initialState;
-        this._changingState = false;
-        this.stateHistory = [];
-        this.maxHistoryLength = 50;
-        this.stateTransitionContext = {};
-        this.game = null; // To be set later
+  constructor (initialState) {
+    this.currentState = initialState
+    this._changingState = false
+    this.stateHistory = []
+    this.maxHistoryLength = 50
+    this.stateTransitionContext = {}
+    this.game = null // To be set later
+  }
+
+  setContext (game) {
+    this.game = game
+  }
+
+  async changeState (newState) {
+    if (!newState) {
+      // In a real scenario, you'd probably want to emit an error or log it.
+      console.error('StateMachine: newState is undefined')
+      return
     }
 
-    setContext(game) {
-        this.game = game;
+    if (this._changingState) {
+      console.warn('StateMachine: State change blocked, already changing state.')
+      return
     }
 
-    async changeState(newState) {
-        if (!newState) {
-            // In a real scenario, you'd probably want to emit an error or log it.
-            console.error("StateMachine: newState is undefined");
-            return;
-        }
+    if (this.currentState) {
+      const fromState = this.currentState.constructor.name
+      const toState = newState.constructor.name
 
-        if (this._changingState) {
-            console.warn("StateMachine: State change blocked, already changing state.");
-            return;
-        }
+      const validationResult = isValidTransition(fromState, toState, this.game, this.stateTransitionContext)
 
-        if (this.currentState) {
-            const fromState = this.currentState.constructor.name;
-            const toState = newState.constructor.name;
+      if (!validationResult.allowed) {
+        console.error(`StateMachine: Invalid state transition from ${fromState} to ${toState}. Reason: ${validationResult.reason}`)
+        // Optionally, emit an event or throw an error
+        return
+      }
 
-            const validationResult = isValidTransition(fromState, toState, this.game, this.stateTransitionContext);
-
-            if (!validationResult.allowed) {
-                console.error(`StateMachine: Invalid state transition from ${fromState} to ${toState}. Reason: ${validationResult.reason}`);
-                // Optionally, emit an event or throw an error
-                return;
-            }
-
-            this.recordStateHistory(this.currentState);
-        }
-
-        this._changingState = true;
-        try {
-            if (this.currentState) {
-                await this.currentState.onExit();
-            }
-
-            this.currentState = newState;
-            // The new state needs a reference to the game context.
-            // This assumes states have a setContext or similar method, or are constructed with it.
-            if (typeof this.currentState.setContext === 'function') {
-                this.currentState.setContext(this.game);
-            }
-            await this.currentState.onEnter();
-
-        } catch (err) {
-            console.error("StateMachine: Error during state transition:", err);
-        } finally {
-            this._changingState = false;
-        }
+      this.recordStateHistory(this.currentState)
     }
 
-    recordStateHistory(state) {
-        if (!state) return;
+    this._changingState = true
+    try {
+      if (this.currentState) {
+        await this.currentState.onExit()
+      }
 
-        const historyEntry = {
-            stateType: state.constructor.name,
-            timestamp: new Date(),
-            turn: this.game ? this.game.turn : null // Access turn from game context
-        };
+      this.currentState = newState
+      // The new state needs a reference to the game context.
+      // This assumes states have a setContext or similar method, or are constructed with it.
+      if (typeof this.currentState.setContext === 'function') {
+        this.currentState.setContext(this.game)
+      }
+      await this.currentState.onEnter()
+    } catch (err) {
+      console.error('StateMachine: Error during state transition:', err)
+    } finally {
+      this._changingState = false
+    }
+  }
 
-        this.stateHistory.push(historyEntry);
+  recordStateHistory (state) {
+    if (!state) return
 
-        if (this.stateHistory.length > this.maxHistoryLength) {
-            this.stateHistory.shift();
-        }
+    const historyEntry = {
+      stateType: state.constructor.name,
+      timestamp: new Date(),
+      turn: this.game ? this.game.turn : null // Access turn from game context
     }
 
-    setStateTransitionContext(context) {
-        this.stateTransitionContext = context || {};
-    }
+    this.stateHistory.push(historyEntry)
 
-    getCurrentState() {
-        return this.currentState;
+    if (this.stateHistory.length > this.maxHistoryLength) {
+      this.stateHistory.shift()
     }
-} 
+  }
+
+  setStateTransitionContext (context) {
+    this.stateTransitionContext = context || {}
+  }
+
+  getCurrentState () {
+    return this.currentState
+  }
+}
