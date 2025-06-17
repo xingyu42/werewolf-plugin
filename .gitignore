@@ -6,7 +6,6 @@ tests/
 doc/
 data/
 .codeaskdata
-test/
-babel.config.cjs
-package-lock.json
-package.json
+tests/
+Docs/
+coverage/
