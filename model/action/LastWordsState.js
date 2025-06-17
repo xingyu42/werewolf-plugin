@@ -1,150 +1,149 @@
-import { GameState } from "./GameState.js";
-import { HunterRole } from "../roles/HunterRole.js";
-import { SheriffTransferState } from "./SheriffTransferState.js";
-import { NightState } from "./NightState.js";
+import { GameState } from './GameState.js'
+import { HunterRole } from '../roles/HunterRole.js'
+import { SheriffTransferState } from './SheriffTransferState.js'
+import { NightState } from './NightState.js'
 
 export class LastWordsState extends GameState {
-  constructor(game, nextState, deadPlayer) {
-    super(game);
-    this.deadPlayer = deadPlayer; // 死亡玩家
-    this.nextState = nextState; // 下一个状态
-    this.timeLimit = game.getConfig().game.lastWordsTimeLimit; // 遗言时间限制
-    this.speechTimeout = null; // 发言计时器
-    this.hasSpoken = false; // 是否已发言
+  constructor (game, nextState, deadPlayer) {
+    super(game)
+    this.deadPlayer = deadPlayer // 死亡玩家
+    this.nextState = nextState // 下一个状态
+    this.timeLimit = game.getConfig().game.lastWordsTimeLimit // 遗言时间限制
+    this.speechTimeout = null // 发言计时器
+    this.hasSpoken = false // 是否已发言
   }
 
-  async onEnter() {
-    await super.onEnter();
+  async onEnter () {
+    await super.onEnter()
 
     // 显示遗言提示
     await this.e.reply(`\n=== ${this.deadPlayer.name}的遗言时间 ===\n` +
       `剩余时间: ${this.timeLimit}秒\n` +
-      '输入"#结束遗言"可以放弃遗言', true, { at: true });
+      '输入"#结束遗言"可以放弃遗言', true, { at: true })
 
     // 设置遗言计时器
     this.speechTimeout = setTimeout(async () => {
       try {
-        await this.onTimeout();
+        await this.onTimeout()
       } catch (err) {
-        console.error("遗言超时处理失败:", err);
+        console.error('遗言超时处理失败:', err)
       }
-    }, this.timeLimit * 1000);
+    }, this.timeLimit * 1000)
   }
 
-  async onExit() {
-    await super.onExit();
+  async onExit () {
+    await super.onExit()
 
     // 清除计时器
     if (this.speechTimeout) {
-      clearTimeout(this.speechTimeout);
-      this.speechTimeout = null;
+      clearTimeout(this.speechTimeout)
+      this.speechTimeout = null
     }
 
     // 检查死亡玩家是特殊角色
-    const deadRole = this.game.roles.get(this.deadPlayer.id);
+    const deadRole = this.game.roles.get(this.deadPlayer.id)
     if (deadRole instanceof HunterRole && deadRole.canAct()) {
       this.game.emit('message', {
         type: 'group',
         content: `猎人 ${this.deadPlayer.name} 的遗言结束，现在可以开枪`
-      });
-      await deadRole.getActionPrompt();
+      })
+      await deadRole.getActionPrompt()
     }
-    
+
     // 设置状态转换上下文，包含死亡玩家信息
-    this.game.setStateTransitionContext({ deadPlayer: this.deadPlayer });
-    
+    this.game.setStateTransitionContext({ deadPlayer: this.deadPlayer })
+
     // 如果死亡玩家是警长，转移到警长移交状态
     if (this.deadPlayer.isSheriff) {
       this.game.emit('message', {
         type: 'group',
         content: `警长 ${this.deadPlayer.name} 死亡，现在可以转移警徽`
-      });
-      await this.game.changeState(new SheriffTransferState(this.game, this.deadPlayer, this.nextState));
-      return; // 已经转换状态，不需要进行下一步
+      })
+      await this.game.changeState(new SheriffTransferState(this.game, this.deadPlayer, this.nextState))
+      return // 已经转换状态，不需要进行下一步
     }
 
     // 死亡玩家不是警长，直接进入下一个状态（通常是夜晚）
     if (this.nextState) {
-      await this.game.changeState(this.nextState);
+      await this.game.changeState(this.nextState)
     } else {
       // 如果没有指定下一个状态，默认进入夜晚
-      await this.game.changeState(new NightState(this.game));
+      await this.game.changeState(new NightState(this.game))
     }
   }
 
   // 处理玩家行为
-  async handleAction(player, action, message) {
+  async handleAction (player, action, message) {
     if (!this.isValidAction(player, action)) {
-      const reason = this.getInvalidActionReason(player, action);
-      throw new Error(reason);
+      const reason = this.getInvalidActionReason(player, action)
+      throw new Error(reason)
     }
 
-    if (action === "skip") {
-      await this.handleSkip(player);
+    if (action === 'skip') {
+      await this.handleSkip(player)
     } else {
-      throw new Error(`未知操作: ${action}`);
+      throw new Error(`未知操作: ${action}`)
     }
   }
 
   // 获取非法操作的原因
-  getInvalidActionReason(player, action) {
+  getInvalidActionReason (player, action) {
     if (player.id !== this.deadPlayer.id) {
-      return "只有死亡玩家可以跳过遗言";
+      return '只有死亡玩家可以跳过遗言'
     }
     if (this.hasSpoken) {
-      return "已经发表过遗言";
+      return '已经发表过遗言'
     }
-    if (action !== "skip") {
-      return "无效的操作类型";
+    if (action !== 'skip') {
+      return '无效的操作类型'
     }
-    return "未知原因";
+    return '未知原因'
   }
 
-
   // 处理跳过
-  async handleSkip(player) {
+  async handleSkip (player) {
     try {
       // 清除计时器
       if (this.speechTimeout) {
-        clearTimeout(this.speechTimeout);
-        this.speechTimeout = null;
+        clearTimeout(this.speechTimeout)
+        this.speechTimeout = null
       }
 
-      this.hasSpoken = true;
+      this.hasSpoken = true
 
-      await this.e.reply(`${player.name}放弃了遗言`);
+      await this.e.reply(`${player.name}放弃了遗言`)
 
       // 进入下一个状态
-      await this.game.changeState(this.nextState);
+      await this.game.changeState(this.nextState)
     } catch (err) {
-      console.error("处理跳过遗言时出错:", err);
-      this.hasSpoken = false;
-      throw err;
+      console.error('处理跳过遗言时出错:', err)
+      this.hasSpoken = false
+      throw err
     }
   }
 
   // 检查行动是否有效
-  isValidAction(player, action) {
-    if (player.id !== this.deadPlayer.id) return false;
-    if (this.hasSpoken) return false;
+  isValidAction (player, action) {
+    if (player.id !== this.deadPlayer.id) return false
+    if (this.hasSpoken) return false
 
-    return action === "speak" || action === "skip";
+    return action === 'speak' || action === 'skip'
   }
 
   // 结束遗言
-  async onTimeout() {
+  async onTimeout () {
     try {
       if (!this.hasSpoken) {
-        this.hasSpoken = true;
-        await this.e.reply(`\n=== ${this.deadPlayer.name}的遗言结束 ===\n`);
+        this.hasSpoken = true
+        await this.e.reply(`\n=== ${this.deadPlayer.name}的遗言结束 ===\n`)
 
         // 进入下一个状态
-        await this.game.changeState(this.nextState);
+        await this.game.changeState(this.nextState)
       }
     } catch (err) {
-      console.error("结束遗言出错:", err);
+      console.error('结束遗言出错:', err)
       // 强制进入下一个状态
-      await this.game.changeState(this.nextState);
+      await this.game.changeState(this.nextState)
     }
   }
 }

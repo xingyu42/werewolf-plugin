@@ -1,6 +1,6 @@
 /**
  * VictoryChecker.js - 胜利条件检查器
- * 
+ *
  * 负责检查游戏是否结束以及哪个阵营获胜
  * 使用策略模式设计，每个检查器只负责检查一种胜利条件
  */
@@ -22,8 +22,8 @@ class VictoryConditionChecker {
    * @param {Game} game - 游戏实例
    * @returns {VictoryResult} 胜利结果
    */
-  check(game) {
-    throw new Error('需要在子类中实现check方法');
+  check (game) {
+    throw new Error('需要在子类中实现check方法')
   }
 }
 
@@ -31,18 +31,18 @@ class VictoryConditionChecker {
  * 检查狼人全部死亡
  */
 class WolfExtinctionChecker extends VictoryConditionChecker {
-  check(game) {
-    const aliveWolves = game.getAlivePlayers({ excludeCamp: 'WOLF' }).length;
-    
+  check (game) {
+    const aliveWolves = game.getAlivePlayers({ excludeCamp: 'WOLF' }).length
+
     if (aliveWolves === 0) {
       return {
         gameOver: true,
-        winner: "好人",
-        reason: "狼人全部出局"
-      };
+        winner: '好人',
+        reason: '狼人全部出局'
+      }
     }
-    
-    return { gameOver: false, winner: null, reason: null };
+
+    return { gameOver: false, winner: null, reason: null }
   }
 }
 
@@ -50,19 +50,19 @@ class WolfExtinctionChecker extends VictoryConditionChecker {
  * 检查好人全部死亡
  */
 class GoodPeopleExtinctionChecker extends VictoryConditionChecker {
-  check(game) {
-    const aliveGods = game.getAlivePlayers({ excludeCamp: 'GOD' }).length;
-    const aliveVillagers = game.getAlivePlayers({ excludeCamp: 'VILLAGER' }).length;
-    
+  check (game) {
+    const aliveGods = game.getAlivePlayers({ excludeCamp: 'GOD' }).length
+    const aliveVillagers = game.getAlivePlayers({ excludeCamp: 'VILLAGER' }).length
+
     if (aliveGods === 0 && aliveVillagers === 0) {
       return {
         gameOver: true,
-        winner: "狼人",
-        reason: "好人全部出局"
-      };
+        winner: '狼人',
+        reason: '好人全部出局'
+      }
     }
-    
-    return { gameOver: false, winner: null, reason: null };
+
+    return { gameOver: false, winner: null, reason: null }
   }
 }
 
@@ -70,22 +70,22 @@ class GoodPeopleExtinctionChecker extends VictoryConditionChecker {
  * 检查屠边胜利条件 - 所有神职死亡
  */
 class GodsExtinctionChecker extends VictoryConditionChecker {
-  check(game) {
+  check (game) {
     // 只有在开启屠边规则时才检查
-    const tubian = game.config.game.enableTubian;
-    if (!tubian) return { gameOver: false, winner: null, reason: null };
-    
-    const aliveGods = game.getAlivePlayers({ excludeCamp: 'GOD' }).length;
-    
+    const tubian = game.config.game.enableTubian
+    if (!tubian) return { gameOver: false, winner: null, reason: null }
+
+    const aliveGods = game.getAlivePlayers({ excludeCamp: 'GOD' }).length
+
     if (aliveGods === 0) {
       return {
         gameOver: true,
-        winner: "狼人",
-        reason: "神职全部出局"
-      };
+        winner: '狼人',
+        reason: '神职全部出局'
+      }
     }
-    
-    return { gameOver: false, winner: null, reason: null };
+
+    return { gameOver: false, winner: null, reason: null }
   }
 }
 
@@ -93,22 +93,22 @@ class GodsExtinctionChecker extends VictoryConditionChecker {
  * 检查屠边胜利条件 - 所有平民死亡
  */
 class VillagersExtinctionChecker extends VictoryConditionChecker {
-  check(game) {
+  check (game) {
     // 只有在开启屠边规则时才检查
-    const tubian = game.config.game.enableTubian;
-    if (!tubian) return { gameOver: false, winner: null, reason: null };
-    
-    const aliveVillagers = game.getAlivePlayers({ excludeCamp: 'VILLAGER' }).length;
-    
+    const tubian = game.config.game.enableTubian
+    if (!tubian) return { gameOver: false, winner: null, reason: null }
+
+    const aliveVillagers = game.getAlivePlayers({ excludeCamp: 'VILLAGER' }).length
+
     if (aliveVillagers === 0) {
       return {
         gameOver: true,
-        winner: "狼人",
-        reason: "平民全部出局"
-      };
+        winner: '狼人',
+        reason: '平民全部出局'
+      }
     }
-    
-    return { gameOver: false, winner: null, reason: null };
+
+    return { gameOver: false, winner: null, reason: null }
   }
 }
 
@@ -116,29 +116,29 @@ class VillagersExtinctionChecker extends VictoryConditionChecker {
  * 胜利检查器主类
  */
 export class VictoryChecker {
-  constructor() {
+  constructor () {
     // 注册所有检查器
     this.checkers = [
       new WolfExtinctionChecker(),
       new GoodPeopleExtinctionChecker(),
       new GodsExtinctionChecker(),
       new VillagersExtinctionChecker()
-    ];
+    ]
   }
-  
+
   /**
    * 检查游戏是否结束
    * @param {Game} game - 游戏实例
    * @returns {VictoryResult} 胜利结果
    */
-  checkVictory(game) {
+  checkVictory (game) {
     // 依次调用每个检查器
     for (const checker of this.checkers) {
-      const result = checker.check(game);
-      if (result.gameOver) return result;
+      const result = checker.check(game)
+      if (result.gameOver) return result
     }
-    
+
     // 如果没有检查器返回游戏结束，则返回游戏继续
-    return { gameOver: false, winner: null, reason: null };
+    return { gameOver: false, winner: null, reason: null }
   }
-} 
+}

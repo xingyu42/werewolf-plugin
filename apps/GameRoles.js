@@ -1,8 +1,8 @@
-import { ActionHandler } from '../model/services/ActionHandler.js';
-import { ACTIONS } from "../model/core/Constants.js";
+import { ActionHandler } from '../model/services/ActionHandler.js'
+import { ACTIONS } from '../model/core/Constants.js'
 
 export class GameRoles extends plugin {
-  constructor() {
+  constructor () {
     super({
       name: '狼人杀角色行动',
       dsc: '处理狼人杀游戏中的角色行动',
@@ -46,118 +46,118 @@ export class GameRoles extends plugin {
           fnc: 'wolfSkip'
         }
       ]
-    });
+    })
   }
 
   // 守卫守护
-  async guardAction(e) {
+  async guardAction (e) {
     await ActionHandler.handle(e, {
       role: 'GuardRole',
       target: { required: true, parse: (msg) => msg.match(/(\\d+)/)?.[1] },
       action: async ({ role, targetPlayer, currentState }) => {
-        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作');
-        await role.act(targetPlayer);
-        await currentState.handleAction(role.player, ACTIONS.PROTECT, targetPlayer.id);
-      },
-    });
+        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作')
+        await role.act(targetPlayer)
+        await currentState.handleAction(role.player, ACTIONS.PROTECT, targetPlayer.id)
+      }
+    })
   }
 
   // 猎人射杀
-  async hunterShoot(e) {
+  async hunterShoot (e) {
     await ActionHandler.handle(e, {
       role: 'HunterRole',
       target: { required: true, parse: (msg) => msg.match(/(\\d+)/)?.[1] },
       action: async ({ role, targetPlayer }) => {
-        if (!role.canAct()) throw new Error('你当前无法开枪');
-        await role.act(targetPlayer);
-      },
-    });
+        if (!role.canAct()) throw new Error('你当前无法开枪')
+        await role.act(targetPlayer)
+      }
+    })
   }
 
   // 预言家查验
-  async prophetCheck(e) {
+  async prophetCheck (e) {
     if (e.isGroup) {
-      e.reply('请私聊发送命令');
-      return false;
+      e.reply('请私聊发送命令')
+      return false
     }
     await ActionHandler.handle(e, {
       role: 'ProphetRole',
       target: { required: true, parse: (msg) => msg.match(/(\\d+)/)?.[1] },
       action: async ({ role, targetPlayer, currentState }) => {
-        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作');
-        await role.act(targetPlayer);
-        await currentState.handleAction(role.player, ACTIONS.CHECK, targetPlayer.id);
-      },
-    });
+        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作')
+        await role.act(targetPlayer)
+        await currentState.handleAction(role.player, ACTIONS.CHECK, targetPlayer.id)
+      }
+    })
   }
 
   // 女巫毒人
-  async witchPoison(e) {
+  async witchPoison (e) {
     await ActionHandler.handle(e, {
       role: 'WitchRole',
       target: { required: true, parse: (msg) => msg.match(/(\\d+)/)?.[1] },
       action: async ({ role, targetPlayer, currentState }) => {
-        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作');
-        await role.act(targetPlayer, "poison");
-        await currentState.handleAction(role.player, ACTIONS.POISON, targetPlayer.id);
-      },
-    });
+        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作')
+        await role.act(targetPlayer, 'poison')
+        await currentState.handleAction(role.player, ACTIONS.POISON, targetPlayer.id)
+      }
+    })
   }
 
   // 女巫救人
-  async witchSave(e) {
+  async witchSave (e) {
     await ActionHandler.handle(e, {
       role: 'WitchRole',
       action: async ({ role, currentState }) => {
-        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作');
-        await role.act(null, "save");
-        await currentState.handleAction(role.player, ACTIONS.SAVE);
-      },
-    });
+        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作')
+        await role.act(null, 'save')
+        await currentState.handleAction(role.player, ACTIONS.SAVE)
+      }
+    })
   }
 
   // 狼人杀人
-  async wolfKill(e) {
+  async wolfKill (e) {
     await ActionHandler.handle(e, {
       role: 'WolfRole',
       target: { required: true, parse: (msg) => msg.match(/(\\d+)/)?.[1] },
       action: async ({ role, targetPlayer, currentState }) => {
-        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作');
-        await currentState.handleAction(role.player, ACTIONS.KILL, targetPlayer.id);
-      },
-    });
+        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作')
+        await currentState.handleAction(role.player, ACTIONS.KILL, targetPlayer.id)
+      }
+    })
   }
 
   // 狼人自爆
-  async wolfSuicide(e) {
+  async wolfSuicide (e) {
     await ActionHandler.handle(e, {
       role: 'WolfRole',
       checkAlive: true,
       action: async ({ role, currentState }) => {
-        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作');
-        await currentState.handleAction(role.player, ACTIONS.SUICIDE);
-      },
-    });
+        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作')
+        await currentState.handleAction(role.player, ACTIONS.SUICIDE)
+      }
+    })
   }
 
   // 女巫放弃用药
-  async witchSkip(e) {
+  async witchSkip (e) {
     await ActionHandler.handle(e, {
       role: 'WitchRole',
       action: async ({ role, currentState }) => {
-        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作');
-        await currentState.handleAction(role.player, ACTIONS.SKIP);
-      },
-    });
+        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作')
+        await currentState.handleAction(role.player, ACTIONS.SKIP)
+      }
+    })
   }
 
-  async wolfSkip(e) {
+  async wolfSkip (e) {
     await ActionHandler.handle(e, {
       role: 'WolfRole',
       action: async ({ role, currentState }) => {
-        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作');
-        await currentState.handleAction(role.player, ACTIONS.SKIP);
-      },
-    });
+        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作')
+        await currentState.handleAction(role.player, ACTIONS.SKIP)
+      }
+    })
   }
 }

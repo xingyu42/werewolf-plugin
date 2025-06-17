@@ -4,6 +4,7 @@ import fs from 'fs'
 import _ from 'lodash'
 import Renderer from '../../../lib/renderer/loader.js'
 import { _path, PLUGIN_NAME } from './constants.js'
+import { ErrorHandler } from '../model/core/ErrorHandler.js'
 
 const renderer = Renderer.getRenderer()
 
@@ -12,15 +13,18 @@ const renderer = Renderer.getRenderer()
  * 负责浏览器实例管理和渲染功能
  */
 class Puppeteer {
-  constructor(logger) {
+  constructor (logger) {
     this.browser = null
     this.lock = false
     this.shoting = []
     this.logger = logger
+    this.errorHandler = new ErrorHandler(logger)
     /** 截图数达到时重启浏览器 避免生成速度越来越慢 */
     this.restartNum = 100
     /** 截图次数 */
     this.renderNum = 0
+    /** 重启锁，防止竞态条件 */
+    this.restartLock = false
     this.config = {
       executablePath: '',
       puppeteerWS: '',
@@ -48,30 +52,63 @@ class Puppeteer {
    * 初始化浏览器实例
    * @returns {Promise<boolean|object>} 浏览器实例或失败状态
    */
-  async browserInit() {
+  async browserInit () {
     if (this.browser) return this.browser
     if (this.lock) return false
     this.lock = true
 
+    const maxRetries = 3
+    let retryCount = 0
+
     this.logger.mark('[狼人杀插件] Puppeteer 启动中...')
-    const browserURL = 'http://127.0.0.1:51777'
-    try {
-      // 尝试连接已存在的浏览器实例
-      this.browser = await puppeteer.connect({ browserURL })
-    } catch (e) {
-      // 连接失败，启动新的浏览器实例
-      this.browser = await puppeteer.launch(this.config).catch((err) => {
-        this.logger.error(err.toString())
-        if (String(err).includes('correct Chromium')) {
-          this.logger.error('没有正确安装Chromium，可以尝试执行安装命令：node ./node_modules/puppeteer/install.js')
+
+    while (retryCount < maxRetries) {
+      try {
+        // 尝试连接已存在的浏览器实例
+        const browserURL = 'http://127.0.0.1:51777'
+        this.browser = await puppeteer.connect({
+          browserURL,
+          timeout: 10000 // 10秒超时
+        })
+        break
+      } catch (connectError) {
+        this.logger.debug(`连接现有浏览器失败 (尝试 ${retryCount + 1}/${maxRetries}): ${connectError.message}`)
+
+        try {
+          // 连接失败，启动新的浏览器实例
+          this.browser = await puppeteer.launch({
+            ...this.config,
+            timeout: 30000 // 30秒启动超时
+          })
+          break
+        } catch (launchError) {
+          // 使用统一错误处理
+          this.errorHandler.handle('BROWSER_INIT_ERROR', {
+            attempt: retryCount + 1,
+            maxRetries,
+            error: launchError.message,
+            isChromiumIssue: String(launchError).includes('correct Chromium')
+          })
+
+          if (String(launchError).includes('correct Chromium')) {
+            this.logger.error('没有正确安装Chromium，可以尝试执行安装命令：node ./node_modules/puppeteer/install.js')
+          }
+
+          retryCount++
+          if (retryCount < maxRetries) {
+            this.logger.info(`等待 ${retryCount * 2} 秒后重试...`)
+            await new Promise(resolve => setTimeout(resolve, retryCount * 2000))
+          }
         }
-      })
+      }
     }
+
     this.lock = false
 
     if (!this.browser) {
-      this.logger.error('[狼人杀插件] Puppeteer 启动失败')
-      return false
+      this.logger.error('[狼人杀插件] Puppeteer 启动失败，已达到最大重试次数')
+      // 优雅降级：返回一个模拟对象，避免后续调用出错
+      return this._createFallbackBrowser()
     }
 
     this.logger.mark('[狼人杀插件] Puppeteer 启动成功')
@@ -81,14 +118,40 @@ class Puppeteer {
       this.logger.info('[狼人杀插件] Chromium实例关闭或崩溃！')
       this.browser = null
     })
+
+    // 监听错误事件
+    this.browser.on('error', (error) => {
+      this.logger.error('[狼人杀插件] 浏览器错误:', error)
+    })
+
     return this.browser
+  }
+
+  /**
+   * 创建降级浏览器对象，当真实浏览器启动失败时使用
+   * @private
+   */
+  _createFallbackBrowser () {
+    this.logger.warn('[狼人杀插件] 使用降级模式，部分功能可能不可用')
+    return {
+      newPage: async () => {
+        this.logger.warn('[狼人杀插件] 降级模式：无法创建页面')
+        return false
+      },
+      close: async () => {
+        this.logger.debug('[狼人杀插件] 降级模式：关闭操作已忽略')
+      },
+      on: () => {
+        // 空实现，避免事件监听器报错
+      }
+    }
   }
 
   /**
    * 创建新页面
    * @returns {Promise<Page>} 页面实例
    */
-  async newPage() {
+  async newPage () {
     if (!(await this.browserInit())) {
       return false
     }
@@ -102,34 +165,101 @@ class Puppeteer {
    * 关闭页面
    * @param {Page} page 页面实例
    */
-  async closePage(page) {
-    if (page) {
-      await page.close().catch((err) => this.logger.error('[狼人杀插件] 页面关闭出错：' + err))
-      this.renderNum += 1
-      this.restart()
+  async closePage (page) {
+    if (page && typeof page.close === 'function') {
+      try {
+        // 先移除页面事件监听器，防止内存泄漏
+        if (typeof page.removeAllListeners === 'function') {
+          page.removeAllListeners()
+        }
+
+        // 关闭页面
+        await page.close()
+        this.renderNum += 1
+
+        // 检查是否需要重启浏览器
+        this.restart()
+      } catch (err) {
+        this.logger.error('[狼人杀插件] 页面关闭出错：' + err)
+
+        // 页面关闭失败时，强制标记为已关闭
+        try {
+          if (page.isClosed && !page.isClosed()) {
+            this.logger.warn('[狼人杀插件] 页面关闭失败，但继续处理')
+          }
+        } catch (checkError) {
+          this.logger.debug('[狼人杀插件] 无法检查页面状态:', checkError.message)
+        }
+
+        this.renderNum += 1
+        this.restart()
+      }
     }
   }
 
   /**
    * 关闭浏览器
    */
-  async close() {
+  async close () {
     if (this.browser) {
-      await this.browser.close().catch((err) => this.logger.error('[狼人杀插件] 浏览器关闭出错：' + err))
-      this.browser = null
+      try {
+        // 获取所有页面并关闭
+        const pages = await this.browser.pages()
+        for (const page of pages) {
+          try {
+            if (!page.isClosed()) {
+              await page.close()
+            }
+          } catch (pageError) {
+            this.logger.debug('[狼人杀插件] 关闭页面时出错:', pageError.message)
+          }
+        }
+
+        // 移除浏览器事件监听器
+        if (typeof this.browser.removeAllListeners === 'function') {
+          this.browser.removeAllListeners()
+        }
+
+        // 关闭浏览器
+        await this.browser.close()
+        this.logger.info('[狼人杀插件] 浏览器已正常关闭')
+      } catch (err) {
+        this.logger.error('[狼人杀插件] 浏览器关闭出错：' + err)
+
+        // 强制断开连接
+        try {
+          if (typeof this.browser.disconnect === 'function') {
+            this.browser.disconnect()
+          }
+        } catch (disconnectError) {
+          this.logger.debug('[狼人杀插件] 断开浏览器连接时出错:', disconnectError.message)
+        }
+      } finally {
+        this.browser = null
+        this.renderNum = 0 // 重置渲染计数
+      }
     }
   }
 
   /**
    * 重启浏览器（当截图次数达到阈值时）
    */
-  restart() {
+  restart () {
     /** 截图超过重启数时，自动关闭重启浏览器，避免生成速度越来越慢 */
     if (this.renderNum % this.restartNum === 0) {
-      if (this.shoting.length <= 0) {
+      if (this.shoting.length <= 0 && !this.restartLock) {
+        this.restartLock = true // 设置重启锁
+
         setTimeout(async () => {
-          await this.close()
-          this.logger.mark('[狼人杀插件] Puppeteer 关闭重启...')
+          try {
+            this.logger.mark('[狼人杀插件] Puppeteer 开始重启...')
+            await this.close()
+            this.logger.mark('[狼人杀插件] Puppeteer 重启完成')
+          } catch (error) {
+            this.logger.error('[狼人杀插件] Puppeteer 重启失败:', error)
+          } finally {
+            this.restartLock = false // 释放重启锁
+          }
         }, 100)
       }
     }
@@ -142,13 +272,13 @@ class Puppeteer {
    * @param {Object} cfg 渲染配置
    * @returns {Promise<string|boolean>} base64 截图或false
    */
-  async render(tplPath, data = {}, cfg = {}, user_id) {
-    this.shoting.push(true);
+  async render (tplPath, data = {}, cfg = {}, user_id) {
+    this.shoting.push(true)
     try {
       // 处理传入的path
-      tplPath = tplPath.replace(/.html$/, "")
-      let paths = _.filter(tplPath.split("/"), (p) => !!p)
-      tplPath = paths.join("/")
+      tplPath = tplPath.replace(/.html$/, '')
+      let paths = _.filter(tplPath.split('/'), (p) => !!p)
+      tplPath = paths.join('/')
       let { e } = cfg
 
       // 创建临时目录
@@ -158,7 +288,7 @@ class Puppeteer {
       }
 
       // 计算资源路径
-      let pluResPath = `../../../${_.repeat("../", paths.length)}plugins/${PLUGIN_NAME}/resources/`
+      let pluResPath = `../../../${_.repeat('../', paths.length)}plugins/${PLUGIN_NAME}/resources/`
 
       // 渲染数据
       data = {
@@ -173,10 +303,10 @@ class Puppeteer {
 
         // 截图参数
         imgType: 'jpeg',
-        quality: 90,  // 图片质量
+        quality: 90, // 图片质量
         omitBackground: false,
         pageGotoParams: {
-          waitUntil: "networkidle0"
+          waitUntil: 'networkidle0'
         },
 
         ...data
@@ -191,10 +321,11 @@ class Puppeteer {
       let base64 = await renderer.screenshot(`${PLUGIN_NAME}/${tplPath}`, data)
       let ret = true
       if (base64) {
-        ret = user_id ? await e.bot.sendPrivateMsg(user_id, base64) : await e.reply(base64)      }
+        ret = user_id ? await e.bot.sendPrivateMsg(user_id, base64) : await e.reply(base64)
+      }
       return ret || true
     } finally {
-      this.shoting.pop();
+      this.shoting.pop()
     }
   }
 }

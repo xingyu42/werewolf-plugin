@@ -1,6 +1,5 @@
 .cursor/
 node_modules/
-tests/
 .vscode/
 *.log
 doc/

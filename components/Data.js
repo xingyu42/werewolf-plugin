@@ -11,22 +11,22 @@ const getRoot = (root = '') => {
   return root
 }
 let Data = {
-  createDir(path = '', root = '', includeFile = false) {
+  createDir (path = '', root = '', includeFile = false) {
     root = getRoot(root)
     let pathList = path.split('/')
     let nowPath = root
-    const loopTo = includeFile ? pathList.length - 1 : pathList.length;
+    const loopTo = includeFile ? pathList.length - 1 : pathList.length
     for (let i = 0; i < loopTo; i++) {
-      const name = pathList[i].trim();
+      const name = pathList[i].trim()
       if (name) {
-        nowPath += name + '/';
+        nowPath += name + '/'
         if (!fs.existsSync(nowPath)) {
-          fs.mkdirSync(nowPath);
+          fs.mkdirSync(nowPath)
         }
       }
     }
   },
-  readJSON(file = '', root = '') {
+  readJSON (file = '', root = '') {
     root = getRoot(root)
     if (fs.existsSync(`${root}/${file}`)) {
       try {
@@ -37,14 +37,14 @@ let Data = {
     }
     return {}
   },
-  writeJSON(file, data, space = '\t', root = '') {
+  writeJSON (file, data, space = '\t', root = '') {
     // 检查并创建目录
     Data.createDir(file, root, true)
     root = getRoot(root)
     delete data._res
     return fs.writeFileSync(`${root}/${file}`, JSON.stringify(data, null, space))
   },
-  async getCacheJSON(redis, key) {
+  async getCacheJSON (redis, key) {
     try {
       let txt = await redis.get(key)
       if (txt) {
@@ -55,10 +55,10 @@ let Data = {
     }
     return {}
   },
-  async setCacheJSON(redis, key, data, EX = 3600 * 24 * 90) {
+  async setCacheJSON (redis, key, data, EX = 3600 * 24 * 90) {
     await redis.set(key, JSON.stringify(data), { EX })
   },
-  async importModule(file, root = '') {
+  async importModule (file, root = '') {
     root = getRoot(root)
     if (!/\.js$/.test(file)) {
       file = file + '.js'
@@ -73,14 +73,14 @@ let Data = {
     }
     return {}
   },
-  async importDefault(file, root) {
+  async importDefault (file, root) {
     let ret = await Data.importModule(file, root)
     return ret.default || {}
   },
-  async import(name) {
+  async import (name) {
     return await Data.importModule(`components/optional-lib/${name}.js`)
   },
-  async importCfg(key) {
+  async importCfg (key) {
     let sysCfg = await Data.importModule(`config/system/${key}_default.js`)
     let diyCfg = await Data.importModule(`config/${key}.js`)
     if (diyCfg.isSys) {
@@ -93,7 +93,7 @@ let Data = {
       diyCfg
     }
   },
-  getData(target, keyList = '', cfg = {}) {
+  getData (target, keyList = '', cfg = {}) {
     target = target || {}
     let defaultData = cfg.defaultData || {}
     let ret = {}
@@ -115,10 +115,10 @@ let Data = {
     })
     return ret
   },
-  getVal(target, keyFrom, defaultValue) {
+  getVal (target, keyFrom, defaultValue) {
     return lodash.get(target, keyFrom, defaultValue)
   },
-  async asyncPool(poolLimit, array, iteratorFn) {
+  async asyncPool (poolLimit, array, iteratorFn) {
     const ret = []
     const executing = []
     for (const item of array) {
@@ -134,10 +134,10 @@ let Data = {
     }
     return Promise.all(ret)
   },
-  sleep(ms) {
+  sleep (ms) {
     return new Promise((resolve) => setTimeout(resolve, ms))
   },
-  def() {
+  def () {
     for (let idx in arguments) {
       if (!lodash.isUndefined(arguments[idx])) {
         return arguments[idx]
@@ -157,7 +157,7 @@ let Data = {
       }
     })
   },
-  regRet(reg, txt, idx) {
+  regRet (reg, txt, idx) {
     if (reg && txt) {
       let ret = reg.exec(txt)
       if (ret && ret[idx]) {

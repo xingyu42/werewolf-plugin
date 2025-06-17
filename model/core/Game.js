@@ -1,326 +1,279 @@
-import { SheriffTransferState } from "../action/SheriffTransferState.js";
-import { NightState } from "../action/NightState.js";
-import { Player } from "../Player.js";
-import { RoleFactory } from "../roles/RoleFactory.js";
-import { EventEmitter } from 'node:events';
-import { GameError } from './GameError.js';
-import { StateMachine } from './StateMachine.js';
-import { VictoryChecker } from './VictoryChecker.js';
-import { RoleConfigurator } from "../configurators/RoleConfigurator.js";
-import { GameEventHandler } from "./GameEventHandler.js";
-import { PlayerQueryService } from '../services/PlayerQueryService.js';
+import { EventEmitter } from 'node:events'
+import { VictoryChecker } from './VictoryChecker.js'
+import { RoleConfigurator } from '../configurators/RoleConfigurator.js'
+import { GameEventHandler } from './GameEventHandler.js'
+import { PlayerManager } from '../managers/PlayerManager.js'
+import { StateManager } from '../managers/StateManager.js'
 
 /**
- * 游戏核心类 - 负责管理游戏状态、玩家和角色
+ * 游戏核心类 - 重构后的核心协调器
+ * 负责协调各个管理器，保持游戏的整体流程控制
  * 继承EventEmitter实现事件驱动的通信机制
  */
 export class Game extends EventEmitter {
-  constructor({ e, config, players, stateMachine, playerQueryService, victoryChecker, eventHandler }) {
-    super(); // 调用EventEmitter构造函数
-    this.players = players || new Map();
-    this.roles = new Map();
-    this.config = config;
-    this.turn = 0;
-    this.eventErrors = [];
-    this.playerNumberMap = new Map();
+  constructor ({ e, config, players, stateMachine, playerQueryService, victoryChecker, eventHandler }) {
+    super() // 调用EventEmitter构造函数
 
-    this.stateMachine = stateMachine;
-    this.stateMachine.setContext(this);
+    this.e = e // 保存 e 对象引用，供角色类使用
+    this.config = config
+    this.eventErrors = []
 
-    this.playerQueryService = playerQueryService;
-    this.playerQueryService.setContext(this.players, this.roles, this.playerNumberMap, this._cacheSystem);
+    // 初始化管理器
+    this.playerManager = new PlayerManager(this)
+    this.stateManager = new StateManager(this, stateMachine)
 
-    this.eventHandler = eventHandler || new GameEventHandler(this, e);
-    
-    // 缓存系统
-    this._cacheSystem = {
-      alivePlayers: {
-        cache: null,           // 基本存活玩家缓存
-        campExclusions: {},    // 按阵营排除的缓存
-        roleTypes: {},         // 按角色类型的缓存
-        lastInvalidation: Date.now() // 上次缓存失效时间
+    // 如果传入了初始玩家，添加到玩家管理器
+    if (players) {
+      if (players instanceof Map) {
+        for (const player of players.values()) {
+          this.playerManager.addPlayer(player)
+        }
+      } else if (Array.isArray(players)) {
+        for (const player of players) {
+          this.playerManager.addPlayer(player)
+        }
       }
-    };
-    
-    // 胜利条件检查器
-    this.victoryChecker = victoryChecker || new VictoryChecker();
-  }
-
-  addPlayer(player) {
-    if (this.players.has(player.id)) {
-      return false; // Player already in game
     }
-    this.players.set(player.id, player);
-    return true;
+
+    // 保留原有的服务（暂时保持兼容性）
+    this.playerQueryService = playerQueryService
+    if (this.playerQueryService) {
+      this.playerQueryService.setContext(
+        this.playerManager.getAllPlayers(),
+        this.playerManager.roles,
+        this.playerManager.playerNumberMap,
+        this.playerManager._cacheSystem
+      )
+    }
+
+    this.eventHandler = eventHandler || new GameEventHandler(this, e)
+
+    // 如果传入的eventHandler没有设置game引用，现在设置
+    if (this.eventHandler && !this.eventHandler.game) {
+      this.eventHandler.setGame(this)
+    }
+
+    // 胜利条件检查器
+    this.victoryChecker = victoryChecker || new VictoryChecker()
   }
 
-  hasPlayer(playerId) {
-    return this.players.has(playerId);
+  // 委派给PlayerManager的方法
+  addPlayer (player) {
+    return this.playerManager.addPlayer(player)
+  }
+
+  hasPlayer (playerId) {
+    return this.playerManager.hasPlayer(playerId)
+  }
+
+  getPlayerById (playerId) {
+    return this.playerManager.getPlayer(playerId)
+  }
+
+  getPlayerByNumber (gameNumber) {
+    return this.playerManager.getPlayerByNumber(gameNumber)
+  }
+
+  getAlivePlayers (options) {
+    return this.playerManager.getAlivePlayers(options)
   }
 
   // 初始化游戏
-  async init(config) {
-    this.config = config;
-    await this.initPlayers();
-    this.initState();
-    this._invalidateCache(); // 初始化时清空缓存
+  async init (config) {
+    this.config = config
+    await this.initPlayers()
+    this.initState()
   }
 
-  // 初始化玩家
-  async initPlayers() {
-    // 清空现有玩家和角色
-    this.players.clear();
-    this.roles.clear();
-    this.playerNumberMap.clear(); // 清空编号映射
+  // 初始化玩家 - 委派给PlayerManager
+  async initPlayers () {
+    const playerCount = this.playerManager.getPlayerCount()
 
-    // 分配角色
-    const players = Array.from(this.players.values()); // Use internal player list
-    const roles = RoleConfigurator.generate(players.length);
-    const shuffledRoles = this.shuffle(roles);
-
-    for (let i = 0; i < players.length; i++) {
-      const playerInfo = players[i];
-      const roleName = shuffledRoles[i];
-      const gameNumber = i + 1; // 分配游戏内编号，从1开始
-
-      // 更新玩家实例，而不是创建新的
-      playerInfo.role = roleName;
-      playerInfo.gameNumber = gameNumber;
-
-      // 创建角色实例
-      const role = RoleFactory.createRole(roleName, this, playerInfo);
-      this.roles.set(playerInfo.id, role);
-
-      // 发送角色通知 - 使用事件取代直接通信
-      this.emit('roleNotify', {
-        playerId: playerInfo.id,
-        message: `你的游戏编号是：${gameNumber}号，角色是：${playerInfo.role}`
-      });
-    }
-    
-    // 初始化玩家后清空缓存
-    this._invalidateCache();
-  }
-
-  // 初始化游戏状态
-  initState() {
-    // 修改为从夜晚开始
-    const initialState = new NightState(this);
-    this.stateMachine.changeState(initialState);
-  }
-
-  // 状态转换 (委派给StateMachine)
-  async changeState(newState) {
-    await this.stateMachine.changeState(newState);
-  }
-
-  /**
-   * 设置状态转换上下文 (委派给StateMachine)
-   * @param {Object} context 上下文对象
-   */
-  setStateTransitionContext(context) {
-    this.stateMachine.setStateTransitionContext(context);
-  }
-
-  // 处理玩家行为
-  async handleAction(player, action, target) {
-    if (!player) {
-      this.emit('error', new GameError(
-        "player 参数为 undefined", 
-        "INVALID_PLAYER"
-      ));
-      return;
-    }
-
+    let roles
     try {
-      // 如果传入的是playerId而不是player对象，则获取player对象
-      if (typeof player === "string") {
-        const playerId = player;
-        player = this.players.get(playerId);
-        if (!player) {
-          this.emit('error', new GameError(
-            `玩家不存在: ${playerId}`, 
-            "PLAYER_NOT_FOUND"
-          ));
-          return;
+      // 检查是否使用固定角色配置
+      if (this.config.roles?.useFixedRoles && this.config.roles?.fixedRoles) {
+        roles = this.config.roles.fixedRoles
+        // 验证固定角色数量是否匹配
+        if (roles.length !== playerCount) {
+          console.warn(`固定角色配置数量(${roles.length})与玩家数量(${playerCount})不匹配，使用动态生成`)
+          roles = RoleConfigurator.generate(playerCount)
         }
+      } else {
+        roles = RoleConfigurator.generate(playerCount)
       }
-      
-      if (!this.isValidAction(player, action)) {
-        this.emit('error', new GameError(
-          "非法操作: 玩家无法执行该动作", 
-          "INVALID_ACTION"
-        ));
-        return;
+    } catch (error) {
+      // 如果是GameError，使用ErrorHandler处理
+      if (error.name === 'GameError' && this.eventHandler?.errorHandler) {
+        const context = {
+          gameId: this.id || 'unknown',
+          playerCount,
+          phase: 'initialization'
+        }
+        this.eventHandler.errorHandler.handle(error, context)
       }
-      
-      const currentState = this.stateMachine.getCurrentState();
-      if (!currentState) {
-        this.emit('error', new GameError(
-          "游戏状态错误: 当前没有活动状态", 
-          "NO_ACTIVE_STATE"
-        ));
-        return;
-      }
-      
-      await currentState.handleAction(player, action, target);
-    } catch (err) {
-      // 记录错误并发出错误事件
-      console.error("处理玩家行为时出错:", err);
-      this.emit('error', new GameError(
-        err.message, 
-        "ACTION_ERROR", 
-        { player, action, target }
-      ));
+      // 重新抛出错误，让上层调用者处理
+      throw error
     }
+
+    await this.playerManager.initializePlayerRoles(roles)
   }
 
-  // 检查行为是否有效
-  isValidAction(player, action) {
-    if (!player || !player.isAlive) return false;
+  // 初始化游戏状态 - 委派给StateManager
+  initState () {
+    this.stateManager.initializeState()
+  }
 
-    const currentState = this.stateMachine.getCurrentState();
-    if (!currentState) return false; // Add a guard for safety
+  // 委派给StateManager的方法
+  async changeState (newState) {
+    await this.stateManager.changeState(newState)
+  }
 
-    return currentState.isValidAction(player, action);
+  getCurrentState () {
+    return this.stateManager.getCurrentState()
+  }
+
+  getCurrentPhase () {
+    return this.stateManager.getCurrentPhase()
+  }
+
+  getCurrentTurn () {
+    return this.stateManager.getCurrentTurn()
+  }
+
+  // 处理玩家行为 - 委派给StateManager
+  async handleAction (player, action, target) {
+    await this.stateManager.handleAction(player, action, target)
+  }
+
+  // 检查行为是否有效 - 委派给StateManager
+  isValidAction (player, action) {
+    return this.stateManager.isValidAction(player, action)
   }
 
   // 结束游戏
-  async endGame() {
+  async endGame () {
     // 使用胜利条件检查器检查游戏是否结束
-    const victoryResult = this.victoryChecker.checkVictory(this);
-    
+    const victoryResult = this.victoryChecker.checkVictory(this)
+
     // 如果游戏结束，发出游戏结束事件
     if (victoryResult.gameOver) {
-      const alivePlayersStr = this.getAlivePlayers({ showRole: true, showStatus: true }).map((p) => p.getDisplayInfo()).join("\n");
+      const alivePlayersStr = this.getAlivePlayers({ showRole: true, showStatus: true }).map((p) => p.getDisplayInfo()).join('\n')
 
       this.emit('gameEnd', {
         winner: victoryResult.winner,
         reason: victoryResult.reason,
         alivePlayers: alivePlayersStr
-      });
-      
-      return true;
+      })
+
+      // 游戏结束后进行资源清理
+      setTimeout(() => {
+        this.cleanup()
+      }, 2000) // 延迟2秒清理，确保所有事件处理完成
+
+      return true
     }
 
-    return false;
+    return false
   }
 
-  // 工具方法:打乱数组
-  shuffle(array) {
-    const arr = [...array];
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-  }
-
-  async startNewDay() {
-    this.turn++;
+  async startNewDay () {
+    this.stateManager.incrementTurn()
     // 发送新的一天开始的消息，使用事件替代直接通信
-    this.emit('newDay', { turn: this.turn });
+    this.emit('newDay', { turn: this.stateManager.getCurrentTurn() })
   }
 
-  // 根据游戏内编号获取玩家ID
-  getPlayerIdByNumber(gameNumber) {
-    return this.playerQueryService.getPlayerIdByNumber(gameNumber);
-  }
-
-  // 根据游戏内编号获取玩家
-  getPlayerByNumber(gameNumber) {
-    return this.playerQueryService.getPlayerByNumber(gameNumber);
-  }
-
-  getAlivePlayers(options) {
-    return this.playerQueryService.getAlivePlayers(options);
-  }
-
-  // 获取当前状态 (委派给StateMachine)
-  getCurrentState() {
-    return this.stateMachine.getCurrentState();
-  }
-
-  // 获取游戏玩家
-  getPlayerById(playerId) {
-    return this.players.get(playerId);
+  // 根据游戏内编号获取玩家ID - 保持兼容性
+  getPlayerIdByNumber (gameNumber) {
+    const player = this.playerManager.getPlayerByNumber(gameNumber)
+    return player ? player.id : null
   }
 
   // 获取配置
-  getConfig() {
-    return this.config;
+  getConfig () {
+    return this.config
   }
 
   // 开始游戏
-  async start() {
-    if (this.players.size < this.config.minPlayers) {
-        this.emit('message', {
-            type: 'group',
-            content: `游戏人数不足，无法开始（需要 ${this.config.minPlayers} 人，当前 ${this.players.size} 人）。`
-        });
-        return false;
+  async start () {
+    const playerCount = this.playerManager.getPlayerCount()
+    if (playerCount < this.config.minPlayers) {
+      // 直接发送群消息，不再使用事件发射
+      this.e.reply(`游戏人数不足，无法开始（需要 ${this.config.minPlayers} 人，当前 ${playerCount} 人）。`)
+      return false
     }
-    await this.initPlayers();
-    this.initState();
-    this._invalidateCache();
-    
-    this.emit('gameStart'); // Announce game start
-    
+    await this.initPlayers()
+    this.initState()
+
+    this.emit('gameStart') // Announce game start
+
     // The first state's onEnter will handle the initial messages
-    return true;
+    return true
   }
 
   /**
-   * 统一处理玩家死亡
+   * 统一处理玩家死亡 - 委派给PlayerManager
    */
-  async handlePlayerDeath(player, reason) {
-    if (!player || !player.isAlive) return false;
+  async handlePlayerDeath (player, reason) {
+    const result = await this.playerManager.handlePlayerDeath(player, reason)
+
+    // 如果死亡处理成功，检查游戏是否结束
+    if (result) {
+      await this.endGame()
+    }
+
+    return result
+  }
+
+  /**
+   * 清理游戏资源，防止内存泄漏
+   */
+  cleanup () {
+    console.log(`[Game] 开始清理游戏资源 (ID: ${this.id || 'unknown'})`)
 
     try {
-      // 1. 设置玩家死亡状态
-      player.isAlive = false;
-      player.deathReason = reason;
-
-      // 2. 添加死亡标记
-      switch (reason) {
-        case 'WOLF_KILL': //被狼人杀死
-        case 'EXILE': //被投票放逐
-        case 'POISON': //被毒药毒死
-        case 'HUNTER_SHOT': //被猎人射杀
-        default: 
+      // 清理事件监听器
+      if (typeof this.removeAllListeners === 'function') {
+        this.removeAllListeners()
       }
 
-      // 玩家状态改变，清空缓存
-      this._invalidateCache();
+      // 清理GameEventHandler
+      if (this.eventHandler && typeof this.eventHandler.cleanup === 'function') {
+        this.eventHandler.cleanup()
+      }
 
-      // 通知玩家死亡
-      this.emit('playerDeath', { 
-        player, 
-        reason 
-      });
+      // 清理管理器
+      if (this.playerManager) {
+        this.playerManager.cleanup()
+      }
 
-      // 4. 检查游戏是否结束
-      await this.endGame();
+      if (this.stateManager) {
+        this.stateManager.cleanup()
+      }
 
-      return true;
-    } catch (err) {
-      console.error("处理玩家死亡时出错:", err);
-      this.emit('error', new GameError(
-        "处理玩家死亡时出错", 
-        "PLAYER_DEATH_ERROR",
-        { playerId: player.id, reason, error: err }
-      ));
-      return false;
+      // 清理错误历史
+      if (this.eventErrors) {
+        this.eventErrors.length = 0
+      }
+
+      console.log(`[Game] 游戏资源清理完成 (ID: ${this.id || 'unknown'})`)
+    } catch (error) {
+      console.error('[Game] 清理游戏资源时发生错误:', error)
     }
   }
 
   /**
-   * 清除缓存系统中的所有缓存
-   * @private
+   * 获取游戏资源使用统计
    */
-  _invalidateCache() {
-    // 使整个缓存系统失效
-    this._cacheSystem.alivePlayers.cache = null; 
-    this._cacheSystem.alivePlayers.lastInvalidation = Date.now();
+  getResourceStats () {
+    return {
+      playerCount: this.playerManager ? this.playerManager.getPlayerCount() : 0,
+      roleCount: this.playerManager ? this.playerManager.roles.size : 0,
+      eventErrorCount: this.eventErrors ? this.eventErrors.length : 0,
+      hasEventHandler: !!this.eventHandler,
+      listenerCount: this.listenerCount ? this.listenerCount() : 0,
+      currentPhase: this.stateManager ? this.stateManager.getCurrentPhase() : 'unknown',
+      currentTurn: this.stateManager ? this.stateManager.getCurrentTurn() : 0
+    }
   }
 }

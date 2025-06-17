@@ -52,7 +52,7 @@ export const helpList = [{
     icon: 59,
     title: '#弃票',
     desc: '放弃投票'
-  },{
+  }, {
     icon: 59,
     title: '#结束遗言',
     desc: '结束遗言'
@@ -104,7 +104,7 @@ export const helpList = [{
     icon: 86,
     title: '#救人',
     desc: '救人'
-    }, {
+  }, {
     icon: 11,
     title: '#放弃',
     desc: '放弃使用药水'
