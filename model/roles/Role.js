@@ -1,4 +1,5 @@
 import { ValidationUtils } from '../utils/ValidationUtils.js'
+import { SimpleMessageSender } from '../adapters/SimpleMessageSender.js'
 
 /**
  * 角色基类 - 所有游戏角色的抽象基类
@@ -95,57 +96,39 @@ export class Role {
 
   /**
    * 发送群聊消息
-   * 
+   * 使用SimpleMessageSender进行消息发送
+   *
    * @async
    * @param {string} message - 要发送的消息内容
+   * @param {Object} options - 发送选项（保持兼容性，但不使用）
    * @returns {Promise<boolean>} 发送是否成功
    */
-  async reply (message) {
-    if (!this.e) {
-      console.error('[Role] reply: 通信对象不可用')
-      return false
-    }
-
-    if (typeof this.e.reply !== 'function') {
-      console.error('[Role] reply: reply方法不可用')
-      return false
-    }
-
+  async reply (message, options = {}) {
     try {
-      await this.e.reply(message)
-      return true
+      return await SimpleMessageSender.sendGroup(message, this.e)
     } catch (error) {
-      console.error('[Role] reply: 发送群聊消息失败:', error)
+      console.error('[Role] reply: 发送群聊消息异常:', error)
       return false
     }
   }
 
   /**
    * 发送私聊消息
-   * 
+   * 使用SimpleMessageSender进行消息发送，支持自动降级到群聊提醒
+   *
    * @async
    * @param {string} message - 要发送的消息内容
    * @param {string} [targetId] - 目标玩家ID，默认为当前玩家
+   * @param {Object} options - 发送选项（保持兼容性，但不使用）
    * @returns {Promise<boolean>} 发送是否成功
    */
-  async sendPrivate (message, targetId = null) {
+  async sendPrivate (message, targetId = null, options = {}) {
     const target = targetId || this.player.id
 
-    if (!this.e) {
-      console.error('[Role] sendPrivate: 通信对象不可用')
-      return false
-    }
-
-    if (typeof this.e.friend !== 'function') {
-      console.error('[Role] sendPrivate: friend方法不可用')
-      return false
-    }
-
     try {
-      await this.e.friend(target).sendMsg(message)
-      return true
+      return await SimpleMessageSender.sendPrivate(message, target, this.e)
     } catch (error) {
-      console.error(`[Role] sendPrivate: 发送私聊消息失败 (目标: ${target}):`, error)
+      console.error(`[Role] sendPrivate: 发送私聊消息异常 (目标: ${target}):`, error)
       return false
     }
   }

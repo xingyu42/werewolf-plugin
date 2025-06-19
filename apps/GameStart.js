@@ -3,6 +3,7 @@ import { GameRegistry } from '../model/services/GameRegistry.js'
 import { GameLobby } from '../model/services/GameLobby.js'
 import { Player } from '../model/Player.js'
 import { defaultErrorHandler } from '../model/core/ErrorHandler.js'
+import { FriendshipValidator } from '../model/adapters/FriendshipValidator.js'
 
 // A simple in-memory store for active lobbies
 const lobbies = new Map()
@@ -79,10 +80,9 @@ export class GameStart extends plugin {
     // 获取人数统计信息
     const currentCount = lobby.getPlayers().length
     const minPlayers = GameConfig.game.minPlayers
-    const maxPlayers = GameConfig.game.maxPlayers
 
     // 构建人数统计消息
-    let message = `${player.name} 加入了游戏 (${currentCount}/${maxPlayers})`
+    let message = `${player.name} 加入了游戏 (当前人数: ${currentCount})`
 
     if (currentCount < minPlayers) {
       const needed = minPlayers - currentCount
@@ -165,46 +165,29 @@ export class GameStart extends plugin {
 
   /**
    * 检查lobby中所有玩家的好友状态
+   * 使用strict模式进行好友验证
    * @param {Object} e 事件对象
    * @param {Object} lobby 游戏大厅对象
    * @returns {Promise<Object>} 检查结果 {allFriends: boolean, nonFriends: Array}
    */
   async checkFriendStatus (e, lobby) {
     const players = lobby.getPlayers()
-    const nonFriends = []
 
-    console.log(`[GameStart] 开始检查 ${players.length} 个玩家的好友状态`)
-
-    for (const player of players) {
-      try {
-        // 方法1：尝试使用pickFriend发送测试消息来检测好友状态
-        if (e.bot?.pickFriend) {
-          try {
-            const friend = e.bot.pickFriend(player.id)
-            // 尝试获取好友信息，如果成功说明是好友
-            await friend.getSimpleInfo()
-            console.log(`[GameStart] 玩家 ${player.name}(${player.id}) 已是机器人好友`)
-            continue // 是好友，继续下一个玩家
-          } catch (friendError) {
-            // pickFriend失败，说明不是好友
-            console.log(`[GameStart] 玩家 ${player.name}(${player.id}) 不是机器人好友 (pickFriend失败)`)
-          }
-        }
-        nonFriends.push(player)
-        console.log(`[GameStart] 玩家 ${player.name}(${player.id}) 最终判定为非好友`)
-
-      } catch (error) {
-        // 如果检测过程中出现异常，认为不是好友
-        nonFriends.push(player)
-        console.log(`[GameStart] 玩家 ${player.name}(${player.id}) 好友检测异常:`, error.message)
+    try {
+      // 使用简化的好友验证器
+      const result = await FriendshipValidator.validateBatch(players, e)
+      return result
+    } catch (error) {
+      console.error('[GameStart] 好友验证过程中发生异常:', error)
+      // 如果验证失败，返回所有玩家都不是好友
+      return {
+        allFriends: false,
+        nonFriends: players
       }
     }
-
-    return {
-      allFriends: nonFriends.length === 0,
-      nonFriends
-    }
   }
+
+
 
   /**
    * 设置lobby超时自动解散机制

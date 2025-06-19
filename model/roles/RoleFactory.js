@@ -60,34 +60,8 @@ export class RoleFactory {
    * @param {Object} e - 通信对象，用于消息发送
    * @returns {Role} 对应的角色实例
    * @throws {Error} 当角色类型未知时抛出错误
-   * @throws {Error} 当通信对象无效时抛出错误
    */
   static createRole (roleName, game, player, e) {
-    // 参数验证
-    if (!roleName || typeof roleName !== 'string') {
-      throw new Error('角色名称必须是非空字符串')
-    }
-
-    if (!game) {
-      throw new Error('游戏实例不能为空')
-    }
-
-    if (!player) {
-      throw new Error('玩家实例不能为空')
-    }
-
-    if (!e) {
-      throw new Error('通信对象不能为空')
-    }
-
-    // 验证通信对象包含必要的方法
-    if (typeof e.reply !== 'function') {
-      throw new Error('通信对象必须包含reply方法')
-    }
-
-    if (!e.bot || typeof e.bot.pickFriend !== 'function') {
-      console.warn('[RoleFactory] 通信对象缺少bot.pickFriend方法，私聊功能可能受限')
-    }
 
     switch (roleName) {
       case ROLES.WOLF: // 狼人

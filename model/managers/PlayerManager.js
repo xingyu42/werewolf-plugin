@@ -2,6 +2,7 @@
 import { RoleFactory } from '../roles/RoleFactory.js'
 import { GameError } from '../core/GameError.js'
 import { DEATH_REASONS } from '../core/Constants.js'
+import { RoleData } from '../configurators/RoleData.js'
 
 /**
  * 玩家管理器 - 负责管理游戏中的玩家生命周期
@@ -18,8 +19,7 @@ export class PlayerManager {
     this._cacheSystem = {
       alivePlayers: {
         cache: null, // 基本存活玩家缓存
-        campExclusions: {}, // 按阵营排除的缓存
-        roleTypes: {}, // 按角色类型的缓存
+        filteredResults: {}, // 过滤结果缓存（包含阵营、角色类型等所有过滤条件）
         lastInvalidation: Date.now() // 上次缓存失效时间
       }
     }
@@ -127,7 +127,7 @@ export class PlayerManager {
       // 通知角色分配
       this.game.emit('roleNotify', {
         playerId: playerInfo.id,
-        message: `你的游戏编号是：${gameNumber}号，角色是：${playerInfo.role}`
+        message: `你的游戏编号是：${gameNumber}号，角色是：${RoleData.getRoleDisplayName(playerInfo.role)}`
       })
     }
 
@@ -151,9 +151,9 @@ export class PlayerManager {
       return this._cacheSystem.alivePlayers.cache
     }
 
-    // 检查特定缓存
-    if (this._cacheSystem.alivePlayers.campExclusions[cacheKey]) {
-      return this._cacheSystem.alivePlayers.campExclusions[cacheKey]
+    // 检查过滤结果缓存
+    if (this._cacheSystem.alivePlayers.filteredResults[cacheKey]) {
+      return this._cacheSystem.alivePlayers.filteredResults[cacheKey]
     }
 
     let alivePlayers = Array.from(this.players.values()).filter(player => player.isAlive)
@@ -179,8 +179,8 @@ export class PlayerManager {
       // 基础查询使用主缓存
       this._cacheSystem.alivePlayers.cache = alivePlayers
     } else {
-      // 特定查询使用特定缓存
-      this._cacheSystem.alivePlayers.campExclusions[cacheKey] = alivePlayers
+      // 过滤查询使用过滤结果缓存
+      this._cacheSystem.alivePlayers.filteredResults[cacheKey] = alivePlayers
     }
 
     return alivePlayers
@@ -289,8 +289,7 @@ export class PlayerManager {
    */
   _invalidateCache () {
     this._cacheSystem.alivePlayers.cache = null
-    this._cacheSystem.alivePlayers.campExclusions = {}
-    this._cacheSystem.alivePlayers.roleTypes = {}
+    this._cacheSystem.alivePlayers.filteredResults = {}
     this._cacheSystem.alivePlayers.lastInvalidation = Date.now()
   }
 

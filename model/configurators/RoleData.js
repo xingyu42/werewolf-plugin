@@ -5,7 +5,7 @@
  *
  * 注意：此模块现在使用统一的常量定义，避免重复定义
  */
-import { ROLES, CAMPS, ROLE_WEIGHTS, ROLE_CAMPS } from '../core/Constants.js'
+import { ROLES, CAMPS, ROLE_WEIGHTS, ROLE_CAMPS, ROLE_NAMES_CN } from '../core/Constants.js'
 
 export class RoleData {
   /**
@@ -126,6 +126,19 @@ export class RoleData {
     }
 
     return RoleData.roleDescriptions[roleName] || '未知角色描述'
+  }
+
+  /**
+   * 获取角色中文显示名称
+   * @param {string} roleName - 角色名称
+   * @returns {string} 角色中文名称，如果未找到则返回原始角色名
+   */
+  static getRoleDisplayName (roleName) {
+    if (!roleName || typeof roleName !== 'string') {
+      return '未知角色'
+    }
+
+    return ROLE_NAMES_CN[roleName] || roleName
   }
 
   /**
