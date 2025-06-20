@@ -272,7 +272,7 @@ class Puppeteer {
    * @param {Object} cfg 渲染配置
    * @returns {Promise<string|boolean>} base64 截图或false
    */
-  async render (tplPath, data = {}, cfg = {}, user_id) {
+  async render (tplPath, data = {}, cfg = {}, userId) {
     this.shoting.push(true)
     try {
       // 处理传入的path
@@ -321,7 +321,7 @@ class Puppeteer {
       let base64 = await renderer.screenshot(`${PLUGIN_NAME}/${tplPath}`, data)
       let ret = true
       if (base64) {
-        ret = user_id ? await e.bot.sendPrivateMsg(user_id, base64) : await e.reply(base64)
+        ret = userId ? await e.bot.sendPrivateMsg(userId, base64) : await e.reply(base64)
       }
       return ret || true
     } finally {

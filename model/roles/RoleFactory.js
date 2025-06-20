@@ -62,7 +62,6 @@ export class RoleFactory {
    * @throws {Error} 当角色类型未知时抛出错误
    */
   static createRole (roleName, game, player, e) {
-
     switch (roleName) {
       case ROLES.WOLF: // 狼人
         return new RoleFactory.roleModules.WolfRole(game, player, e)

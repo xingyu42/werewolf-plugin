@@ -8,6 +8,7 @@ export default {
   testEnvironment: 'node',
 
   // ES 模块支持
+  preset: null,
   globals: {
     __TEST_ENV__: true
   },

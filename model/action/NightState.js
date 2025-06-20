@@ -33,8 +33,6 @@ export class NightState extends GameState {
     await this.startNextRoleAction()
   }
 
-
-
   // 开始下一个角色的行动
   async startNextRoleAction () {
     if (this.actionLock) return

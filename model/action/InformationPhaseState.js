@@ -2,20 +2,20 @@
  * 信息收集阶段状态类
  * 继承自NightPhaseState，实现信息收集阶段的具体逻辑
  * 处理预言家查验和守卫保护的并行执行，管理角色行动状态和结果记录
- * 
+ *
  * {{CHENGQI: Action: Added; Timestamp: 2025-06-19 20:01:34 +08:00; Reason: Shrimp Task ID: #cb91360b-b080-4f72-90e7-7d8ea8c9a6f6, 创建信息收集阶段状态; Principle_Applied: SOLID-SRP-SingleResponsibility-LSP-LiskovSubstitution;}}
  */
 
 import { NightPhaseState } from './NightPhaseState.js'
 import { SimpleStateNotifier } from '../adapters/SimpleStateNotifier.js'
 import { GameError } from '../core/GameError.js'
-import { NIGHT_PHASE_CONFIG, ROLES, ACTIONS } from '../core/Constants.js'
+import { NIGHT_PHASE_CONFIG, ACTIONS } from '../core/Constants.js'
 
 export class InformationPhaseState extends NightPhaseState {
   constructor (game) {
     // 使用信息收集阶段的配置
     super(game, NIGHT_PHASE_CONFIG.INFORMATION)
-    
+
     // 信息收集阶段特有属性
     this.prophetResults = new Map() // 预言家查验结果 playerId -> result
     this.guardProtections = new Map() // 守卫保护记录 playerId -> targetId
@@ -28,19 +28,19 @@ export class InformationPhaseState extends NightPhaseState {
   async startPhaseLogic () {
     try {
       console.log('[InformationPhaseState] 启动信息收集阶段逻辑')
-      
+
       // 并行通知所有活跃角色
       const notificationPromises = []
-      
+
       for (const role of this.activeRoles) {
         const roleType = role + 'Role' // 转换为角色类名
         const notificationPromise = this.notifyRoleAction(roleType)
         notificationPromises.push(notificationPromise)
       }
-      
+
       // 等待所有通知发送完成
       await Promise.allSettled(notificationPromises)
-      
+
       console.log('[InformationPhaseState] 所有角色通知已发送')
     } catch (error) {
       console.error('[InformationPhaseState] 启动阶段逻辑失败:', error)
@@ -57,18 +57,18 @@ export class InformationPhaseState extends NightPhaseState {
       if (this.roleNotificationSent.has(roleType)) {
         return // 避免重复通知
       }
-      
+
       // 获取该角色类型的存活玩家
       const rolePlayers = this.game.getAlivePlayers({ roleType, includeRole: true })
       if (!rolePlayers || rolePlayers.length === 0) {
         console.log(`[InformationPhaseState] 没有 ${roleType} 类型的存活玩家`)
         return
       }
-      
+
       // 使用SimpleStateNotifier通知角色行动
       await SimpleStateNotifier.notifyRoleAction(this.game, roleType, this.game.e)
       this.roleNotificationSent.add(roleType)
-      
+
       console.log(`[InformationPhaseState] ${roleType} 行动通知发送成功`)
     } catch (error) {
       console.error(`[InformationPhaseState] 通知 ${roleType} 行动失败:`, error)
@@ -89,12 +89,12 @@ export class InformationPhaseState extends NightPhaseState {
       if (!role) {
         throw new GameError('玩家角色不存在', 'ROLE_NOT_FOUND', { playerId: player.id })
       }
-      
+
       const roleType = role.constructor.name
       console.log(`[InformationPhaseState] 执行 ${roleType} 玩家 ${player.id} 的 ${action} 行动`)
-      
+
       let result = null
-      
+
       // 根据行动类型处理
       switch (action) {
         case ACTIONS.CHECK:
@@ -109,10 +109,10 @@ export class InformationPhaseState extends NightPhaseState {
         default:
           throw new GameError(`不支持的行动类型: ${action}`, 'UNSUPPORTED_ACTION', { action })
       }
-      
+
       // 检查阶段是否完成
       await this.checkPhaseCompletion()
-      
+
       return result
     } catch (error) {
       console.error('[InformationPhaseState] 执行玩家行动失败:', error)
@@ -134,10 +134,10 @@ export class InformationPhaseState extends NightPhaseState {
       if (!target) {
         throw new GameError('查验目标不存在', 'TARGET_NOT_FOUND', { targetId })
       }
-      
+
       // 执行角色的查验行动
       const result = await role.act(target, 'check')
-      
+
       if (result) {
         // 记录查验结果
         this.prophetResults.set(player.id, {
@@ -146,10 +146,10 @@ export class InformationPhaseState extends NightPhaseState {
           result,
           timestamp: Date.now()
         })
-        
+
         console.log(`[InformationPhaseState] 预言家 ${player.id} 查验了 ${targetId}`)
       }
-      
+
       return result
     } catch (error) {
       console.error('[InformationPhaseState] 处理预言家查验失败:', error)
@@ -171,10 +171,10 @@ export class InformationPhaseState extends NightPhaseState {
       if (!target) {
         throw new GameError('保护目标不存在', 'TARGET_NOT_FOUND', { targetId })
       }
-      
+
       // 执行角色的保护行动
       const result = await role.act(target, 'protect')
-      
+
       if (result) {
         // 记录保护信息
         this.guardProtections.set(player.id, {
@@ -182,10 +182,10 @@ export class InformationPhaseState extends NightPhaseState {
           targetName: target.name,
           timestamp: Date.now()
         })
-        
+
         console.log(`[InformationPhaseState] 守卫 ${player.id} 保护了 ${targetId}`)
       }
-      
+
       return result
     } catch (error) {
       console.error('[InformationPhaseState] 处理守卫保护失败:', error)
@@ -203,10 +203,10 @@ export class InformationPhaseState extends NightPhaseState {
     try {
       const roleType = role.constructor.name
       console.log(`[InformationPhaseState] ${roleType} 玩家 ${player.id} 选择跳过行动`)
-      
+
       // 发送跳过确认消息
       await role.sendPrivate('你选择了跳过本回合的行动')
-      
+
       return true
     } catch (error) {
       console.error('[InformationPhaseState] 处理跳过行动失败:', error)
@@ -227,14 +227,14 @@ export class InformationPhaseState extends NightPhaseState {
       if (!role) {
         return false
       }
-      
+
       const roleType = role.constructor.name
-      
+
       // 验证角色是否可以在当前状态下行动
       if (!role.canAct(this)) {
         return false
       }
-      
+
       // 根据角色类型验证特定行动
       switch (roleType) {
         case 'ProphetRole':
@@ -256,12 +256,12 @@ export class InformationPhaseState extends NightPhaseState {
   async handleTimeoutActions () {
     try {
       console.log('[InformationPhaseState] 处理信息收集阶段超时')
-      
+
       // 为每个活跃角色的未行动玩家设置默认行动
       for (const role of this.activeRoles) {
         const roleType = role + 'Role'
         const rolePlayers = this.game.getAlivePlayers({ roleType, includeRole: true })
-        
+
         for (const { player } of rolePlayers) {
           if (!this.completedActions.has(player.id)) {
             // 设置默认跳过行动
@@ -273,7 +273,7 @@ export class InformationPhaseState extends NightPhaseState {
               timestamp: Date.now(),
               isTimeout: true
             })
-            
+
             console.log(`[InformationPhaseState] 为 ${roleType} 玩家 ${player.id} 设置默认跳过行动`)
           }
         }
@@ -289,7 +289,7 @@ export class InformationPhaseState extends NightPhaseState {
   async onPhaseComplete () {
     try {
       console.log('[InformationPhaseState] 信息收集阶段完成')
-      
+
       // 输出阶段统计信息
       const stats = this.getPhaseStats()
       console.log('[InformationPhaseState] 阶段统计:', {
@@ -298,7 +298,7 @@ export class InformationPhaseState extends NightPhaseState {
         完成行动数: stats.completedActions,
         阶段耗时: stats.duration
       })
-      
+
       // 发出阶段完成事件，通知PhaseManager转换到下一阶段
       this.emit('phaseCompleted', {
         phaseName: this.phaseConfig.name,
@@ -323,10 +323,10 @@ export class InformationPhaseState extends NightPhaseState {
       this.prophetResults.clear()
       this.guardProtections.clear()
       this.roleNotificationSent.clear()
-      
+
       // 调用父类清理方法
       await super.cleanupPhase()
-      
+
       console.log('[InformationPhaseState] 信息收集阶段资源清理完成')
     } catch (error) {
       console.error('[InformationPhaseState] 清理阶段资源失败:', error)
@@ -338,7 +338,7 @@ export class InformationPhaseState extends NightPhaseState {
    */
   getPhaseStats () {
     const baseStats = super.getPhaseStats()
-    
+
     return {
       ...baseStats,
       prophetChecks: this.prophetResults.size,

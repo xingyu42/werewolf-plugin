@@ -2,20 +2,20 @@ import { Role } from './Role.js'
 
 /**
  * 猎人角色类
- * 
+ *
  * 猎人是好人阵营的特殊角色，具有以下能力：
  * - 死亡时可以开枪射杀一名玩家（根据死亡原因决定是否可以开枪）
  * - 被狼人杀死或被放逐时可以开枪
  * - 被毒杀时不能开枪
  * - 只能开枪一次
- * 
+ *
  * @class HunterRole
  * @extends Role
  */
 export class HunterRole extends Role {
   /**
    * 创建猎人角色实例
-   * 
+   *
    * @param {Object} game - 游戏实例
    * @param {Object} player - 玩家对象
    * @param {Object} e - 事件对象
@@ -28,9 +28,9 @@ export class HunterRole extends Role {
 
   /**
    * 检查猎人是否可以开枪
-   * 
+   *
    * 猎人可以在死亡时开枪，但需要根据死亡原因判断
-   * 
+   *
    * @returns {boolean} 是否可以开枪
    */
   canAct () {
@@ -50,7 +50,7 @@ export class HunterRole extends Role {
 
   /**
    * 获取猎人开枪提示消息
-   * 
+   *
    * @async
    * @returns {Promise<boolean>} 总是返回true
    */
@@ -71,7 +71,7 @@ export class HunterRole extends Role {
 
   /**
    * 处理目标ID，移除"号"字符并验证格式
-   * 
+   *
    * @param {string} targetId - 原始目标ID
    * @returns {string} 处理后的目标ID
    * @throws {Error} 如果目标ID格式无效
@@ -94,7 +94,7 @@ export class HunterRole extends Role {
 
   /**
    * 检查开枪目标是否合法 - 返回验证结果对象
-   * 
+   *
    * @param {string} rawTargetId - 原始目标ID字符串
    * @returns {Object} 验证结果对象 {isValid: boolean, message: string}
    */
@@ -119,7 +119,7 @@ export class HunterRole extends Role {
 
   /**
    * 猎人开枪执行方法
-   * 
+   *
    * @async
    * @param {string} rawTargetId - 目标玩家ID字符串
    * @returns {Promise<boolean>} 开枪是否成功
@@ -127,7 +127,7 @@ export class HunterRole extends Role {
   async act (rawTargetId) {
     try {
       const validation = this.isValidTarget(rawTargetId)
-      
+
       if (!validation.isValid) {
         await this.sendPrivate(`开枪失败: ${validation.message}`)
         return false

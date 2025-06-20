@@ -1,21 +1,20 @@
 import { Role } from './Role.js'
-import { ValidationUtils } from '../utils/ValidationUtils.js'
 
 /**
  * 守卫角色类
- * 
+ *
  * 守卫是好人阵营的特殊角色，具有以下能力：
  * - 每晚可以守护一名玩家，防止其被狼人杀死
  * - 不能连续两晚守护同一个人
  * - 只能在夜晚阶段行动
- * 
+ *
  * @class GuardRole
  * @extends Role
  */
 export class GuardRole extends Role {
   /**
    * 创建守卫角色实例
-   * 
+   *
    * @param {Object} game - 游戏实例
    * @param {Object} player - 玩家对象
    * @param {Object} e - 事件对象
@@ -28,7 +27,7 @@ export class GuardRole extends Role {
 
   /**
    * 检查是否可以在当前阶段行动
-   * 
+   *
    * @param {Object} state - 当前游戏状态
    * @returns {boolean} 守卫只能在夜晚阶段行动
    */
@@ -38,7 +37,7 @@ export class GuardRole extends Role {
 
   /**
    * 获取守卫行动提示消息
-   * 
+   *
    * @async
    * @returns {Promise<boolean|null>} 成功发送提示返回true，无法行动返回null
    */
@@ -68,7 +67,7 @@ export class GuardRole extends Role {
 
   /**
    * 验证守护目标是否合法
-   * 
+   *
    * @param {Object} target - 目标玩家对象
    * @returns {boolean} 目标是否合法
    */
@@ -85,7 +84,7 @@ export class GuardRole extends Role {
 
   /**
    * 执行守护行动
-   * 
+   *
    * @async
    * @param {Object} target - 守护目标玩家
    * @param {string} [action='protect'] - 行动类型，默认为守护

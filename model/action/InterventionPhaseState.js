@@ -2,20 +2,20 @@
  * 干预阶段状态类
  * 继承自NightPhaseState，实现干预阶段的具体逻辑
  * 处理女巫的毒药和解药使用，管理女巫行动的顺序执行（非并行）
- * 
+ *
  * {{CHENGQI: Action: Added; Timestamp: 2025-06-19 20:15:30 +08:00; Reason: Shrimp Task ID: #19cf6a8e-ace1-479c-a452-00c3d5ae7bc1, 创建干预阶段状态; Principle_Applied: SOLID-SRP-SingleResponsibility-LSP-LiskovSubstitution;}}
  */
 
 import { NightPhaseState } from './NightPhaseState.js'
 import { SimpleStateNotifier } from '../adapters/SimpleStateNotifier.js'
 import { GameError } from '../core/GameError.js'
-import { NIGHT_PHASE_CONFIG, ROLES, ACTIONS } from '../core/Constants.js'
+import { NIGHT_PHASE_CONFIG, ACTIONS } from '../core/Constants.js'
 
 export class InterventionPhaseState extends NightPhaseState {
   constructor (game) {
     // 使用干预阶段的配置
     super(game, NIGHT_PHASE_CONFIG.INTERVENTION)
-    
+
     // 干预阶段特有属性
     this.witchActions = new Map() // 女巫行动记录 witchId -> {action, target, timestamp}
     this.currentSubPhase = null // 当前子阶段 ('save' | 'poison' | null)
@@ -23,7 +23,7 @@ export class InterventionPhaseState extends NightPhaseState {
     this.poisonPhaseCompleted = false // 毒药阶段是否完成
     this.availableVictims = [] // 可救活的受害者列表
     this.subPhaseTimeout = null // 子阶段超时定时器
-    
+
     // 子阶段时间配置
     this.savePhaseTime = this.phaseConfig.subPhases.SAVE_PHASE.timeout || 30000
     this.poisonPhaseTime = this.phaseConfig.subPhases.POISON_PHASE.timeout || 30000
@@ -45,7 +45,7 @@ export class InterventionPhaseState extends NightPhaseState {
 
       // 获取可救活的受害者（被狼人杀死的玩家）
       this.availableVictims = this.getAvailableVictims()
-      
+
       // 启动解药阶段
       await this.startSavePhase()
     } catch (error) {
@@ -64,16 +64,16 @@ export class InterventionPhaseState extends NightPhaseState {
   async startSavePhase () {
     this.currentSubPhase = 'save'
     this.savePhaseCompleted = false
-    
+
     try {
       // 通知解药阶段开始
       await this.notifySubPhaseStart('save')
-      
+
       // 设置子阶段超时
       this.subPhaseTimeout = setTimeout(async () => {
         await this.onSubPhaseTimeout('save')
       }, this.savePhaseTime)
-      
+
       console.log('[InterventionPhaseState] 解药阶段开始')
     } catch (error) {
       console.error('[InterventionPhaseState] 启动解药阶段失败:', error)
@@ -86,16 +86,16 @@ export class InterventionPhaseState extends NightPhaseState {
   async startPoisonPhase () {
     this.currentSubPhase = 'poison'
     this.poisonPhaseCompleted = false
-    
+
     try {
       // 通知毒药阶段开始
       await this.notifySubPhaseStart('poison')
-      
+
       // 设置子阶段超时
       this.subPhaseTimeout = setTimeout(async () => {
         await this.onSubPhaseTimeout('poison')
       }, this.poisonPhaseTime)
-      
+
       console.log('[InterventionPhaseState] 毒药阶段开始')
     } catch (error) {
       console.error('[InterventionPhaseState] 启动毒药阶段失败:', error)
@@ -118,7 +118,7 @@ export class InterventionPhaseState extends NightPhaseState {
       }
 
       let result = null
-      
+
       switch (action) {
         case ACTIONS.SAVE:
           result = await this.handleSaveAction(player, witchRole, data)
@@ -144,7 +144,7 @@ export class InterventionPhaseState extends NightPhaseState {
 
       // 检查子阶段是否完成
       await this.checkSubPhaseCompletion()
-      
+
       return result
     } catch (error) {
       console.error('[InterventionPhaseState] 执行玩家行动失败:', error)
@@ -183,12 +183,12 @@ export class InterventionPhaseState extends NightPhaseState {
 
     // 执行救人行动
     const result = await witchRole.act(target, 'save')
-    
+
     if (result) {
       await this.notifyActionResult(player, 'save', target)
       this.savePhaseCompleted = true
     }
-    
+
     return result
   }
 
@@ -219,12 +219,12 @@ export class InterventionPhaseState extends NightPhaseState {
 
     // 执行毒杀行动
     const result = await witchRole.act(target, 'poison')
-    
+
     if (result) {
       await this.notifyActionResult(player, 'poison', target)
       this.poisonPhaseCompleted = true
     }
-    
+
     return result
   }
 
@@ -240,7 +240,7 @@ export class InterventionPhaseState extends NightPhaseState {
       this.poisonPhaseCompleted = true
       await this.notifyActionResult(player, 'skip_poison', null)
     }
-    
+
     return true
   }
 
@@ -264,7 +264,7 @@ export class InterventionPhaseState extends NightPhaseState {
       } else if (this.currentSubPhase === 'poison') {
         return action === ACTIONS.POISON || action === ACTIONS.SKIP
       }
-      
+
       return false
     } catch (error) {
       console.error('[InterventionPhaseState] 验证行动时发生错误:', error)
@@ -458,7 +458,6 @@ export class InterventionPhaseState extends NightPhaseState {
       for (const { player } of witchPlayers) {
         if (!this.witchActions.has(player.id) ||
             this.witchActions.get(player.id).subPhase !== subPhase) {
-
           const witchRole = this.game.playerManager.roles.get(player.id)
           await this.handleSkipAction(player, witchRole)
 

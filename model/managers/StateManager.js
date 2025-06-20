@@ -1,4 +1,3 @@
-
 import { NightPhaseController } from '../action/NightPhaseController.js'
 import { GameError } from '../core/GameError.js'
 import { GAME_PHASES } from '../core/Constants.js'
@@ -285,29 +284,35 @@ export class StateManager {
 
     try {
       const pattern = `${this.persistenceKeyPrefix}*`
-      const keys = await this.redis.keys(pattern)
       let cleanedCount = 0
       const now = Date.now()
 
-      for (const key of keys) {
-        try {
-          const stateDataStr = await this.redis.get(key)
-          if (!stateDataStr) continue
+      // 使用SCAN代替KEYS，避免在大量键时阻塞Redis服务器
+      for await (const keys of this.redis.scanIterator({
+        MATCH: pattern,
+        COUNT: 100 // 每次扫描100个键，平衡性能和内存使用
+      })) {
+        // keys是一个数组，包含当前批次的键
+        for (const key of keys) {
+          try {
+            const stateDataStr = await this.redis.get(key)
+            if (!stateDataStr) continue
 
-          const stateData = JSON.parse(stateDataStr)
-          const age = now - stateData.timestamp
+            const stateData = JSON.parse(stateDataStr)
+            const age = now - stateData.timestamp
 
-          // 清理超过24小时的状态
-          if (age > 86400000) {
+            // 清理超过24小时的状态
+            if (age > 86400000) {
+              await this.redis.del(key)
+              cleanedCount++
+              console.log(`[StateManager] 清理过期状态: ${key}`)
+            }
+          } catch (error) {
+            // 如果解析失败，直接删除
             await this.redis.del(key)
             cleanedCount++
-            console.log(`[StateManager] 清理过期状态: ${key}`)
+            console.log(`[StateManager] 清理无效状态: ${key}`)
           }
-        } catch (error) {
-          // 如果解析失败，直接删除
-          await this.redis.del(key)
-          cleanedCount++
-          console.log(`[StateManager] 清理无效状态: ${key}`)
         }
       }
 

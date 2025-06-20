@@ -1,4 +1,3 @@
-
 import { RoleFactory } from '../roles/RoleFactory.js'
 import { GameError } from '../core/GameError.js'
 import { DEATH_REASONS } from '../core/Constants.js'

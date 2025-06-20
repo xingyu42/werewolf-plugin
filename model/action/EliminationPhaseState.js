@@ -2,20 +2,19 @@
  * 消除阶段状态类
  * 继承自NightPhaseState，实现消除阶段的具体逻辑
  * 处理狼人讨论和击杀的协作执行，支持多狼人的投票机制和讨论时间管理
- * 
+ *
  * {{CHENGQI: Action: Added; Timestamp: 2025-06-19 20:07:48 +08:00; Reason: Shrimp Task ID: #39b77685-1730-4cb6-8f73-9e5f5daf7722, 创建消除阶段状态; Principle_Applied: SOLID-SRP-SingleResponsibility-LSP-LiskovSubstitution;}}
  */
 
 import { NightPhaseState } from './NightPhaseState.js'
-import { SimpleStateNotifier } from '../adapters/SimpleStateNotifier.js'
 import { GameError } from '../core/GameError.js'
-import { NIGHT_PHASE_CONFIG, ROLES, ACTIONS } from '../core/Constants.js'
+import { NIGHT_PHASE_CONFIG, ACTIONS } from '../core/Constants.js'
 
 export class EliminationPhaseState extends NightPhaseState {
   constructor (game) {
     // 使用消除阶段的配置
     super(game, NIGHT_PHASE_CONFIG.ELIMINATION)
-    
+
     // 消除阶段特有属性
     this.wolfVotes = new Map() // 狼人投票记录 wolfId -> {targetId, timestamp}
     this.discussionMessages = [] // 狼人讨论记录
@@ -25,7 +24,7 @@ export class EliminationPhaseState extends NightPhaseState {
     this.votingStartTime = null // 投票开始时间
     this.discussionTimeout = null // 讨论阶段超时定时器
     this.votingTimeout = null // 投票阶段超时定时器
-    
+
     // 阶段时间配置
     this.discussionTime = this.phaseConfig.discussionTime || 60000 // 讨论时间
     this.votingTime = this.phaseConfig.votingTime || 60000 // 投票时间
@@ -37,7 +36,7 @@ export class EliminationPhaseState extends NightPhaseState {
   async startPhaseLogic () {
     try {
       console.log('[EliminationPhaseState] 启动消除阶段逻辑')
-      
+
       // 检查是否有存活的狼人
       const aliveWolves = this.game.getAlivePlayers({ roleType: 'WolfRole', includeRole: true })
       if (aliveWolves.length === 0) {
@@ -45,10 +44,9 @@ export class EliminationPhaseState extends NightPhaseState {
         await this.completePhase()
         return
       }
-      
+
       // 开始讨论阶段
       await this.startDiscussionPhase()
-      
     } catch (error) {
       console.error('[EliminationPhaseState] 启动阶段逻辑失败:', error)
       throw error
@@ -62,19 +60,18 @@ export class EliminationPhaseState extends NightPhaseState {
     try {
       this.discussionStartTime = Date.now()
       this.isVotingPhase = false
-      
+
       console.log('[EliminationPhaseState] 开始狼人讨论阶段')
-      
+
       // 通知所有狼人开始讨论
       await this.notifyWolvesDiscussion()
-      
+
       // 设置讨论阶段超时
       this.discussionTimeout = setTimeout(async () => {
         if (!this.isVotingPhase && !this.isPhaseCompleted) {
           await this.startVotingPhase()
         }
       }, this.discussionTime)
-      
     } catch (error) {
       console.error('[EliminationPhaseState] 开始讨论阶段失败:', error)
       throw error
@@ -88,19 +85,18 @@ export class EliminationPhaseState extends NightPhaseState {
     try {
       this.votingStartTime = Date.now()
       this.isVotingPhase = true
-      
+
       console.log('[EliminationPhaseState] 开始狼人投票阶段')
-      
+
       // 通知所有狼人开始投票
       await this.notifyWolvesVoting()
-      
+
       // 设置投票阶段超时
       this.votingTimeout = setTimeout(async () => {
         if (!this.isPhaseCompleted) {
           await this.handleVotingTimeout()
         }
       }, this.votingTime)
-      
     } catch (error) {
       console.error('[EliminationPhaseState] 开始投票阶段失败:', error)
       throw error
@@ -113,12 +109,12 @@ export class EliminationPhaseState extends NightPhaseState {
   async notifyWolvesDiscussion () {
     try {
       const aliveWolves = this.game.getAlivePlayers({ roleType: 'WolfRole', includeRole: true })
-      
+
       for (const { player, role } of aliveWolves) {
         const discussionPrompt = this.getDiscussionPrompt(player, aliveWolves)
         await role.sendPrivate(discussionPrompt)
       }
-      
+
       console.log(`[EliminationPhaseState] 已通知 ${aliveWolves.length} 个狼人开始讨论`)
     } catch (error) {
       console.error('[EliminationPhaseState] 通知狼人讨论失败:', error)
@@ -131,12 +127,12 @@ export class EliminationPhaseState extends NightPhaseState {
   async notifyWolvesVoting () {
     try {
       const aliveWolves = this.game.getAlivePlayers({ roleType: 'WolfRole', includeRole: true })
-      
+
       for (const { player, role } of aliveWolves) {
         const votingPrompt = this.getVotingPrompt(player, aliveWolves)
         await role.sendPrivate(votingPrompt)
       }
-      
+
       console.log(`[EliminationPhaseState] 已通知 ${aliveWolves.length} 个狼人开始投票`)
     } catch (error) {
       console.error('[EliminationPhaseState] 通知狼人投票失败:', error)
@@ -150,18 +146,18 @@ export class EliminationPhaseState extends NightPhaseState {
     const otherWolves = aliveWolves.filter(w => w.player.id !== player.id)
     let prompt = '🌙【狼人讨论阶段】\n'
     prompt += `讨论时间：${Math.floor(this.discussionTime / 1000)}秒\n\n`
-    
+
     if (otherWolves.length > 0) {
       prompt += '其他存活狼人：\n'
       prompt += otherWolves.map(w => `${w.player.gameNumber}号 ${w.player.name}`).join('\n')
       prompt += '\n\n'
     }
-    
+
     prompt += '可用指令：\n'
     prompt += '#讨论 [内容] - 与其他狼人讨论\n'
     prompt += '#准备投票 - 提前进入投票阶段\n\n'
     prompt += '请与队友讨论今晚的击杀目标...'
-    
+
     return prompt
   }
 
@@ -174,7 +170,7 @@ export class EliminationPhaseState extends NightPhaseState {
       const role = this.game.playerManager.roles.get(p.id)
       return role && role.getCamp() !== 'WOLF'
     })
-    
+
     let prompt = '🗳️【狼人投票阶段】\n'
     prompt += `投票时间：${Math.floor(this.votingTime / 1000)}秒\n\n`
     prompt += '可击杀目标：\n'
@@ -182,7 +178,7 @@ export class EliminationPhaseState extends NightPhaseState {
     prompt += '\n\n可用指令：\n'
     prompt += '#刀[号码] - 投票击杀指定玩家\n'
     prompt += '#空刀 - 投票放弃击杀\n\n'
-    
+
     // 显示当前投票情况
     if (this.wolfVotes.size > 0) {
       prompt += '当前投票情况：\n'
@@ -199,7 +195,7 @@ export class EliminationPhaseState extends NightPhaseState {
       }
       prompt += '\n'
     }
-    
+
     return prompt
   }
 
@@ -212,11 +208,11 @@ export class EliminationPhaseState extends NightPhaseState {
       if (!role) {
         throw new GameError('玩家角色不存在', 'ROLE_NOT_FOUND', { playerId: player.id })
       }
-      
+
       console.log(`[EliminationPhaseState] 执行狼人 ${player.id} 的 ${action} 行动`)
-      
+
       let result = null
-      
+
       switch (action) {
         case ACTIONS.KILL:
           result = await this.handleWolfKill(player, role, data)
@@ -236,7 +232,7 @@ export class EliminationPhaseState extends NightPhaseState {
         default:
           throw new GameError(`不支持的行动类型: ${action}`, 'UNSUPPORTED_ACTION', { action })
       }
-      
+
       return result
     } catch (error) {
       console.error('[EliminationPhaseState] 执行玩家行动失败:', error)
@@ -252,7 +248,7 @@ export class EliminationPhaseState extends NightPhaseState {
       if (!this.isVotingPhase) {
         throw new GameError('当前不是投票阶段', 'NOT_VOTING_PHASE')
       }
-      
+
       // 验证目标
       let target = null
       if (targetId) {
@@ -260,32 +256,32 @@ export class EliminationPhaseState extends NightPhaseState {
         if (!target) {
           throw new GameError('击杀目标不存在', 'TARGET_NOT_FOUND', { targetId })
         }
-        
+
         // 验证目标是否可以击杀
         if (!role.isValidTarget(target)) {
           throw new GameError('无效的击杀目标', 'INVALID_TARGET', { targetId })
         }
       }
-      
+
       // 记录投票
       this.wolfVotes.set(player.id, {
         wolfId: player.id,
         targetId: targetId || null,
         timestamp: Date.now()
       })
-      
+
       // 通知投票结果
       const targetName = target ? `${target.gameNumber}号 ${target.name}` : '空刀'
       await role.sendPrivate(`你已投票击杀：${targetName}`)
-      
+
       // 通知其他狼人投票更新
       await this.notifyVoteUpdate(player, targetId)
-      
+
       // 检查是否所有狼人都已投票
       if (this.isAllWolvesVoted()) {
         await this.processVoteResult()
       }
-      
+
       return true
     } catch (error) {
       console.error('[EliminationPhaseState] 处理狼人击杀失败:', error)
@@ -302,7 +298,7 @@ export class EliminationPhaseState extends NightPhaseState {
       if (this.isVotingPhase) {
         return await this.handleWolfKill(player, role, null)
       }
-      
+
       // 在讨论阶段，跳过表示不参与讨论
       await role.sendPrivate('你选择了跳过讨论')
       return true
@@ -318,12 +314,12 @@ export class EliminationPhaseState extends NightPhaseState {
   async handleWolfSuicide (player, role) {
     try {
       const result = await role.suicide()
-      
+
       if (result.success) {
         // 自爆成功，立即完成阶段
         await this.completePhase()
       }
-      
+
       return result
     } catch (error) {
       console.error('[EliminationPhaseState] 处理狼人自爆失败:', error)
@@ -340,7 +336,7 @@ export class EliminationPhaseState extends NightPhaseState {
         await role.sendPrivate('投票阶段不能讨论，请专心投票')
         return false
       }
-      
+
       // 记录讨论消息
       const discussionEntry = {
         playerId: player.id,
@@ -349,10 +345,10 @@ export class EliminationPhaseState extends NightPhaseState {
         timestamp: Date.now()
       }
       this.discussionMessages.push(discussionEntry)
-      
+
       // 转发给其他狼人
       await this.broadcastDiscussion(player, message)
-      
+
       return true
     } catch (error) {
       console.error('[EliminationPhaseState] 处理狼人讨论失败:', error)
@@ -369,9 +365,9 @@ export class EliminationPhaseState extends NightPhaseState {
         await role.sendPrivate('已经在投票阶段了')
         return false
       }
-      
+
       await role.sendPrivate('你提议进入投票阶段')
-      
+
       // 检查是否所有狼人都准备好投票
       const aliveWolves = this.game.getAlivePlayers({ roleType: 'WolfRole', includeRole: true })
       if (aliveWolves.length === 1) {
@@ -381,7 +377,7 @@ export class EliminationPhaseState extends NightPhaseState {
         // 多狼需要协商，这里简化为立即进入投票
         await this.startVotingPhase()
       }
-      
+
       return true
     } catch (error) {
       console.error('[EliminationPhaseState] 处理准备投票失败:', error)
@@ -395,7 +391,7 @@ export class EliminationPhaseState extends NightPhaseState {
   async broadcastDiscussion (sender, message) {
     try {
       const aliveWolves = this.game.getAlivePlayers({ roleType: 'WolfRole', includeRole: true })
-      
+
       for (const { player, role } of aliveWolves) {
         if (player.id !== sender.id) {
           const broadcastMsg = `💬【${sender.name}】：${message}`
@@ -413,9 +409,10 @@ export class EliminationPhaseState extends NightPhaseState {
   async notifyVoteUpdate (voter, targetId) {
     try {
       const aliveWolves = this.game.getAlivePlayers({ roleType: 'WolfRole', includeRole: true })
-      const targetName = targetId ? 
-        this.game.playerManager.getPlayerById(targetId)?.name || '未知' : '空刀'
-      
+      const targetName = targetId
+        ? this.game.playerManager.getPlayerById(targetId)?.name || '未知'
+        : '空刀'
+
       for (const { player, role } of aliveWolves) {
         if (player.id !== voter.id) {
           const updateMsg = `📊【投票更新】${voter.name} 投票击杀：${targetName}`
@@ -440,13 +437,13 @@ export class EliminationPhaseState extends NightPhaseState {
    */
   getVoteCounts () {
     const voteCounts = new Map()
-    
+
     for (const vote of this.wolfVotes.values()) {
       const targetId = vote.targetId
       const currentCount = voteCounts.get(targetId) || 0
       voteCounts.set(targetId, currentCount + 1)
     }
-    
+
     return voteCounts
   }
 
@@ -456,21 +453,20 @@ export class EliminationPhaseState extends NightPhaseState {
   async processVoteResult () {
     try {
       console.log('[EliminationPhaseState] 处理狼人投票结果')
-      
+
       // 统计投票
       this.finalKillTarget = this.tallyVotes()
-      
+
       // 通知投票结果
       await this.notifyVoteResult()
-      
+
       // 执行击杀
       if (this.finalKillTarget) {
         await this.executeKill(this.finalKillTarget)
       }
-      
+
       // 完成阶段
       await this.completePhase()
-      
     } catch (error) {
       console.error('[EliminationPhaseState] 处理投票结果失败:', error)
       throw error
@@ -484,7 +480,7 @@ export class EliminationPhaseState extends NightPhaseState {
     const voteCounts = this.getVoteCounts()
     let maxVotes = 0
     let maxTargets = []
-    
+
     for (const [targetId, count] of voteCounts.entries()) {
       if (count > maxVotes) {
         maxVotes = count
@@ -493,7 +489,7 @@ export class EliminationPhaseState extends NightPhaseState {
         maxTargets.push(targetId)
       }
     }
-    
+
     // 平票时返回null
     return maxTargets.length === 1 ? maxTargets[0] : null
   }
@@ -505,14 +501,14 @@ export class EliminationPhaseState extends NightPhaseState {
     try {
       const aliveWolves = this.game.getAlivePlayers({ roleType: 'WolfRole', includeRole: true })
       let message
-      
+
       if (!this.finalKillTarget) {
         message = '【最终结果】投票平局或全部空刀，今晚不会击杀任何人'
       } else {
         const target = this.game.playerManager.getPlayerById(this.finalKillTarget)
         message = `【最终结果】狼人队伍决定击杀 ${target.gameNumber}号 ${target.name}`
       }
-      
+
       for (const { role } of aliveWolves) {
         await role.sendPrivate(message)
       }
@@ -531,17 +527,16 @@ export class EliminationPhaseState extends NightPhaseState {
         console.error('[EliminationPhaseState] 击杀目标不存在:', targetId)
         return
       }
-      
+
       // 检查是否被守卫保护
       if (target.protected) {
         console.log(`[EliminationPhaseState] ${target.name} 被守卫保护，击杀失败`)
         return
       }
-      
+
       // 执行击杀
       await this.game.handlePlayerDeath(target, 'WOLF_KILL')
       console.log(`[EliminationPhaseState] 成功击杀 ${target.name}`)
-      
     } catch (error) {
       console.error('[EliminationPhaseState] 执行击杀失败:', error)
     }
@@ -553,10 +548,10 @@ export class EliminationPhaseState extends NightPhaseState {
   async handleVotingTimeout () {
     try {
       console.log('[EliminationPhaseState] 投票阶段超时')
-      
+
       // 为未投票的狼人设置默认空刀
       const aliveWolves = this.game.getAlivePlayers({ roleType: 'WolfRole', includeRole: true })
-      
+
       for (const { player } of aliveWolves) {
         if (!this.wolfVotes.has(player.id)) {
           this.wolfVotes.set(player.id, {
@@ -567,10 +562,9 @@ export class EliminationPhaseState extends NightPhaseState {
           })
         }
       }
-      
+
       // 处理投票结果
       await this.processVoteResult()
-      
     } catch (error) {
       console.error('[EliminationPhaseState] 处理投票超时失败:', error)
     }
@@ -585,12 +579,12 @@ export class EliminationPhaseState extends NightPhaseState {
       if (!role || role.constructor.name !== 'WolfRole') {
         return false
       }
-      
+
       // 验证角色是否可以在当前状态下行动
       if (!role.canAct(this)) {
         return false
       }
-      
+
       // 验证狼人特定行动
       const validActions = [ACTIONS.KILL, ACTIONS.SKIP, ACTIONS.SUICIDE, 'discuss', 'ready_vote']
       return validActions.includes(action)
@@ -606,7 +600,7 @@ export class EliminationPhaseState extends NightPhaseState {
   async handleTimeoutActions () {
     try {
       console.log('[EliminationPhaseState] 处理消除阶段超时')
-      
+
       if (!this.isVotingPhase) {
         // 讨论阶段超时，进入投票阶段
         await this.startVotingPhase()
@@ -625,7 +619,7 @@ export class EliminationPhaseState extends NightPhaseState {
   async onPhaseComplete () {
     try {
       console.log('[EliminationPhaseState] 消除阶段完成')
-      
+
       // 输出阶段统计信息
       const stats = this.getPhaseStats()
       console.log('[EliminationPhaseState] 阶段统计:', {
@@ -634,7 +628,7 @@ export class EliminationPhaseState extends NightPhaseState {
         最终击杀目标: this.finalKillTarget,
         阶段耗时: stats.duration
       })
-      
+
       // 发出阶段完成事件
       this.emit('phaseCompleted', {
         phaseName: this.phaseConfig.name,
@@ -674,7 +668,7 @@ export class EliminationPhaseState extends NightPhaseState {
 
       // 调用父类清理方法
       await super.cleanupPhase()
-      
+
       console.log('[EliminationPhaseState] 消除阶段资源清理完成')
     } catch (error) {
       console.error('[EliminationPhaseState] 清理阶段资源失败:', error)
@@ -686,17 +680,19 @@ export class EliminationPhaseState extends NightPhaseState {
    */
   getPhaseStats () {
     const baseStats = super.getPhaseStats()
-    
+
     return {
       ...baseStats,
       wolfVotes: this.wolfVotes.size,
       discussionMessages: this.discussionMessages.length,
       finalKillTarget: this.finalKillTarget,
       isVotingPhase: this.isVotingPhase,
-      discussionDuration: this.discussionStartTime ? 
-        (this.votingStartTime || Date.now()) - this.discussionStartTime : 0,
-      votingDuration: this.votingStartTime ? 
-        Date.now() - this.votingStartTime : 0
+      discussionDuration: this.discussionStartTime
+        ? (this.votingStartTime || Date.now()) - this.discussionStartTime
+        : 0,
+      votingDuration: this.votingStartTime
+        ? Date.now() - this.votingStartTime
+        : 0
     }
   }
 }

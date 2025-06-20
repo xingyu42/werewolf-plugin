@@ -34,9 +34,9 @@ export class WerewolfUpdate extends plugin {
     updatePlugin.e = this.e
     updatePlugin.reply = this.reply
 
-    let Plugin_Name = 'werewolf-plugin'
-    if (updatePlugin.getPlugin(Plugin_Name)) {
-      this.e.reply(await updatePlugin.getLog(Plugin_Name))
+    let pluginName = 'werewolf-plugin'
+    if (updatePlugin.getPlugin(pluginName)) {
+      this.e.reply(await updatePlugin.getLog(pluginName))
     }
     return true
   }

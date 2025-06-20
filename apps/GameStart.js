@@ -88,7 +88,7 @@ export class GameStart extends plugin {
       const needed = minPlayers - currentCount
       message += `\n还需要 ${needed} 人才能开始游戏`
     } else {
-      message += `\n人数已满足，可以开始游戏了！`
+      message += '\n人数已满足，可以开始游戏了！'
     }
 
     e.reply(message)
@@ -137,7 +137,7 @@ export class GameStart extends plugin {
         playerCount: lobby.getPlayers().length,
         action: 'startGame'
       }
-      
+
       defaultErrorHandler.handle(error, context, e)
 
       // 清理资源：移除可能已创建的游戏实例
@@ -148,7 +148,7 @@ export class GameStart extends plugin {
         console.warn('[GameStart] 清理游戏资源时出错:', cleanupError)
       }
     }
-    
+
     return true
   }
 
@@ -187,8 +187,6 @@ export class GameStart extends plugin {
     }
   }
 
-
-
   /**
    * 设置lobby超时自动解散机制
    * @param {string} groupId 群组ID
@@ -217,7 +215,7 @@ export class GameStart extends plugin {
             await group.sendMsg('游戏大厅因10分钟无活动自动解散，如需重新开始请输入 #创建狼人杀')
           }
         } catch (error) {
-          console.error(`[GameStart] 发送超时通知失败:`, error)
+          console.error('[GameStart] 发送超时通知失败:', error)
         }
 
         // 清理lobby（不需要清理定时器，因为这就是定时器回调）

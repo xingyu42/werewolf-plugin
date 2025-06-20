@@ -1,23 +1,22 @@
-import { ValidationUtils } from '../utils/ValidationUtils.js'
 import { SimpleMessageSender } from '../adapters/SimpleMessageSender.js'
 
 /**
  * 角色基类 - 所有游戏角色的抽象基类
- * 
+ *
  * 提供角色的基本功能，包括：
  * - 角色身份管理
  * - 目标验证
  * - 消息发送
  * - 存活玩家查询
- * 
+ *
  * 所有具体角色类都应继承此基类并实现相应的抽象方法
- * 
+ *
  * @class Role
  */
 export class Role {
   /**
    * 创建角色实例
-   * 
+   *
    * @param {Object} game - 游戏实例，提供游戏状态和方法
    * @param {Object} player - 玩家对象，包含玩家基本信息
    * @param {Object} e - 事件对象，用于消息发送和事件处理
@@ -30,7 +29,7 @@ export class Role {
 
   /**
    * 获取角色名称
-   * 
+   *
    * @returns {string} 角色名称
    */
   getName () {
@@ -39,7 +38,7 @@ export class Role {
 
   /**
    * 获取角色阵营
-   * 
+   *
    * @async
    * @returns {Promise<string>} 角色阵营（如 'GOOD', 'WOLF'）
    */
@@ -50,7 +49,7 @@ export class Role {
 
   /**
    * 检查是否可以在当前阶段行动
-   * 
+   *
    * @param {Object} state - 当前游戏状态对象
    * @returns {boolean} 是否可以行动
    */
@@ -60,7 +59,7 @@ export class Role {
 
   /**
    * 执行角色行动 - 抽象方法，需要在子类中实现
-   * 
+   *
    * @abstract
    * @async
    * @param {Object} target - 行动目标玩家对象
@@ -74,7 +73,7 @@ export class Role {
 
   /**
    * 获取行动提示消息
-   * 
+   *
    * @returns {string} 行动提示文本
    */
   getActionPrompt () {
@@ -83,7 +82,7 @@ export class Role {
 
   /**
    * 验证目标是否合法 - 基础验证
-   * 
+   *
    * @param {Object} target - 目标玩家对象
    * @returns {boolean} 目标是否合法
    */
@@ -135,7 +134,7 @@ export class Role {
 
   /**
    * 获取存活玩家列表
-   * 
+   *
    * @returns {string[]} 存活玩家的显示信息数组，错误时返回空数组
    */
   getAlivePlayersList () {

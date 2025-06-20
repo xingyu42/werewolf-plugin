@@ -12,7 +12,7 @@ export class SimpleMessageSender {
    * @param {Object} e - 事件对象
    * @returns {Promise<boolean>} 发送是否成功
    */
-  static async sendPrivate(content, target, e) {
+  static async sendPrivate (content, target, e) {
     // 参数验证
     if (!content || !target || !e) {
       console.error('[SimpleMessageSender] sendPrivate: 参数不能为空')
@@ -33,19 +33,19 @@ export class SimpleMessageSender {
         await e.reply(`@${target} ${content}`)
         return true
       } catch (fallbackError) {
-        console.error(`[SimpleMessageSender] 群聊降级也失败:`, fallbackError)
+        console.error('[SimpleMessageSender] 群聊降级也失败:', fallbackError)
         return false
       }
     }
   }
-  
+
   /**
    * 发送群聊消息
    * @param {string} content - 消息内容
    * @param {Object} e - 事件对象
    * @returns {Promise<boolean>} 发送是否成功
    */
-  static async sendGroup(content, e) {
+  static async sendGroup (content, e) {
     // 参数验证
     if (!content || !e) {
       console.error('[SimpleMessageSender] sendGroup: 参数不能为空')
@@ -54,10 +54,10 @@ export class SimpleMessageSender {
 
     try {
       await e.reply(content)
-      console.log(`[SimpleMessageSender] 群聊发送成功`)
+      console.log('[SimpleMessageSender] 群聊发送成功')
       return true
     } catch (error) {
-      console.error(`[SimpleMessageSender] 群聊发送失败:`, error)
+      console.error('[SimpleMessageSender] 群聊发送失败:', error)
       return false
     }
   }

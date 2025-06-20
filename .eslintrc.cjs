@@ -9,6 +9,12 @@ module.exports = {
     ecmaVersion: 'latest',
     sourceType: 'module'
   },
+  ignorePatterns: [
+    'coverage/',
+    'node_modules/',
+    'dist/',
+    '*.min.js'
+  ],
   globals: {
     Bot: true,
     redis: true,
@@ -21,5 +27,14 @@ module.exports = {
     eqeqeq: ['off'],
     'prefer-const': ['off'],
     'arrow-body-style': 'off'
-  }
+  },
+  overrides: [
+    {
+      files: ['tests/**/*.js'],
+      rules: {
+        'no-unused-vars': 'warn',
+        'no-new': 'warn'
+      }
+    }
+  ]
 }

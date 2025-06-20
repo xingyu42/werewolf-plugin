@@ -2,21 +2,21 @@ import { Role } from './Role.js'
 
 /**
  * 女巫角色类
- * 
+ *
  * 女巫是好人阵营的强力角色，具有以下能力：
  * - 拥有一瓶解药，可以救活被狼人杀死的玩家
  * - 拥有一瓶毒药，可以毒杀一名存活玩家
  * - 每晚最多只能使用一种药水
  * - 根据配置决定是否可以自救
  * - 只能在夜晚阶段行动
- * 
+ *
  * @class WitchRole
  * @extends Role
  */
 export class WitchRole extends Role {
   /**
    * 创建女巫角色实例
-   * 
+   *
    * @param {Object} game - 游戏实例
    * @param {Object} player - 玩家对象
    * @param {Object} e - 事件对象
@@ -31,7 +31,7 @@ export class WitchRole extends Role {
 
   /**
    * 检查是否可以在当前阶段行动
-   * 
+   *
    * @param {Object} state - 当前游戏状态
    * @returns {boolean} 女巫只能在夜晚阶段行动
    */
@@ -41,9 +41,9 @@ export class WitchRole extends Role {
 
   /**
    * 获取女巫行动提示消息
-   * 
+   *
    * 根据当前拥有的药水显示可用选项
-   * 
+   *
    * @async
    * @returns {Promise<boolean>} 是否成功发送提示消息
    */
@@ -81,7 +81,7 @@ export class WitchRole extends Role {
 
   /**
    * 检查救人目标是否合法
-   * 
+   *
    * @param {Object} target - 目标玩家对象
    * @returns {Object} 验证结果对象 {isValid: boolean, message: string}
    */
@@ -100,7 +100,7 @@ export class WitchRole extends Role {
 
   /**
    * 检查毒杀目标是否合法
-   * 
+   *
    * @param {Object} target - 目标玩家对象
    * @returns {Object} 验证结果对象 {isValid: boolean, message: string}
    */
@@ -119,7 +119,7 @@ export class WitchRole extends Role {
 
   /**
    * 执行女巫行动
-   * 
+   *
    * @async
    * @param {Object} target - 行动目标玩家
    * @param {string} action - 行动类型 ('save' 救人, 'poison' 毒杀)

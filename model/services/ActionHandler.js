@@ -86,6 +86,7 @@ export class ActionHandler {
         targetPlayer = targetValidation.player
       }
 
+      const currentState = game?.state
       await action({ game, player, role: roleInstance, targetPlayer, currentState })
 
       return true

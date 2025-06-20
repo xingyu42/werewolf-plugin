@@ -32,6 +32,13 @@ export const StateTransitions = {
       condition: (game) => true // 始终允许此转换
     }
   },
+  // 允许 NightPhaseController 作为夜晚状态的别名进行状态转换
+  NightPhaseController: {
+    [GameStateType.DAY]: {
+      description: '夜晚阶段控制器结束，进入白天',
+      condition: (game) => true // 始终允许此转换
+    }
+  },
 
   // 新增：阶段化夜晚状态转换规则
   // {{CHENGQI: Action: Added; Timestamp: 2025-06-19 20:27:45 +08:00; Reason: Shrimp Task ID: #0620a86e-5d49-417f-a654-9b137ed6dd3a, 添加阶段状态转换规则; Principle_Applied: SOLID-OCP-OpenClosedPrinciple;}}

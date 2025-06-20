@@ -5,23 +5,22 @@
  */
 
 export class FriendshipValidator {
-
   /**
    * 检查单个玩家是否为好友
    * @param {Object} e - 事件对象
    * @param {string} playerId - 玩家ID
    * @returns {Promise<boolean>} 是否为好友
    */
-  static async checkFriend(e, playerId) {
+  static async checkFriend (e, playerId) {
     try {
       // 检查bot对象和好友列表
       if (!e.bot) {
-        console.warn(`[FriendshipValidator] Bot对象不可用`)
+        console.warn('[FriendshipValidator] Bot对象不可用')
         return false
       }
 
       if (!e.bot.fl) {
-        console.warn(`[FriendshipValidator] Bot好友列表(fl)不可用`)
+        console.warn('[FriendshipValidator] Bot好友列表(fl)不可用')
         return false
       }
 
@@ -35,7 +34,6 @@ export class FriendshipValidator {
       }
 
       return isFriend
-
     } catch (error) {
       console.error(`[FriendshipValidator] 检查玩家 ${playerId} 好友状态时发生错误:`, error)
       return false
@@ -48,7 +46,7 @@ export class FriendshipValidator {
    * @param {Object} e - 事件对象
    * @returns {Promise<Object>} 检查结果 {allFriends: boolean, nonFriends: Array}
    */
-  static async validateBatch(players, e) {
+  static async validateBatch (players, e) {
     const nonFriends = []
 
     console.log(`[FriendshipValidator] 开始检查 ${players.length} 个玩家的好友状态`)
@@ -67,6 +65,4 @@ export class FriendshipValidator {
       nonFriends
     }
   }
-
-
 }

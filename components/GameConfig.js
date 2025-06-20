@@ -7,7 +7,7 @@ import YamlReader from './YamlReader.js'
 import { PLUGIN_NAME, PLUGIN_PATH } from './constants.js'
 import { CONFIG_KEYS } from '../model/core/Constants.js'
 
-const Log_Prefix = `[${PLUGIN_NAME}插件]`
+const logPrefix = `[${PLUGIN_NAME}插件]`
 
 class GameConfig {
   constructor (redis, logger) {
@@ -79,33 +79,33 @@ class GameConfig {
 
     // 必填项检查
     if (rule.required && (value === undefined || value === null)) {
-      this.logger.error(`${Log_Prefix}配置项 ${key} 是必填项`)
+      this.logger.error(`${logPrefix}配置项 ${key} 是必填项`)
       return false
     }
 
     // 类型检查
     if (value !== undefined && value !== null) {
       if (rule.type === 'number' && typeof value !== 'number') {
-        this.logger.error(`${Log_Prefix}配置项 ${key} 必须是数字类型`)
+        this.logger.error(`${logPrefix}配置项 ${key} 必须是数字类型`)
         return false
       }
       if (rule.type === 'boolean' && typeof value !== 'boolean') {
-        this.logger.error(`${Log_Prefix}配置项 ${key} 必须是布尔类型`)
+        this.logger.error(`${logPrefix}配置项 ${key} 必须是布尔类型`)
         return false
       }
       if (rule.type === 'string' && typeof value !== 'string') {
-        this.logger.error(`${Log_Prefix}配置项 ${key} 必须是字符串类型`)
+        this.logger.error(`${logPrefix}配置项 ${key} 必须是字符串类型`)
         return false
       }
 
       // 数值范围检查
       if (rule.type === 'number') {
         if (rule.min !== undefined && value < rule.min) {
-          this.logger.error(`${Log_Prefix}配置项 ${key} 不能小于 ${rule.min}`)
+          this.logger.error(`${logPrefix}配置项 ${key} 不能小于 ${rule.min}`)
           return false
         }
         if (rule.max !== undefined && value > rule.max) {
-          this.logger.error(`${Log_Prefix}配置项 ${key} 不能大于 ${rule.max}`)
+          this.logger.error(`${logPrefix}配置项 ${key} 不能大于 ${rule.max}`)
           return false
         }
       }
@@ -162,7 +162,7 @@ class GameConfig {
         try {
           redisData = await this.redis.get(`werewolf:mergeCfg:${name}`)
         } catch (e) {
-          this.logger.warn(`${Log_Prefix}[Redis访问失败][${name}]：${e}`)
+          this.logger.warn(`${logPrefix}[Redis访问失败][${name}]：${e}`)
         }
       }
 
@@ -173,7 +173,7 @@ class GameConfig {
         try {
           this.redis.set(`werewolf:mergeCfg:${name}`, defData)
         } catch (e) {
-          this.logger.warn(`${Log_Prefix}[Redis设置失败][${name}]：${e}`)
+          this.logger.warn(`${logPrefix}[Redis设置失败][${name}]：${e}`)
         }
       }
 
@@ -188,7 +188,7 @@ class GameConfig {
         for (const item of def) {
           if (item?.key?.commentBefore?.includes?.('noMerge')) continue
           if (!existingKeys.has(item.key.value)) {
-            this.logger.info(`${Log_Prefix}[合并配置][${name}][${item.key.value}]`)
+            this.logger.info(`${logPrefix}[合并配置][${name}][${item.key.value}]`)
             user.push(item)
             isUpdate = true
           } else if (YAML.isMap(item.value)) {
@@ -201,7 +201,7 @@ class GameConfig {
       let yaml = userDoc.toString()
       isUpdate && fs.writeFileSync(cfgPath, yaml, 'utf8')
     } catch (e) {
-      this.logger.error(`${Log_Prefix}[合并配置文件失败][${name}]：${e}`)
+      this.logger.error(`${logPrefix}[合并配置文件失败][${name}]：${e}`)
     }
   }
 
@@ -253,13 +253,13 @@ class GameConfig {
 
       // 验证配置值
       if (!this.validateConfig(key, value)) {
-        this.logger.warn(`${Log_Prefix}配置项 ${key} 验证失败，使用默认值`)
+        this.logger.warn(`${logPrefix}配置项 ${key} 验证失败，使用默认值`)
         return defaultValue
       }
 
       return value
     } catch (error) {
-      this.logger.error(`${Log_Prefix}获取配置 ${configName}.${key} 失败：${error}`)
+      this.logger.error(`${logPrefix}获取配置 ${configName}.${key} 失败：${error}`)
       return defaultValue
     }
   }
@@ -295,11 +295,11 @@ class GameConfig {
           const newConfig = this.getYaml(type, name)
           this._validateAllConfigs(newConfig, name)
         } catch (error) {
-          this.logger.error(`${Log_Prefix}[配置热重载失败][${type}][${name}]：${error}`)
+          this.logger.error(`${logPrefix}[配置热重载失败][${type}][${name}]：${error}`)
         }
 
         if (typeof Bot == 'undefined') return
-        this.logger.mark(`${Log_Prefix}[修改配置文件][${type}][${name}]`)
+        this.logger.mark(`${logPrefix}[修改配置文件][${type}][${name}]`)
         if (this[`change_${name}`]) {
           this[`change_${name}`]()
         }
@@ -320,7 +320,7 @@ class GameConfig {
 
     for (const [key, value] of Object.entries(config)) {
       if (!this.validateConfig(key, value)) {
-        this.logger.warn(`${Log_Prefix}[配置验证失败][${configName}][${key}]: ${value}`)
+        this.logger.warn(`${logPrefix}[配置验证失败][${configName}][${key}]: ${value}`)
       }
     }
   }
@@ -380,7 +380,7 @@ class GameConfig {
 
       return this.config[key]
     } catch (e) {
-      this.logger.error(`${Log_Prefix}[读取配置文件失败][${type}][${name}]：${e}`)
+      this.logger.error(`${logPrefix}[读取配置文件失败][${type}][${name}]：${e}`)
       return {}
     }
   }
@@ -401,7 +401,7 @@ class GameConfig {
     watcher.on('change', path => {
       delete this.config[key]
       if (typeof Bot == 'undefined') return
-      this.logger.mark(`${Log_Prefix}[修改配置文件][${type}][${name}]`)
+      this.logger.mark(`${logPrefix}[修改配置文件][${type}][${name}]`)
       if (this[`change_${name}`]) {
         this[`change_${name}`]()
       }
@@ -436,7 +436,7 @@ class GameConfig {
     try {
       new YamlReader(path).set(key, value, comment)
     } catch (e) {
-      this.logger.error(`${Log_Prefix}[修改配置文件失败][${name}]：${e}`)
+      this.logger.error(`${logPrefix}[修改配置文件失败][${name}]：${e}`)
       return false
     }
 
@@ -458,7 +458,7 @@ class GameConfig {
     try {
       new YamlReader(path).deleteKey(key)
     } catch (e) {
-      this.logger.error(`${Log_Prefix}[删除配置文件键失败][${name}]：${e}`)
+      this.logger.error(`${logPrefix}[删除配置文件键失败][${name}]：${e}`)
       return false
     }
 

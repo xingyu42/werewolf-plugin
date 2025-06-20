@@ -62,7 +62,7 @@ export class ValidationUtils {
       if (checkRole) requiredProps.push('role')
 
       for (const prop of requiredProps) {
-        if (!player.hasOwnProperty(prop)) {
+        if (!Object.prototype.hasOwnProperty.call(player, prop)) {
           return {
             isValid: false,
             error: new GameError(`玩家对象缺少必要属性: ${prop}`, 'E1100')

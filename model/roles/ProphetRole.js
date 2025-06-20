@@ -3,20 +3,20 @@ import { ValidationUtils } from '../utils/ValidationUtils.js'
 
 /**
  * 预言家角色类
- * 
+ *
  * 预言家是好人阵营的核心角色，具有以下能力：
  * - 每晚可以查验一名玩家的身份（好人或狼人）
  * - 查验结果会记录在历史中供参考
  * - 只能在夜晚阶段行动
  * - 不能查验自己
- * 
+ *
  * @class ProphetRole
  * @extends Role
  */
 export class ProphetRole extends Role {
   /**
    * 创建预言家角色实例
-   * 
+   *
    * @param {Object} game - 游戏实例
    * @param {Object} player - 玩家对象
    * @param {Object} e - 事件对象
@@ -28,7 +28,7 @@ export class ProphetRole extends Role {
 
   /**
    * 检查是否可以在当前阶段行动
-   * 
+   *
    * @param {Object} state - 当前游戏状态
    * @returns {boolean} 预言家只能在夜晚阶段行动
    */
@@ -38,9 +38,9 @@ export class ProphetRole extends Role {
 
   /**
    * 获取预言家查验提示消息
-   * 
+   *
    * 包含存活玩家列表和查验历史信息
-   * 
+   *
    * @returns {string} 查验提示消息
    */
   getActionPrompt () {
@@ -50,7 +50,7 @@ export class ProphetRole extends Role {
 
   /**
    * 检查查验目标是否合法
-   * 
+   *
    * @param {Object} target - 目标玩家对象
    * @returns {boolean} 目标是否合法
    */
@@ -65,7 +65,7 @@ export class ProphetRole extends Role {
 
   /**
    * 执行预言家查验行动
-   * 
+   *
    * @async
    * @param {Object} target - 查验目标玩家
    * @param {string} [action='check'] - 行动类型，默认为查验

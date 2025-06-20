@@ -54,7 +54,7 @@ export class RoleConfigurator {
         // 如果程序化生成的配置仍然无效，抛出错误
         if (!validation.isValid) {
           throw new GameError(
-            `游戏状态异常，请重新创建游戏`,
+            '游戏状态异常，请重新创建游戏',
             'E1104',
             { playerCount, reason: validation.reason }
           )

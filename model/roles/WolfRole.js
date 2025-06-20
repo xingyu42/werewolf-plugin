@@ -3,29 +3,29 @@ import { CAMPS } from '../core/Constants.js'
 
 /**
  * 狼人角色类
- * 
+ *
  * 狼人是狼人阵营的核心角色，具有以下能力：
  * - 每晚可以投票选择击杀目标
  * - 通过投票机制与其他狼人协作
  * - 可以进行队内沟通
  * - 根据配置可能具有自爆能力
  * - 只能在夜晚阶段行动
- * 
+ *
  * 注意：此类使用静态属性管理所有狼人的投票状态，需要在游戏结束时清理
- * 
+ *
  * @class WolfRole
  * @extends Role
  */
 export class WolfRole extends Role {
   /** @type {Map<string, Object>} 静态属性存储所有狼人投票 */
   static wolfVotes = new Map()
-  
+
   /** @type {string|null} 最终击杀目标ID */
   static wolfKillTarget = null
 
   /**
    * 创建狼人角色实例
-   * 
+   *
    * @param {Object} game - 游戏实例
    * @param {Object} player - 玩家对象
    * @param {Object} e - 事件对象
@@ -38,7 +38,7 @@ export class WolfRole extends Role {
 
   /**
    * 清理静态数据，防止跨游戏数据污染
-   * 
+   *
    * @static
    */
   static cleanup () {
@@ -50,7 +50,7 @@ export class WolfRole extends Role {
 
   /**
    * 获取静态数据统计信息
-   * 
+   *
    * @static
    * @returns {Object} 包含投票数量和击杀目标信息的统计对象
    */
@@ -64,7 +64,7 @@ export class WolfRole extends Role {
 
   /**
    * 获取角色阵营
-   * 
+   *
    * @returns {string} 返回狼人阵营标识
    */
   getCamp () {
@@ -73,7 +73,7 @@ export class WolfRole extends Role {
 
   /**
    * 检查是否可以在当前阶段行动
-   * 
+   *
    * @param {Object} state - 当前游戏状态
    * @returns {boolean} 狼人只能在夜晚阶段行动
    */
@@ -83,9 +83,9 @@ export class WolfRole extends Role {
 
   /**
    * 获取狼人行动提示消息
-   * 
+   *
    * 包含存活玩家列表、其他狼人信息和当前投票状态
-   * 
+   *
    * @returns {string} 行动提示消息
    */
   getActionPrompt () {
@@ -120,7 +120,7 @@ ${this.getAlivePlayersList().join('\n')}
 
   /**
    * 检查击杀目标是否合法
-   * 
+   *
    * @param {Object} target - 目标玩家对象
    * @returns {boolean} 目标是否合法
    */
@@ -137,7 +137,7 @@ ${this.getAlivePlayersList().join('\n')}
 
   /**
    * 处理狼人投票
-   * 
+   *
    * @async
    * @param {string|null} targetId - 目标玩家ID，null表示弃权
    * @returns {Promise<boolean>} 是否所有狼人都已投票完成
@@ -177,7 +177,7 @@ ${this.getAlivePlayersList().join('\n')}
 
   /**
    * 通知其他狼人新投票
-   * 
+   *
    * @async
    * @param {string|null} targetId - 投票目标ID
    */
@@ -224,7 +224,7 @@ ${this.getAlivePlayersList().join('\n')}
 
   /**
    * 通知投票结果
-   * 
+   *
    * @async
    */
   async notifyVoteResult () {
@@ -249,7 +249,7 @@ ${this.getAlivePlayersList().join('\n')}
 
   /**
    * 获取投票统计
-   * 
+   *
    * @returns {Map<string|null, number>} 投票统计Map，键为目标ID，值为票数
    */
   getVoteCounts () {
@@ -263,7 +263,7 @@ ${this.getAlivePlayersList().join('\n')}
 
   /**
    * 统计最终结果
-   * 
+   *
    * @returns {string|null} 最终击杀目标ID，平局时返回null
    */
   tallyVotes () {
@@ -294,7 +294,7 @@ ${this.getAlivePlayersList().join('\n')}
 
   /**
    * 检查是否所有狼人已投票
-   * 
+   *
    * @returns {boolean} 是否所有存活狼人都已投票
    */
   isAllWolvesVoted () {
@@ -304,7 +304,7 @@ ${this.getAlivePlayersList().join('\n')}
 
   /**
    * 获取未投票狼人
-   * 
+   *
    * @returns {Array<Object>} 未投票的狼人玩家对象数组
    */
   getUnvotedWolves () {
@@ -314,13 +314,13 @@ ${this.getAlivePlayersList().join('\n')}
 
   /**
    * 执行狼人行动
-   * 
+   *
    * @async
    * @param {Object} target - 目标玩家对象
    * @param {string} [action='kill'] - 行动类型
    * @returns {Promise<boolean|Object>} 行动结果
    */
-  async act(target, action = 'kill') {
+  async act (target, action = 'kill') {
     if (action === 'vote') {
       // 空刀逻辑
       if (!target) {
@@ -362,7 +362,7 @@ ${this.getAlivePlayersList().join('\n')}
 
   /**
    * 狼人自爆
-   * 
+   *
    * @async
    * @returns {Promise<Object>} 自爆结果对象 {success: boolean, message: string}
    */
@@ -380,7 +380,7 @@ ${this.getAlivePlayersList().join('\n')}
 
       // 跳过当前阶段
       await this.game.currentState.onTimeout()
-      
+
       return { success: true, message: '自爆成功' }
     } catch (error) {
       console.error('WolfRole.suicide: 自爆失败:', error)
@@ -390,7 +390,7 @@ ${this.getAlivePlayersList().join('\n')}
 
   /**
    * 狼人队内沟通
-   * 
+   *
    * @async
    * @param {string} message - 要发送的消息内容
    * @returns {Promise<Object>} 沟通结果对象 {success: boolean, message: string}

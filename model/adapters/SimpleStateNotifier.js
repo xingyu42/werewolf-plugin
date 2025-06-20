@@ -12,7 +12,7 @@ export class SimpleStateNotifier {
    * @param {Object} game - 游戏对象
    * @param {Object} e - 事件对象
    */
-  static async notifyNightStart(game, e) {
+  static async notifyNightStart (game, e) {
     // 参数验证
     if (!game || !e) {
       console.error('[SimpleStateNotifier] notifyNightStart: 参数不能为空')
@@ -32,7 +32,7 @@ export class SimpleStateNotifier {
    * @param {string} roleType - 角色类型
    * @param {Object} e - 事件对象
    */
-  static async notifyRoleAction(game, roleType, e) {
+  static async notifyRoleAction (game, roleType, e) {
     // 参数验证
     if (!game || !roleType || !e) {
       console.error('[SimpleStateNotifier] notifyRoleAction: 参数不能为空')
@@ -63,7 +63,7 @@ export class SimpleStateNotifier {
       console.error(`[SimpleStateNotifier] notifyRoleAction 执行失败 (${roleType}):`, error)
     }
   }
-  
+
   /**
    * 阶段开始通知
    * @param {Object} game - 游戏对象
@@ -71,7 +71,7 @@ export class SimpleStateNotifier {
    * @param {string} phaseDescription - 阶段描述
    * @param {Object} e - 事件对象
    */
-  static async notifyPhaseStart(game, phaseName, phaseDescription, e) {
+  static async notifyPhaseStart (game, phaseName, phaseDescription, e) {
     // 参数验证
     if (!game || !phaseName || !e) {
       console.error('[SimpleStateNotifier] notifyPhaseStart: 参数不能为空')
@@ -91,7 +91,7 @@ export class SimpleStateNotifier {
    * @param {Object} game - 游戏对象
    * @param {Object} e - 事件对象
    */
-  static async notifyDayStart(game, e) {
+  static async notifyDayStart (game, e) {
     // 参数验证
     if (!game || !e) {
       console.error('[SimpleStateNotifier] notifyDayStart: 参数不能为空')

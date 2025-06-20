@@ -18,7 +18,7 @@ export class Game extends EventEmitter {
     this.e = e // 保存 e 对象引用，供角色类使用
     this.config = config
     this.eventErrors = []
-    
+
     // 清理状态标志，防止重复清理
     this._isCleanedUp = false
 
@@ -259,7 +259,7 @@ export class Game extends EventEmitter {
     player.isAlive = true
     player.deathReason = null
     console.debug(`[Game] 玩家 ${player.name} 已复活`)
-    
+
     // 发出复活事件，供其他组件监听
     this.emit('playerRevived', { player })
     return true
@@ -271,14 +271,14 @@ export class Game extends EventEmitter {
   clearAllProtectedStatus () {
     const players = this.playerManager.getAllPlayers()
     let clearedCount = 0
-    
+
     for (const player of players.values()) {
       if (player.protected) {
         player.protected = false
         clearedCount++
       }
     }
-    
+
     console.debug(`[Game] 已清除 ${clearedCount} 个玩家的保护状态`)
     return clearedCount
   }
