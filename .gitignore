@@ -1,3 +1,4 @@
+.claude/
 .cursor/
 node_modules/
 .vscode/
@@ -8,3 +9,4 @@ data/
 tests/
 Docs/
 coverage/
+CLAUDE.md

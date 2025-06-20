@@ -140,10 +140,10 @@ export class PlayerManager {
    * @returns {Array} 存活玩家数组
    */
   getAlivePlayers (options = {}) {
-    const { excludeCamp = null, roleType = null, showRole = false, showStatus = false } = options
+    const { excludeCamp = null, campType = null, roleType = null, showRole = false, showStatus = false } = options
 
     // 构建缓存键
-    const cacheKey = `${excludeCamp || 'none'}_${roleType || 'none'}_${showRole}_${showStatus}`
+    const cacheKey = `${excludeCamp || 'none'}_${campType || 'none'}_${roleType || 'none'}_${showRole}_${showStatus}`
 
     // 检查缓存 - 对于基础查询，使用主缓存
     if (cacheKey === 'none_none_false_false' && this._cacheSystem.alivePlayers.cache) {
@@ -165,6 +165,14 @@ export class PlayerManager {
       })
     }
 
+    // 按指定阵营过滤
+    if (campType) {
+      alivePlayers = alivePlayers.filter(player => {
+        const role = this.roles.get(player.id)
+        return role && role.getCamp() === campType
+      })
+    }
+
     // 按角色类型过滤
     if (roleType) {
       alivePlayers = alivePlayers.filter(player => {
@@ -174,7 +182,7 @@ export class PlayerManager {
     }
 
     // 缓存结果
-    if (cacheKey === 'none_none_false_false') {
+    if (cacheKey === 'none_none_none_false_false') {
       // 基础查询使用主缓存
       this._cacheSystem.alivePlayers.cache = alivePlayers
     } else {

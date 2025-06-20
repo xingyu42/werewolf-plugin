@@ -32,7 +32,8 @@ class VictoryConditionChecker {
  */
 class WolfExtinctionChecker extends VictoryConditionChecker {
   check (game) {
-    const aliveWolves = game.getAlivePlayers({ excludeCamp: 'WOLF' }).length
+    const aliveWolvesResult = game.getAlivePlayers({ campType: 'WOLF' })
+    const aliveWolves = aliveWolvesResult ? aliveWolvesResult.length : 0
 
     if (aliveWolves === 0) {
       return {
@@ -51,8 +52,10 @@ class WolfExtinctionChecker extends VictoryConditionChecker {
  */
 class GoodPeopleExtinctionChecker extends VictoryConditionChecker {
   check (game) {
-    const aliveGods = game.getAlivePlayers({ excludeCamp: 'GOD' }).length
-    const aliveVillagers = game.getAlivePlayers({ excludeCamp: 'VILLAGER' }).length
+    const aliveGodsResult = game.getAlivePlayers({ campType: 'GOD' })
+    const aliveVillagersResult = game.getAlivePlayers({ campType: 'VILLAGER' })
+    const aliveGods = aliveGodsResult ? aliveGodsResult.length : 0
+    const aliveVillagers = aliveVillagersResult ? aliveVillagersResult.length : 0
 
     if (aliveGods === 0 && aliveVillagers === 0) {
       return {
@@ -72,10 +75,11 @@ class GoodPeopleExtinctionChecker extends VictoryConditionChecker {
 class GodsExtinctionChecker extends VictoryConditionChecker {
   check (game) {
     // 只有在开启屠边规则时才检查
-    const tubian = game.config.game.enableTubian
+    const tubian = game.config?.game?.enableTubian
     if (!tubian) return { gameOver: false, winner: null, reason: null }
 
-    const aliveGods = game.getAlivePlayers({ excludeCamp: 'GOD' }).length
+    const aliveGodsResult = game.getAlivePlayers({ campType: 'GOD' })
+    const aliveGods = aliveGodsResult ? aliveGodsResult.length : 0
 
     if (aliveGods === 0) {
       return {
@@ -95,10 +99,11 @@ class GodsExtinctionChecker extends VictoryConditionChecker {
 class VillagersExtinctionChecker extends VictoryConditionChecker {
   check (game) {
     // 只有在开启屠边规则时才检查
-    const tubian = game.config.game.enableTubian
+    const tubian = game.config?.game?.enableTubian
     if (!tubian) return { gameOver: false, winner: null, reason: null }
 
-    const aliveVillagers = game.getAlivePlayers({ excludeCamp: 'VILLAGER' }).length
+    const aliveVillagersResult = game.getAlivePlayers({ campType: 'VILLAGER' })
+    const aliveVillagers = aliveVillagersResult ? aliveVillagersResult.length : 0
 
     if (aliveVillagers === 0) {
       return {
