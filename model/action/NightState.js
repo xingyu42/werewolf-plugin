@@ -1,5 +1,7 @@
 import { GameState } from './GameState.js'
 import { DayState } from './DayState.js'
+import { SimpleStateNotifier } from '../adapters/SimpleStateNotifier.js'
+import { SimpleMessageSender } from '../adapters/SimpleMessageSender.js'
 
 export class NightState extends GameState {
   constructor (game) {
@@ -10,54 +12,28 @@ export class NightState extends GameState {
     this.actionLock = false // 状态锁
     this.completedRoles = new Set() // 已完成行动的角色
     this.roleActions = new Map() // 记录各角色行动
+    this.wolfVotes = new Map() // 狼人投票记录，用于超时处理
   }
 
   async onEnter () {
     await super.onEnter()
     this.roleActions.clear()
     this.completedRoles.clear()
+    this.wolfVotes.clear() // 清理狼人投票记录
 
-    // 通知所有存活玩家夜晚开始
-    const notifications = []
-    for (const player of this.game.playerManager.getAllPlayers().values()) {
-      if (player.isAlive) {
-        const role = this.game.playerManager.roles.get(player.id) // 提前获取角色
-        notifications.push(this.notifyNightStart(player, role))
-      }
+    // 使用SimpleStateNotifier发送夜晚开始通知
+    try {
+      await SimpleStateNotifier.notifyNightStart(this.game, this.game.e)
+      console.log('[NightState] 夜晚开始通知发送成功')
+    } catch (error) {
+      console.error('[NightState] 发送夜晚开始通知时发生异常:', error)
     }
-    await Promise.all(notifications)
 
     // 开始第一个角色的行动
     await this.startNextRoleAction()
   }
 
-  // 通知玩家夜晚开始
-  async notifyNightStart (player, role) {
-    try {
-      // 通过游戏事件系统发送私聊消息
-      this.game.emit('message', {
-        type: 'private',
-        content: '天黑请闭眼，进入夜晚阶段',
-        target: player.id
-      })
 
-      // 单独通知村民
-      if (role?.constructor.name === 'VillagerRole') {
-        const prompt = role.getActionPrompt()
-        this.game.emit('message', {
-          type: 'private',
-          content: prompt,
-          target: player.id
-        })
-      }
-    } catch (error) {
-      console.error(`向玩家 ${player.id} 发送夜晚开始消息失败:`, error)
-      this.game.emit('message', {
-        type: 'group',
-        content: `无法向玩家 ${player.name} 发送私聊消息，请确认该玩家是否已添加机器人为好友`
-      })
-    }
-  }
 
   // 开始下一个角色的行动
   async startNextRoleAction () {
@@ -85,36 +61,25 @@ export class NightState extends GameState {
       return this.startNextRoleAction()
     }
 
-    // 发送行动通知
-    for (const { player, role } of playerRoles) {
-      await this.notifyPlayer(player, role)
+    // 使用SimpleStateNotifier通知特定角色行动
+    try {
+      await SimpleStateNotifier.notifyRoleAction(this.game, roleType, this.game.e)
+      console.log(`[NightState] 角色 ${roleType} 行动通知发送成功`)
+    } catch (error) {
+      console.error(`[NightState] 发送角色 ${roleType} 行动通知时发生异常:`, error)
     }
   }
 
   // 通知玩家夜晚行动
   async notifyPlayer (player, role) {
     if (!role) return
-
-    // 如果不是当前行动角色，不发送通知
     if (role.constructor.name !== this.currentActionRole) return
 
-    // 获取行动提示消息
     const msg = role.getActionPrompt()
-
-    // 通过游戏事件系统发送私聊消息
     try {
-      this.game.emit('message', {
-        type: 'private',
-        content: msg,
-        target: player.id
-      })
+      await SimpleMessageSender.sendPrivate(msg, player.id, this.game.e)
     } catch (error) {
-      console.error(`向玩家 ${player.id} 发送夜晚行动消息失败:`, error)
-      // 在群内提示某玩家可能未收到消息
-      this.game.emit('message', {
-        type: 'group',
-        content: `无法向玩家 ${player.name} 发送私聊消息，请确认该玩家是否已添加机器人为好友`
-      })
+      console.error(`向玩家 ${player.id} 发送夜晚行动消息异常:`, error)
     }
   }
 

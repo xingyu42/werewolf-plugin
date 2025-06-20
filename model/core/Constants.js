@@ -55,6 +55,19 @@ export const ROLE_CAMPS = {
   [ROLES.GUARD]: CAMPS.GOD // 神民阵营
 }
 
+/**
+ * 角色中文名称映射
+ * 用于显示用户友好的中文角色名称
+ */
+export const ROLE_NAMES_CN = {
+  [ROLES.WOLF]: '狼人',
+  [ROLES.PROPHET]: '预言家',
+  [ROLES.WITCH]: '女巫',
+  [ROLES.HUNTER]: '猎人',
+  [ROLES.GUARD]: '守卫',
+  [ROLES.VILLAGER]: '村民'
+}
+
 // ==================== 游戏行动常量 ====================
 
 /**
@@ -161,4 +174,99 @@ export const BALANCE_THRESHOLDS = {
   EVIL_RATIO_MAX: 0.6, // 邪恶阵营最大比例
   WOLF_RATIO_MIN: 0.15, // 狼人最小比例
   WOLF_RATIO_MAX: 0.35 // 狼人最大比例
+}
+
+// ==================== 夜晚阶段配置常量 ====================
+
+/**
+ * 夜晚阶段配置
+ * 定义夜晚三个核心阶段的配置信息，支持阶段化状态机架构
+ *
+ * {{CHENGQI: Action: Added; Timestamp: 2025-06-19 19:38:09 +08:00; Reason: Shrimp Task ID: #730b5db2-7e1d-4704-9ed2-2c90c912ee1f, 创建夜晚阶段配置系统基础常量; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
+ */
+export const NIGHT_PHASE_CONFIG = {
+  /**
+   * 信息收集阶段
+   * 预言家查验和守卫保护的并行执行阶段
+   */
+  INFORMATION: {
+    name: 'information',
+    description: '信息收集阶段 - 预言家查验与守卫保护',
+    roles: [ROLES.PROPHET, ROLES.GUARD],
+    allowParallel: true, // 支持并行处理
+    timeout: 60000, // 60秒超时
+    order: 1, // 执行顺序
+    requiredActions: {
+      [ROLES.PROPHET]: [ACTIONS.CHECK, ACTIONS.SKIP],
+      [ROLES.GUARD]: [ACTIONS.PROTECT, ACTIONS.SKIP]
+    }
+  },
+
+  /**
+   * 消除阶段
+   * 狼人讨论和击杀的协作执行阶段
+   */
+  ELIMINATION: {
+    name: 'elimination',
+    description: '消除阶段 - 狼人讨论与击杀',
+    roles: [ROLES.WOLF],
+    allowParallel: false, // 狼人需要协作，不支持完全并行
+    timeout: 120000, // 120秒超时（包含讨论时间）
+    order: 2, // 执行顺序
+    requiredActions: {
+      [ROLES.WOLF]: [ACTIONS.KILL, ACTIONS.SKIP, ACTIONS.SUICIDE]
+    },
+    discussionTime: 60000, // 狼人讨论时间
+    votingTime: 60000 // 狼人投票时间
+  },
+
+  /**
+   * 干预阶段
+   * 女巫毒药和解药使用的顺序执行阶段
+   */
+  INTERVENTION: {
+    name: 'intervention',
+    description: '干预阶段 - 女巫毒药与解药使用',
+    roles: [ROLES.WITCH],
+    allowParallel: false, // 女巫行动需要顺序执行
+    timeout: 60000, // 60秒超时
+    order: 3, // 执行顺序
+    requiredActions: {
+      [ROLES.WITCH]: [ACTIONS.POISON, ACTIONS.SAVE, ACTIONS.SKIP]
+    },
+    subPhases: {
+      SAVE_PHASE: {
+        name: 'save',
+        description: '解药使用阶段',
+        timeout: 30000,
+        actions: [ACTIONS.SAVE, ACTIONS.SKIP]
+      },
+      POISON_PHASE: {
+        name: 'poison',
+        description: '毒药使用阶段',
+        timeout: 30000,
+        actions: [ACTIONS.POISON, ACTIONS.SKIP]
+      }
+    }
+  }
+}
+
+/**
+ * 夜晚阶段执行顺序
+ * 定义阶段的标准执行顺序
+ */
+export const NIGHT_PHASE_ORDER = [
+  NIGHT_PHASE_CONFIG.INFORMATION,
+  NIGHT_PHASE_CONFIG.ELIMINATION,
+  NIGHT_PHASE_CONFIG.INTERVENTION
+]
+
+/**
+ * 夜晚阶段状态枚举
+ * 用于状态机中的阶段状态标识
+ */
+export const NIGHT_PHASE_STATES = {
+  INFORMATION_PHASE: 'InformationPhaseState',
+  ELIMINATION_PHASE: 'EliminationPhaseState',
+  INTERVENTION_PHASE: 'InterventionPhaseState'
 }

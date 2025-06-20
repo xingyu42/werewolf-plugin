@@ -1,5 +1,5 @@
 
-import { NightState } from '../action/NightState.js'
+import { NightPhaseController } from '../action/NightPhaseController.js'
 import { GameError } from '../core/GameError.js'
 import { GAME_PHASES } from '../core/Constants.js'
 
@@ -29,23 +29,53 @@ export class StateManager {
   /**
    * 初始化游戏状态
    * 设置游戏的初始状态
+   *
+   * {{CHENGQI: Action: Modified; Timestamp: 2025-06-19 21:15:45 +08:00; Reason: Shrimp Task ID: #f2c4abaa-ef74-4813-bd24-e7b778e24087, 切换到新的夜晚阶段控制器; Principle_Applied: SOLID-OCP-OpenClosedPrinciple;}}
    */
   async initializeState () {
     try {
-      // 修改为从夜晚开始
-      const initialState = new NightState(this.game)
+      console.log('[StateManager] 开始初始化游戏状态，使用阶段化夜晚状态控制器')
+
+      // 切换到新的阶段化夜晚状态控制器
+      const initialState = new NightPhaseController(this.game)
       await this.changeState(initialState)
       this.currentPhase = GAME_PHASES.NIGHT
       this.turn = 1
 
-      console.log('[StateManager] 游戏状态初始化完成，进入夜晚阶段')
+      console.log('[StateManager] 游戏状态初始化完成，进入阶段化夜晚流程')
+
+      // 发出初始化完成事件
+      this.game.emit('stateInitialized', {
+        initialState: 'NightPhaseController',
+        turn: this.turn,
+        phase: this.currentPhase,
+        timestamp: Date.now()
+      })
     } catch (error) {
       console.error('[StateManager] 初始化游戏状态失败:', error)
-      this.game.emit('error', new GameError(
-        '初始化游戏状态失败',
-        'STATE_INIT_ERROR',
-        { error }
-      ))
+
+      // 尝试回退到传统夜晚状态（如果新控制器初始化失败）
+      try {
+        console.log('[StateManager] 尝试回退到传统夜晚状态')
+        const { NightState } = await import('../action/NightState.js')
+        const fallbackState = new NightState(this.game)
+        await this.changeState(fallbackState)
+        this.currentPhase = GAME_PHASES.NIGHT
+        this.turn = 1
+
+        console.log('[StateManager] 已回退到传统夜晚状态')
+        this.game.emit('stateFallback', {
+          fallbackState: 'NightState',
+          originalError: error.message
+        })
+      } catch (fallbackError) {
+        console.error('[StateManager] 回退到传统夜晚状态也失败:', fallbackError)
+        this.game.emit('error', new GameError(
+          '初始化游戏状态失败，回退也失败',
+          'STATE_INIT_CRITICAL_ERROR',
+          { originalError: error, fallbackError }
+        ))
+      }
     }
   }
 
@@ -470,6 +500,8 @@ export class StateManager {
    * 更新当前阶段
    * @private
    * @param {GameState} state 当前状态
+   *
+   * {{CHENGQI: Action: Modified; Timestamp: 2025-06-19 20:25:15 +08:00; Reason: Shrimp Task ID: #0620a86e-5d49-417f-a654-9b137ed6dd3a, 添加新阶段状态类支持; Principle_Applied: SOLID-OCP-OpenClosedPrinciple;}}
    */
   updateCurrentPhase (state) {
     if (!state) return
@@ -479,6 +511,13 @@ export class StateManager {
     // 根据状态名称映射到游戏阶段
     switch (stateName) {
       case 'NightState':
+      case 'NightPhaseController': // 新增：支持阶段化夜晚状态控制器
+        this.currentPhase = GAME_PHASES.NIGHT
+        break
+      // 阶段化夜晚状态支持
+      case 'InformationPhaseState':
+      case 'EliminationPhaseState':
+      case 'InterventionPhaseState':
         this.currentPhase = GAME_PHASES.NIGHT
         break
       case 'DayDiscussionState':

@@ -4,8 +4,13 @@
  */
 
 // 游戏状态枚举
+// {{CHENGQI: Action: Modified; Timestamp: 2025-06-19 20:26:30 +08:00; Reason: Shrimp Task ID: #0620a86e-5d49-417f-a654-9b137ed6dd3a, 添加新阶段状态类型; Principle_Applied: SOLID-OCP-OpenClosedPrinciple;}}
 export const GameStateType = {
   NIGHT: 'NightState',
+  // 新增：阶段化夜晚状态类型
+  INFORMATION_PHASE: 'InformationPhaseState',
+  ELIMINATION_PHASE: 'EliminationPhaseState',
+  INTERVENTION_PHASE: 'InterventionPhaseState',
   DAY: 'DayState',
   VOTE: 'VoteState',
   LAST_WORDS: 'LastWordsState',
@@ -25,6 +30,41 @@ export const StateTransitions = {
     [GameStateType.DAY]: {
       description: '夜晚结束，进入白天',
       condition: (game) => true // 始终允许此转换
+    }
+  },
+
+  // 新增：阶段化夜晚状态转换规则
+  // {{CHENGQI: Action: Added; Timestamp: 2025-06-19 20:27:45 +08:00; Reason: Shrimp Task ID: #0620a86e-5d49-417f-a654-9b137ed6dd3a, 添加阶段状态转换规则; Principle_Applied: SOLID-OCP-OpenClosedPrinciple;}}
+
+  // 信息收集阶段可以转换到消除阶段或白天状态
+  [GameStateType.INFORMATION_PHASE]: {
+    [GameStateType.ELIMINATION_PHASE]: {
+      description: '信息收集阶段结束，进入消除阶段',
+      condition: (game) => true
+    },
+    [GameStateType.DAY]: {
+      description: '信息收集阶段结束，直接进入白天（跳过后续阶段）',
+      condition: (game) => true
+    }
+  },
+
+  // 消除阶段可以转换到干预阶段或白天状态
+  [GameStateType.ELIMINATION_PHASE]: {
+    [GameStateType.INTERVENTION_PHASE]: {
+      description: '消除阶段结束，进入干预阶段',
+      condition: (game) => true
+    },
+    [GameStateType.DAY]: {
+      description: '消除阶段结束，直接进入白天（跳过干预阶段）',
+      condition: (game) => true
+    }
+  },
+
+  // 干预阶段可以转换到白天状态
+  [GameStateType.INTERVENTION_PHASE]: {
+    [GameStateType.DAY]: {
+      description: '干预阶段结束，进入白天',
+      condition: (game) => true
     }
   },
 
