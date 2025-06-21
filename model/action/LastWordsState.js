@@ -1,7 +1,7 @@
 import { GameState } from './GameState.js'
 import { HunterRole } from '../roles/HunterRole.js'
 import { SheriffTransferState } from './SheriffTransferState.js'
-import { NightState } from './NightState.js'
+import { NightPhaseController } from './NightPhaseController.js'
 
 export class LastWordsState extends GameState {
   constructor (game, nextState, deadPlayer) {
@@ -68,7 +68,7 @@ export class LastWordsState extends GameState {
       await this.game.changeState(this.nextState)
     } else {
       // 如果没有指定下一个状态，默认进入夜晚
-      await this.game.changeState(new NightState(this.game))
+      await this.game.changeState(new NightPhaseController(this.game))
     }
   }
 

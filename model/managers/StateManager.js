@@ -53,24 +53,26 @@ export class StateManager {
     } catch (error) {
       console.error('[StateManager] 初始化游戏状态失败:', error)
 
-      // 尝试回退到传统夜晚状态（如果新控制器初始化失败）
+      // 尝试使用简化的夜晚状态回退机制（如果新控制器初始化失败）
+      // {{CHENGQI: Action: Modified; Timestamp: 2025-06-21 13:43:14 +08:00; Reason: Shrimp Task ID: #e3f2f046-2904-468a-8913-56be7356be70, 更新回退机制移除NightState依赖; Principle_Applied: SOLID-DIP-DependencyInversion;}}
       try {
-        console.log('[StateManager] 尝试回退到传统夜晚状态')
-        const { NightState } = await import('../action/NightState.js')
-        const fallbackState = new NightState(this.game)
+        console.log('[StateManager] 尝试使用简化回退机制，跳过夜晚阶段')
+        const { DayState } = await import('../action/DayState.js')
+        const fallbackState = new DayState(this.game)
         await this.changeState(fallbackState)
-        this.currentPhase = GAME_PHASES.NIGHT
+        this.currentPhase = GAME_PHASES.DAY
         this.turn = 1
 
-        console.log('[StateManager] 已回退到传统夜晚状态')
+        console.log('[StateManager] 已回退到白天状态，跳过夜晚阶段')
         this.game.emit('stateFallback', {
-          fallbackState: 'NightState',
-          originalError: error.message
+          fallbackState: 'DayState',
+          originalError: error.message,
+          skippedPhase: 'NIGHT'
         })
       } catch (fallbackError) {
-        console.error('[StateManager] 回退到传统夜晚状态也失败:', fallbackError)
+        console.error('[StateManager] 简化回退机制也失败:', fallbackError)
         this.game.emit('error', new GameError(
-          '初始化游戏状态失败，回退也失败',
+          '初始化游戏状态失败，简化回退也失败',
           'STATE_INIT_CRITICAL_ERROR',
           { originalError: error, fallbackError }
         ))

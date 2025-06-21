@@ -4,9 +4,9 @@
  */
 
 // 游戏状态枚举
-// {{CHENGQI: Action: Modified; Timestamp: 2025-06-19 20:26:30 +08:00; Reason: Shrimp Task ID: #0620a86e-5d49-417f-a654-9b137ed6dd3a, 添加新阶段状态类型; Principle_Applied: SOLID-OCP-OpenClosedPrinciple;}}
+// {{CHENGQI: Action: Modified; Timestamp: 2025-06-21 13:43:14 +08:00; Reason: Shrimp Task ID: #e3f2f046-2904-468a-8913-56be7356be70, 更新NIGHT状态类型为NightPhaseController; Principle_Applied: SOLID-OCP-OpenClosedPrinciple;}}
 export const GameStateType = {
-  NIGHT: 'NightState',
+  NIGHT: 'NightPhaseController',
   // 新增：阶段化夜晚状态类型
   INFORMATION_PHASE: 'InformationPhaseState',
   ELIMINATION_PHASE: 'EliminationPhaseState',

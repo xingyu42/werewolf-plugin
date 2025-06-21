@@ -40,6 +40,23 @@ export class NightPhaseController extends GameState {
   }
 
   /**
+   * 获取状态名称 - 重写父类方法以保持向后兼容性
+   * 返回 'NightState' 确保角色状态检查正常工作
+   *
+   * {{CHENGQI: Action: Added; Timestamp: 2025-06-21 13:30:47 +08:00; Reason: Shrimp Task ID: #5a013433-aae3-4e8a-8a00-c8c25453c895, 添加getName重写保持角色兼容性; Principle_Applied: SOLID-LSP-LiskovSubstitution;}}
+   */
+  getName () {
+    return 'NightState' // 保持与角色检查兼容
+  }
+
+  /**
+   * 获取内部类名 - 用于调试和日志记录
+   */
+  getInternalName () {
+    return this.constructor.name // 'NightPhaseController'
+  }
+
+  /**
    * 进入夜晚状态
    */
   async onEnter () {

@@ -1,5 +1,5 @@
 import { GameState } from './GameState.js'
-import { NightState } from './NightState.js'
+import { NightPhaseController } from './NightPhaseController.js'
 import { LastWordsState } from './LastWordsState.js'
 import { Puppeteer } from '../../components/services.js'
 
@@ -170,14 +170,14 @@ export class VoteState extends GameState {
     const minVotes = this.game.getConfig().game.minVotesToKill // 最少投票数
     if (maxVotes <= minVotes) {
       this.e.reply('没有玩家得票数超过最低要求,无人出局')
-      this.game.changeState(new NightState(this.game))
+      this.game.changeState(new NightPhaseController(this.game))
       return
     }
 
     // 如果有平票,则无人出局
     if (votedPlayers.length > 1) {
       this.e.reply('出现平票,无人出局')
-      this.game.changeState(new NightState(this.game))
+      this.game.changeState(new NightPhaseController(this.game))
       return
     }
 
@@ -190,7 +190,7 @@ export class VoteState extends GameState {
     this.e.reply(`${votedPlayer.name}被投票放逐出局`)
 
     // 创建下一个状态（夜晚）
-    const nextState = new NightState(this.game)
+    const nextState = new NightPhaseController(this.game)
 
     // 进入遗言阶段，并传入下一个状态
     await this.game.changeState(new LastWordsState(this.game, nextState, votedPlayer))
