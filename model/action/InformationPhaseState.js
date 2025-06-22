@@ -7,7 +7,6 @@
  */
 
 import { NightPhaseState } from './NightPhaseState.js'
-import { SimpleStateNotifier } from '../adapters/SimpleStateNotifier.js'
 import { GameError } from '../core/GameError.js'
 import { NIGHT_PHASE_CONFIG, ACTIONS } from '../core/Constants.js'
 
@@ -65,8 +64,19 @@ export class InformationPhaseState extends NightPhaseState {
         return
       }
 
-      // 使用SimpleStateNotifier通知角色行动
-      await SimpleStateNotifier.notifyRoleAction(this.game, roleType, this.game.e)
+      // 通知角色行动
+      for (const { player, role } of rolePlayers) {
+        try {
+          if (role && typeof role.getActionPrompt === 'function') {
+            const prompt = role.getActionPrompt()
+            if (prompt) {
+              await this.game.e.bot.pickFriend(player.id).sendMsg(prompt)
+            }
+          }
+        } catch (error) {
+          console.warn(`[InformationPhaseState] 向 ${roleType} 玩家 ${player.id} 发送行动提示失败:`, error.message)
+        }
+      }
       this.roleNotificationSent.add(roleType)
 
       console.log(`[InformationPhaseState] ${roleType} 行动通知发送成功`)

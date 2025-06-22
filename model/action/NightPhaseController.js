@@ -9,7 +9,6 @@
 import { GameState } from './GameState.js'
 import { DayState } from './DayState.js'
 import { PhaseManager } from '../managers/PhaseManager.js'
-import { SimpleStateNotifier } from '../adapters/SimpleStateNotifier.js'
 import { GameError } from '../core/GameError.js'
 
 export class NightPhaseController extends GameState {
@@ -203,7 +202,7 @@ export class NightPhaseController extends GameState {
    */
   async notifyNightStart () {
     try {
-      await SimpleStateNotifier.notifyNightStart(this.game, this.game.e)
+      await this.game.e.reply('🌙 夜晚降临，请查看私聊消息')
       console.log('[NightPhaseController] 夜晚开始通知发送成功')
     } catch (error) {
       console.error('[NightPhaseController] 发送夜晚开始通知失败:', error)

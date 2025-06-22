@@ -7,8 +7,6 @@
  */
 
 import { EventEmitter } from 'events'
-import { GameState } from './GameState.js'
-import { SimpleStateNotifier } from '../adapters/SimpleStateNotifier.js'
 import { GameError } from '../core/GameError.js'
 
 export class NightPhaseState extends EventEmitter {
@@ -281,13 +279,9 @@ export class NightPhaseState extends EventEmitter {
    */
   async notifyPhaseStart () {
     try {
-      // 使用SimpleStateNotifier发送通知
-      await SimpleStateNotifier.notifyPhaseStart(
-        this.game,
-        this.phaseConfig.name,
-        this.phaseConfig.description,
-        this.game.e
-      )
+      // 发送阶段开始通知
+      const message = `🌙 ${this.phaseConfig.description || this.phaseConfig.name}开始，请查看私聊消息`
+      await this.game.e.reply(message)
     } catch (error) {
       console.error(`[${this.constructor.name}] 发送阶段开始通知失败:`, error)
     }

@@ -7,7 +7,6 @@
  */
 
 import { NightPhaseState } from './NightPhaseState.js'
-import { SimpleStateNotifier } from '../adapters/SimpleStateNotifier.js'
 import { GameError } from '../core/GameError.js'
 import { NIGHT_PHASE_CONFIG, ACTIONS } from '../core/Constants.js'
 
@@ -492,13 +491,8 @@ export class InterventionPhaseState extends NightPhaseState {
 
       console.log('[InterventionPhaseState] 干预阶段完成')
 
-      // 通知阶段完成（可选）
-      await SimpleStateNotifier.notifyPhaseComplete(
-        this.game,
-        this.phaseConfig.name,
-        '女巫行动完成',
-        this.game.e
-      )
+      // 通知阶段完成
+      await this.game.e.reply('🌙 女巫行动完成')
     } catch (error) {
       console.error('[InterventionPhaseState] 阶段完成处理失败:', error)
     }
