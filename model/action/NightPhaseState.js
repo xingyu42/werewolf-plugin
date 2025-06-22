@@ -3,21 +3,26 @@
  * 继承自GameState，提供阶段管理的通用功能
  * 支持阶段配置管理、角色状态跟踪、并行处理、超时处理等核心功能
  *
- * {{CHENGQI: Action: Added; Timestamp: 2025-06-19 19:47:18 +08:00; Reason: Shrimp Task ID: #b1b5566f-4817-4b93-8b59-33c05197ccf9, 创建夜晚阶段状态基类; Principle_Applied: SOLID-SRP-SingleResponsibility-OCP-OpenClosedPrinciple;}}
+ * {{CHENGQI: Action: Modified; Timestamp: 2025-06-22 17:18:00 +08:00; Reason: 修复EventEmitter继承问题，解决phaseState.on is not a function错误; Principle_Applied: SOLID-SRP-SingleResponsibility-OCP-OpenClosedPrinciple;}}
  */
 
+import { EventEmitter } from 'events'
 import { GameState } from './GameState.js'
 import { SimpleStateNotifier } from '../adapters/SimpleStateNotifier.js'
 import { GameError } from '../core/GameError.js'
 
-export class NightPhaseState extends GameState {
+export class NightPhaseState extends EventEmitter {
   constructor (game, phaseConfig) {
-    super(game)
+    super() // 调用EventEmitter构造函数
 
     // 阶段配置验证
     if (!phaseConfig) {
       throw new GameError('阶段配置不能为空', 'INVALID_PHASE_CONFIG')
     }
+
+    // 从GameState继承的属性
+    this.game = game
+    this.timer = null
 
     // 阶段特有属性
     this.phaseConfig = phaseConfig
@@ -39,7 +44,18 @@ export class NightPhaseState extends GameState {
    * 进入阶段状态
    */
   async onEnter () {
-    await super.onEnter()
+    // 手动实现GameState的onEnter逻辑
+    if (!this.game) {
+      console.error(`${this.constructor.name}.onEnter: game 对象为 undefined`)
+      return
+    }
+
+    // 设置超时处理
+    if (this.timeLimit > 0) {
+      this.timer = setTimeout(async () => {
+        await this.onTimeout()
+      }, this.timeLimit * 1000)
+    }
 
     try {
       this.phaseStartTime = Date.now()
@@ -89,7 +105,11 @@ export class NightPhaseState extends GameState {
     } catch (error) {
       console.error(`[${this.constructor.name}] 退出阶段时发生错误:`, error)
     } finally {
-      await super.onExit()
+      // 手动实现GameState的onExit逻辑
+      if (this.timer) {
+        clearTimeout(this.timer)
+        this.timer = null
+      }
     }
   }
 
@@ -319,8 +339,16 @@ export class NightPhaseState extends GameState {
       await this.onPhaseComplete()
 
       console.log(`[${this.constructor.name}] 阶段完成: ${this.phaseConfig.name}`)
+
+      // 发出阶段完成事件，供PhaseManager监听
+      this.emit('phaseCompleted', {
+        phaseName: this.phaseConfig.name,
+        phaseStats: this.getPhaseStats()
+      })
     } catch (error) {
       console.error(`[${this.constructor.name}] 完成阶段时发生错误:`, error)
+      // 发出阶段错误事件
+      this.emit('phaseError', error)
     }
   }
 
@@ -376,5 +404,25 @@ export class NightPhaseState extends GameState {
       completedActions: this.completedActions.size,
       isCompleted: this.isPhaseCompleted
     }
+  }
+
+  // ==================== 从GameState继承的方法 ====================
+
+  /**
+   * 获取当前状态名称
+   */
+  getName () {
+    return this.constructor.name
+  }
+
+  /**
+   * 检查行动是否有效（基础版本，已在上面重写）
+   */
+  isValidActionBase (player, action) {
+    if (!this.game) {
+      console.error(`${this.constructor.name}.isValidAction: game 对象为 undefined`)
+      return false
+    }
+    return false // 默认所有行动无效
   }
 }

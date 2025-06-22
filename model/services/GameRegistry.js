@@ -90,7 +90,7 @@ export class GameRegistry {
   }
 
   /**
-     * 检查游戏是否存在（增强版，支持持久化状态检查）
+     * 检查游戏是否存在（仅检查内存中的实例）
      */
   static async hasGame (groupId) {
     // 检查内存中的游戏实例
@@ -117,33 +117,6 @@ export class GameRegistry {
       } catch (error) {
         console.error(`[GameRegistry] 验证游戏实例时出错: ${groupId}`, error)
         this.removeGame(groupId)
-      }
-    }
-
-    // 检查持久化状态
-    if (global.redis) {
-      try {
-        const stateKey = `werewolf:gamestate:${groupId}`
-        const stateDataStr = await global.redis.get(stateKey)
-
-        if (stateDataStr) {
-          const stateData = JSON.parse(stateDataStr)
-
-          // 检查状态是否过期（24小时）
-          const now = Date.now()
-          const age = now - stateData.timestamp
-
-          if (age < 86400000) { // 24小时内
-            console.log(`[GameRegistry] 发现有效的持久化游戏状态: ${groupId}`)
-            return true
-          } else {
-            // 清理过期状态
-            console.log(`[GameRegistry] 清理过期的游戏状态: ${groupId}`)
-            await global.redis.del(stateKey)
-          }
-        }
-      } catch (error) {
-        console.error(`[GameRegistry] 检查持久化状态时出错: ${groupId}`, error)
       }
     }
 
@@ -182,51 +155,10 @@ export class GameRegistry {
   }
 
   /**
-   * 检查并清理持久化状态中的过期游戏
    * @returns {Promise<number>} 清理的游戏数量
    */
   static async cleanupExpiredPersistedStates () {
-    if (!global.redis) {
-      return 0
-    }
-
-    try {
-      const pattern = 'werewolf:gamestate:*'
-      const keys = await global.redis.keys(pattern)
-      let cleanedCount = 0
-      const now = Date.now()
-
-      for (const key of keys) {
-        try {
-          const stateDataStr = await global.redis.get(key)
-          if (!stateDataStr) continue
-
-          const stateData = JSON.parse(stateDataStr)
-          const age = now - stateData.timestamp
-
-          // 清理超过24小时的状态
-          if (age > 86400000) {
-            await global.redis.del(key)
-            cleanedCount++
-            console.log(`[GameRegistry] 清理过期持久化状态: ${key}`)
-          }
-        } catch (error) {
-          // 如果解析失败，直接删除
-          await global.redis.del(key)
-          cleanedCount++
-          console.log(`[GameRegistry] 清理无效持久化状态: ${key}`)
-        }
-      }
-
-      if (cleanedCount > 0) {
-        console.log(`[GameRegistry] 持久化状态清理完成，共清理 ${cleanedCount} 个过期状态`)
-      }
-
-      return cleanedCount
-    } catch (error) {
-      console.error('[GameRegistry] 清理持久化状态时出错:', error)
-      return 0
-    }
+    return 0
   }
 
   /**
@@ -296,15 +228,6 @@ export class GameRegistry {
       }
     }
 
-    // 清理持久化状态中的过期游戏
-    try {
-      const cleanedPersistedCount = await this.cleanupExpiredPersistedStates()
-      if (cleanedPersistedCount > 0) {
-        console.log(`[GameRegistry] 额外清理了 ${cleanedPersistedCount} 个过期的持久化状态`)
-      }
-    } catch (error) {
-      console.error('[GameRegistry] 清理持久化状态时出错:', error)
-    }
 
     console.log(`[GameRegistry] 自动清理完成，当前游戏数: ${this.games.size}`)
   }

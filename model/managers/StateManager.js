@@ -14,10 +14,8 @@ export class StateManager {
     this.turn = 0
     this.stateHistory = [] // 状态历史记录
 
-    // 持久化配置
-    this.persistenceEnabled = true
-    this.redis = global.redis
-    this.persistenceKeyPrefix = 'werewolf:gamestate:'
+    // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 完全移除Redis持久化相关属性; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
+    // 移除了所有Redis持久化相关属性：persistenceEnabled, redis, persistenceKeyPrefix
 
     // 设置状态机上下文
     if (this.stateMachine) {
@@ -116,8 +114,8 @@ export class StateManager {
         phase: this.currentPhase
       })
 
-      // 自动保存游戏状态
-      await this.saveGameState()
+      // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 移除自动保存游戏状态调用; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
+      // 移除了自动保存游戏状态的调用
     } catch (error) {
       console.error('[StateManager] 状态转换失败:', error)
       this.game.emit('error', new GameError(
@@ -152,182 +150,20 @@ export class StateManager {
     return this.turn
   }
 
-  /**
-   * 保存游戏状态到Redis
-   * @returns {Promise<boolean>} 保存是否成功
-   */
-  async saveGameState () {
-    if (!this.persistenceEnabled || !this.redis) {
-      return false
-    }
+  // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 完全删除saveGameState方法; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
+  // 已删除saveGameState方法
 
-    try {
-      const groupId = this.game.groupId || this.game.id
-      if (!groupId) {
-        console.warn('[StateManager] 无法保存状态：缺少groupId')
-        return false
-      }
+  // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 完全删除loadGameState方法; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
+  // 已删除loadGameState方法
 
-      const currentState = this.getCurrentState()
-      const stateData = {
-        groupId,
-        currentPhase: this.currentPhase,
-        currentStateName: currentState ? currentState.getName() : null,
-        turn: this.turn,
-        stateHistory: this.stateHistory,
-        timestamp: Date.now(),
-        version: '1.0'
-      }
+  // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 完全删除clearGameState方法; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
+  // 已删除clearGameState方法
 
-      const key = `${this.persistenceKeyPrefix}${groupId}`
-      await this.redis.set(key, JSON.stringify(stateData), { EX: 86400 }) // 24小时过期
+  // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 完全删除hasPersistedState方法; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
+  // 已删除hasPersistedState方法
 
-      console.log(`[StateManager] 游戏状态已保存: ${groupId}`)
-      return true
-    } catch (error) {
-      console.error('[StateManager] 保存游戏状态失败:', error)
-      return false
-    }
-  }
-
-  /**
-   * 从Redis加载游戏状态
-   * @param {string} groupId 群组ID
-   * @returns {Promise<Object|null>} 加载的状态数据
-   */
-  async loadGameState (groupId) {
-    if (!this.persistenceEnabled || !this.redis) {
-      return null
-    }
-
-    try {
-      const key = `${this.persistenceKeyPrefix}${groupId}`
-      const stateDataStr = await this.redis.get(key)
-
-      if (!stateDataStr) {
-        return null
-      }
-
-      const stateData = JSON.parse(stateDataStr)
-
-      // 验证数据完整性
-      if (!stateData.groupId || !stateData.timestamp) {
-        console.warn('[StateManager] 状态数据格式无效')
-        await this.clearGameState(groupId)
-        return null
-      }
-
-      // 检查数据是否过期（超过24小时）
-      const now = Date.now()
-      const age = now - stateData.timestamp
-      if (age > 86400000) { // 24小时
-        console.log('[StateManager] 状态数据已过期，自动清理')
-        await this.clearGameState(groupId)
-        return null
-      }
-
-      console.log(`[StateManager] 游戏状态已加载: ${groupId}`)
-      return stateData
-    } catch (error) {
-      console.error('[StateManager] 加载游戏状态失败:', error)
-      return null
-    }
-  }
-
-  /**
-   * 清理指定群组的游戏状态
-   * @param {string} groupId 群组ID
-   * @returns {Promise<boolean>} 清理是否成功
-   */
-  async clearGameState (groupId) {
-    if (!this.persistenceEnabled || !this.redis) {
-      return false
-    }
-
-    try {
-      const key = `${this.persistenceKeyPrefix}${groupId}`
-      await this.redis.del(key)
-      console.log(`[StateManager] 游戏状态已清理: ${groupId}`)
-      return true
-    } catch (error) {
-      console.error('[StateManager] 清理游戏状态失败:', error)
-      return false
-    }
-  }
-
-  /**
-   * 检查是否存在持久化的游戏状态
-   * @param {string} groupId 群组ID
-   * @returns {Promise<boolean>} 是否存在状态
-   */
-  async hasPersistedState (groupId) {
-    if (!this.persistenceEnabled || !this.redis) {
-      return false
-    }
-
-    try {
-      const key = `${this.persistenceKeyPrefix}${groupId}`
-      const exists = await this.redis.exists(key)
-      return exists === 1
-    } catch (error) {
-      console.error('[StateManager] 检查持久化状态失败:', error)
-      return false
-    }
-  }
-
-  /**
-   * 清理所有过期的游戏状态
-   * @returns {Promise<number>} 清理的状态数量
-   */
-  async cleanupExpiredStates () {
-    if (!this.persistenceEnabled || !this.redis) {
-      return 0
-    }
-
-    try {
-      const pattern = `${this.persistenceKeyPrefix}*`
-      let cleanedCount = 0
-      const now = Date.now()
-
-      // 使用SCAN代替KEYS，避免在大量键时阻塞Redis服务器
-      for await (const keys of this.redis.scanIterator({
-        MATCH: pattern,
-        COUNT: 100 // 每次扫描100个键，平衡性能和内存使用
-      })) {
-        // keys是一个数组，包含当前批次的键
-        for (const key of keys) {
-          try {
-            const stateDataStr = await this.redis.get(key)
-            if (!stateDataStr) continue
-
-            const stateData = JSON.parse(stateDataStr)
-            const age = now - stateData.timestamp
-
-            // 清理超过24小时的状态
-            if (age > 86400000) {
-              await this.redis.del(key)
-              cleanedCount++
-              console.log(`[StateManager] 清理过期状态: ${key}`)
-            }
-          } catch (error) {
-            // 如果解析失败，直接删除
-            await this.redis.del(key)
-            cleanedCount++
-            console.log(`[StateManager] 清理无效状态: ${key}`)
-          }
-        }
-      }
-
-      if (cleanedCount > 0) {
-        console.log(`[StateManager] 清理完成，共清理 ${cleanedCount} 个过期状态`)
-      }
-
-      return cleanedCount
-    } catch (error) {
-      console.error('[StateManager] 清理过期状态失败:', error)
-      return 0
-    }
-  }
+  // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 完全删除cleanupExpiredStates方法; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
+  // 已删除cleanupExpiredStates方法
 
   /**
    * 增加回合数
@@ -342,8 +178,8 @@ export class StateManager {
       phase: this.currentPhase
     })
 
-    // 保存状态
-    await this.saveGameState()
+    // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 移除保存状态调用; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
+    // 移除了保存状态的调用
   }
 
   /**
@@ -432,11 +268,8 @@ export class StateManager {
   async cleanup () {
     console.log('[StateManager] 开始清理状态管理器')
 
-    // 清理持久化状态
-    const groupId = this.game.groupId || this.game.id
-    if (groupId) {
-      await this.clearGameState(groupId)
-    }
+    // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 移除持久化状态清理调用; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
+    // 移除了持久化状态清理相关代码
 
     // 清理状态历史
     this.stateHistory.length = 0
@@ -448,60 +281,14 @@ export class StateManager {
     console.log('[StateManager] 状态管理器清理完成')
   }
 
-  /**
-   * 从持久化数据恢复游戏状态
-   * @param {string} groupId 群组ID
-   * @returns {Promise<boolean>} 恢复是否成功
-   */
-  async restoreGameState (groupId) {
-    try {
-      const stateData = await this.loadGameState(groupId)
-      if (!stateData) {
-        return false
-      }
+  // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 完全删除restoreGameState方法; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
+  // 已删除restoreGameState方法
 
-      // 恢复基本状态
-      this.currentPhase = stateData.currentPhase || GAME_PHASES.WAITING
-      this.turn = stateData.turn || 0
-      this.stateHistory = stateData.stateHistory || []
+  // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 完全删除getPersistenceConfig方法; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
+  // 已删除getPersistenceConfig方法
 
-      console.log(`[StateManager] 游戏状态已恢复: ${groupId}, 回合: ${this.turn}, 阶段: ${this.currentPhase}`)
-
-      // 发出状态恢复事件
-      this.game.emit('stateRestored', {
-        groupId,
-        turn: this.turn,
-        phase: this.currentPhase,
-        timestamp: stateData.timestamp
-      })
-
-      return true
-    } catch (error) {
-      console.error('[StateManager] 恢复游戏状态失败:', error)
-      return false
-    }
-  }
-
-  /**
-   * 获取持久化配置
-   * @returns {Object} 持久化配置信息
-   */
-  getPersistenceConfig () {
-    return {
-      enabled: this.persistenceEnabled,
-      hasRedis: !!this.redis,
-      keyPrefix: this.persistenceKeyPrefix
-    }
-  }
-
-  /**
-   * 设置持久化开关
-   * @param {boolean} enabled 是否启用持久化
-   */
-  setPersistenceEnabled (enabled) {
-    this.persistenceEnabled = !!enabled
-    console.log(`[StateManager] 持久化功能${enabled ? '已启用' : '已禁用'}`)
-  }
+  // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 完全删除setPersistenceEnabled方法; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
+  // 已删除setPersistenceEnabled方法
 
   /**
    * 更新当前阶段

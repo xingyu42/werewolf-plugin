@@ -32,10 +32,8 @@ export class PhaseManager extends EventEmitter {
     this.maxRetries = 3 // 最大重试次数
     this.retryCount = 0 // 当前重试次数
 
-    // 持久化支持
-    this.persistenceEnabled = true
-    this.redis = global.redis
-    this.persistenceKeyPrefix = 'werewolf:phase:'
+    // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:51:10 +08:00; Reason: Shrimp Task ID: #e18d361a-009f-4c79-896e-75ac0bb4b038, 完全移除Redis持久化相关属性; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
+    // 移除了所有Redis持久化相关属性：persistenceEnabled, redis, persistenceKeyPrefix
 
     console.log('[PhaseManager] 阶段管理器初始化完成')
   }
@@ -88,8 +86,8 @@ export class PhaseManager extends EventEmitter {
         phaseConfig
       })
 
-      // 保存阶段状态
-      await this.savePhaseState()
+      // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:51:10 +08:00; Reason: Shrimp Task ID: #e18d361a-009f-4c79-896e-75ac0bb4b038, 移除保存阶段状态调用; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
+      // 移除了保存阶段状态的调用
     } catch (error) {
       console.error('[PhaseManager] 启动阶段失败:', error)
       await this.handlePhaseError(error, 'start')
@@ -365,38 +363,8 @@ export class PhaseManager extends EventEmitter {
     }
   }
 
-  /**
-   * 保存阶段状态到Redis
-   */
-  async savePhaseState () {
-    if (!this.persistenceEnabled || !this.redis) {
-      return false
-    }
-
-    try {
-      const groupId = this.game.groupId || this.game.id
-      if (!groupId) {
-        return false
-      }
-
-      const phaseData = {
-        groupId,
-        currentPhaseIndex: this.currentPhaseIndex,
-        phaseHistory: this.phaseHistory,
-        isTransitioning: this.isTransitioning,
-        retryCount: this.retryCount,
-        timestamp: Date.now()
-      }
-
-      const key = `${this.persistenceKeyPrefix}${groupId}`
-      await this.redis.set(key, JSON.stringify(phaseData), { EX: 3600 }) // 1小时过期
-
-      return true
-    } catch (error) {
-      console.error('[PhaseManager] 保存阶段状态失败:', error)
-      return false
-    }
-  }
+  // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:51:10 +08:00; Reason: Shrimp Task ID: #e18d361a-009f-4c79-896e-75ac0bb4b038, 完全删除savePhaseState方法; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
+  // 已删除savePhaseState方法
 
   /**
    * 获取当前阶段信息
@@ -442,12 +410,8 @@ export class PhaseManager extends EventEmitter {
       this.isTransitioning = false
       this.retryCount = 0
 
-      // 清理持久化状态
-      const groupId = this.game.groupId || this.game.id
-      if (groupId && this.redis) {
-        const key = `${this.persistenceKeyPrefix}${groupId}`
-        await this.redis.del(key)
-      }
+      // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:51:10 +08:00; Reason: Shrimp Task ID: #e18d361a-009f-4c79-896e-75ac0bb4b038, 移除持久化状态清理逻辑; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
+      // 移除了持久化状态清理相关代码
 
       console.log('[PhaseManager] 阶段管理器清理完成')
     } catch (error) {

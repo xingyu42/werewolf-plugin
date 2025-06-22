@@ -3,7 +3,6 @@ import { GameRegistry } from '../model/services/GameRegistry.js'
 import { GameLobby } from '../model/services/GameLobby.js'
 import { Player } from '../model/Player.js'
 import { defaultErrorHandler } from '../model/core/ErrorHandler.js'
-import { FriendshipValidator } from '../model/adapters/FriendshipValidator.js'
 
 // A simple in-memory store for active lobbies
 const lobbies = new Map()
@@ -155,8 +154,6 @@ export class GameStart extends plugin {
   async endGame (e) {
     const groupId = e.group_id
 
-    // The Game's own destructor/cleanup should handle event removal.
-    // We just remove the game from the manager.
     GameRegistry.removeGame(groupId)
     this.cleanupLobby(groupId) // Also clean up lobby if it exists
     e.reply('游戏已结束')
@@ -175,7 +172,7 @@ export class GameStart extends plugin {
 
     try {
       // 使用简化的好友验证器
-      const result = await FriendshipValidator.validateBatch(players, e)
+      const result = this.validateBatch(players, e)
       return result
     } catch (error) {
       console.error('[GameStart] 好友验证过程中发生异常:', error)
@@ -243,6 +240,39 @@ export class GameStart extends plugin {
       // 删除lobby
       lobbies.delete(groupId)
       console.log(`[GameStart] 已清理群 ${groupId} 的游戏大厅`)
+    }
+  }
+
+  /**
+   * 批量检查玩家好友状态
+   * @param {Array} players - 玩家对象数组
+   * @param {Object} e - 事件对象
+   * @returns {Promise<Object>} 检查结果 {allFriends: boolean, nonFriends: Array}
+   */
+  validateBatch (players, e) {
+    const nonFriends = []
+
+    console.log(`[GameStart] 开始检查 ${players.length} 个玩家的好友状态`)
+
+    // 刷新好友列表缓存
+    if (typeof e.bot?.reloadFriendList === 'function') {
+      console.log('[GameStart] 刷新好友列表缓存...')
+      e.bot.reloadFriendList()
+    }
+
+    for (const player of players) {
+      const isFriend = e.bot.fl.has(parseInt(player.id))
+      console.log(`[GameStart] 玩家 ${player.id} ${isFriend ? '在' : '不在'}好友列表中`)
+      if (!isFriend) {
+        nonFriends.push(player)
+      }
+    }
+
+    console.log(`[GameStart] 好友检查完成，${nonFriends.length} 个非好友`)
+
+    return {
+      allFriends: nonFriends.length === 0,
+      nonFriends
     }
   }
 }

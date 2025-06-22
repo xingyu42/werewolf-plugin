@@ -1,6 +1,5 @@
 import { ErrorHandler } from './ErrorHandler.js'
 import { DEATH_REASONS } from './Constants.js'
-import { SimpleMessageSender } from '../adapters/SimpleMessageSender.js'
 
 /**
  * 游戏事件处理器 - 负责处理Game实例发出的非消息事件并转发到通信层
@@ -122,10 +121,7 @@ export class GameEventHandler {
 
       const { playerId, message } = data
       try {
-        const success = await SimpleMessageSender.sendPrivate(message, playerId, this.e)
-        if (!success) {
-          console.warn(`[GameEventHandler] 角色通知发送失败 ${playerId}`)
-        }
+        await this.e.bot.pickFriend(playerId).sendMsg(message)
       } catch (error) {
         console.warn(`[GameEventHandler] 角色通知发送异常 ${playerId}:`, error.message)
       }

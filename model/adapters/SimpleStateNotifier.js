@@ -4,8 +4,6 @@
  * 移除复杂的通知选项和统计
  */
 
-import { SimpleMessageSender } from './SimpleMessageSender.js'
-
 export class SimpleStateNotifier {
   /**
    * 夜晚开始通知
@@ -20,7 +18,7 @@ export class SimpleStateNotifier {
     }
 
     try {
-      await SimpleMessageSender.sendGroup('🌙 夜晚降临，请查看私聊消息', e)
+      await e.reply('🌙 夜晚降临，请查看私聊消息')
     } catch (error) {
       console.error('[SimpleStateNotifier] notifyNightStart 执行失败:', error)
     }
@@ -52,7 +50,7 @@ export class SimpleStateNotifier {
           if (role && typeof role.getActionPrompt === 'function') {
             const prompt = role.getActionPrompt()
             if (prompt) {
-              await SimpleMessageSender.sendPrivate(prompt, player.id, e)
+              await e.bot.pickFriend(player.id).sendMsg(prompt)
             }
           }
         } catch (error) {
@@ -80,7 +78,7 @@ export class SimpleStateNotifier {
 
     try {
       const message = `🌙 ${phaseDescription || phaseName}开始，请查看私聊消息`
-      await SimpleMessageSender.sendGroup(message, e)
+      await e.reply(message)
     } catch (error) {
       console.error('[SimpleStateNotifier] notifyPhaseStart 执行失败:', error)
     }
@@ -100,7 +98,7 @@ export class SimpleStateNotifier {
 
     try {
       const message = `☀️ 第${game.turn || 1}天开始`
-      await SimpleMessageSender.sendGroup(message, e)
+      await e.reply(message)
     } catch (error) {
       console.error('[SimpleStateNotifier] notifyDayStart 执行失败:', error)
     }
