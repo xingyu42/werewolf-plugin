@@ -1,23 +1,26 @@
-import { EventEmitter } from 'events'
 import { VictoryChecker } from './VictoryChecker.js'
 import { RoleConfigurator } from '../configurators/RoleConfigurator.js'
-import { GameEventHandler } from './GameEventHandler.js'
+import { NotificationCenter } from './NotificationCenter.js'
 import { PlayerManager } from '../managers/PlayerManager.js'
 import { StateManager } from '../managers/StateManager.js'
 
 /**
  * 游戏核心类 - 重构后的核心协调器
  * 负责协调各个管理器，保持游戏的整体流程控制
+ * 移除EventEmitter继承，使用NotificationCenter进行通知
  */
-export class Game extends EventEmitter {
+export class Game {
   constructor ({ e, config, players, stateMachine, playerQueryService, victoryChecker, eventHandler, groupId }) {
-    super()
+    // 移除 super() 调用
 
     // 设置游戏ID，优先使用传入的groupId，否则使用时间戳+随机数
     this.id = groupId
     this.e = e // 保存 e 对象引用，供角色类使用
     this.config = config
     this.eventErrors = []
+
+    // 初始化通知中心替代GameEventHandler
+    this.notificationCenter = new NotificationCenter(e)
 
     // 清理状态标志，防止重复清理
     this._isCleanedUp = false
@@ -50,12 +53,8 @@ export class Game extends EventEmitter {
       )
     }
 
-    this.eventHandler = eventHandler || new GameEventHandler(this, e)
-
-    // 如果传入的eventHandler没有设置game引用，现在设置
-    if (this.eventHandler && !this.eventHandler.game) {
-      this.eventHandler.setGame(this)
-    }
+    // 移除 GameEventHandler，功能已迁移到 NotificationCenter
+    // this.eventHandler = eventHandler || new GameEventHandler(this, e)
 
     // 胜利条件检查器
     this.victoryChecker = victoryChecker || new VictoryChecker()
@@ -165,15 +164,16 @@ export class Game extends EventEmitter {
     // 使用胜利条件检查器检查游戏是否结束
     const victoryResult = this.victoryChecker.checkVictory(this)
 
-    // 如果游戏结束，发出游戏结束事件
+    // 如果游戏结束，通过通知中心发送游戏结束通知
     if (victoryResult.gameOver) {
       const alivePlayersStr = this.getAlivePlayers({ showRole: true, showStatus: true }).map((p) => p.getDisplayInfo()).join('\n')
 
-      this.emit('gameEnd', {
-        winner: victoryResult.winner,
-        reason: victoryResult.reason,
-        alivePlayers: alivePlayersStr
-      })
+      // 替换：this.emit('gameEnd', {...})
+      await this.notificationCenter.notifyGameEnd(
+        victoryResult.winner,
+        victoryResult.reason,
+        alivePlayersStr
+      )
 
       // 游戏结束后进行资源清理
       setTimeout(() => {
@@ -188,8 +188,8 @@ export class Game extends EventEmitter {
 
   async startNewDay () {
     this.stateManager.incrementTurn()
-    // 发送新的一天开始的消息，使用事件替代直接通信
-    this.emit('newDay', { turn: this.stateManager.getCurrentTurn() })
+    // 替换：this.emit('newDay', { turn: this.stateManager.getCurrentTurn() })
+    await this.notificationCenter.notifyNewDay(this.stateManager.getCurrentTurn())
   }
 
   // 根据游戏内编号获取玩家ID - 保持兼容性
@@ -260,8 +260,8 @@ export class Game extends EventEmitter {
     player.deathReason = null
     console.debug(`[Game] 玩家 ${player.name} 已复活`)
 
-    // 发出复活事件，供其他组件监听
-    this.emit('playerRevived', { player })
+    // 移除：this.emit('playerRevived', { player })
+    // 改为直接返回结果，让调用方决定后续处理
     return true
   }
 
@@ -300,14 +300,11 @@ export class Game extends EventEmitter {
       // 清理WolfRole静态属性，防止跨游戏污染
       this.cleanupWolfRoleStatics()
 
-      // 清理事件监听器
-      if (typeof this.removeAllListeners === 'function') {
-        this.removeAllListeners()
-      }
+      // 移除：if (typeof this.removeAllListeners === 'function') { this.removeAllListeners() }
 
-      // 清理GameEventHandler
-      if (this.eventHandler && typeof this.eventHandler.cleanup === 'function') {
-        this.eventHandler.cleanup()
+      // 清理NotificationCenter
+      if (this.notificationCenter && typeof this.notificationCenter.cleanup === 'function') {
+        this.notificationCenter.cleanup()
       }
 
       // 清理管理器

@@ -123,11 +123,11 @@ export class PlayerManager {
         )
       }
 
-      // 通知角色分配
-      this.game.emit('roleNotify', {
-        playerId: playerInfo.id,
-        message: `你的游戏编号是：${gameNumber}号，角色是：${RoleData.getRoleDisplayName(playerInfo.role)}`
-      })
+      // 替换：this.game.emit('roleNotify', {...})
+      await this.game.notificationCenter.notifyRoleAssignment(
+        playerInfo.id,
+        `你的游戏编号是：${gameNumber}号，角色是：${RoleData.getRoleDisplayName(playerInfo.role)}`
+      )
     }
 
     // 初始化玩家后清空缓存
@@ -233,20 +233,20 @@ export class PlayerManager {
       // 玩家状态改变，清空缓存
       this._invalidateCache()
 
-      // 通知玩家死亡
-      this.game.emit('playerDeath', {
-        player,
-        reason
-      })
+      // 替换：this.game.emit('playerDeath', {...})
+      await this.game.notificationCenter.notifyPlayerDeath(player, reason)
 
       return true
     } catch (err) {
       console.error('[PlayerManager] 处理玩家死亡时出错:', err)
-      this.game.emit('error', new GameError(
-        '处理玩家死亡时出错',
-        'PLAYER_DEATH_ERROR',
-        { playerId: player.id, reason, error: err }
-      ))
+      // 替换：this.game.emit('error', new GameError(...))
+      await this.game.notificationCenter.handleError(
+        new GameError(
+          '处理玩家死亡时出错',
+          'PLAYER_DEATH_ERROR',
+          { playerId: player.id, reason, error: err }
+        )
+      )
       return false
     }
   }

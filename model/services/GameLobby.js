@@ -3,7 +3,7 @@ import { GameRegistry } from './GameRegistry.js'
 import { StateMachine } from '../core/StateMachine.js'
 import { PlayerQueryService } from './PlayerQueryService.js'
 import { VictoryChecker } from '../core/VictoryChecker.js'
-import { GameEventHandler } from '../core/GameEventHandler.js'
+// 移除 GameEventHandler 导入，功能已迁移到 NotificationCenter
 
 export class GameLobby {
   constructor (gameConfig) {
@@ -64,7 +64,7 @@ export class GameLobby {
     const stateMachine = new StateMachine()
     const playerQueryService = new PlayerQueryService()
     const victoryChecker = new VictoryChecker()
-    const eventHandler = new GameEventHandler(null, e) // Game context will be set inside Game constructor
+    // 移除 GameEventHandler 创建，功能已迁移到 NotificationCenter
 
     const game = new Game({
       e,
@@ -73,11 +73,11 @@ export class GameLobby {
       stateMachine,
       playerQueryService,
       victoryChecker,
-      eventHandler,
+      // 移除 eventHandler 参数，Game类不再需要
       groupId // 传递groupId作为游戏ID
     })
 
-    eventHandler.setGame(game) // Set the game context now that it's created
+    // 移除 eventHandler.setGame(game) 调用
 
     await GameRegistry.addGame(groupId, game)
     return game
