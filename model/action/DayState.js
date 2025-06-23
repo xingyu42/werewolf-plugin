@@ -27,10 +27,8 @@ export class DayState extends GameState {
       .filter(p => !p.isAlive && (p.deathReason === 'WOLF_KILL' || p.deathReason === 'POISON'))
 
     if (deadPlayers.length === 0) {
-      this.game.emit('message', {
-        type: 'group',
-        content: '昨晚是平安夜，没有玩家死亡'
-      })
+      // 替换emit调用为notificationCenter
+      await this.game.notificationCenter.sendMessage('group', null, '昨晚是平安夜，没有玩家死亡')
       return
     }
 
@@ -40,10 +38,7 @@ export class DayState extends GameState {
       deathMsg += `${player.name}\n`
     }
 
-    this.game.emit('message', {
-      type: 'group',
-      content: deathMsg
-    })
+    await this.game.notificationCenter.sendMessage('group', null, deathMsg)
 
     // 处理头夜死亡玩家的遗言
     if (this.game.turn === 0 && deadPlayers.length > 0) {
@@ -60,19 +55,13 @@ export class DayState extends GameState {
       this.game.setStateTransitionContext({ deadPlayer: player })
 
       if (role instanceof HunterRole && role.canAct()) {
-        this.game.emit('message', {
-          type: 'group',
-          content: `猎人 ${player.name} 死亡，现在可以开枪`
-        })
+        await this.game.notificationCenter.sendMessage('group', null, `猎人 ${player.name} 死亡，现在可以开枪`)
         await role.getActionPrompt()
         return
       }
 
       if (player.isSheriff) {
-        this.game.emit('message', {
-          type: 'group',
-          content: `警长 ${player.name} 死亡，现在可以转移警徽`
-        })
+        await this.game.notificationCenter.sendMessage('group', null, `警长 ${player.name} 死亡，现在可以转移警徽`)
         await this.game.changeState(new SheriffTransferState(this.game, player, this))
         return
       }

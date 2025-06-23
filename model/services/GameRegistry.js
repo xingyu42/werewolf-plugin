@@ -228,7 +228,6 @@ export class GameRegistry {
       }
     }
 
-
     console.log(`[GameRegistry] 自动清理完成，当前游戏数: ${this.games.size}`)
   }
 

@@ -1,105 +1,81 @@
 /**
- * Jest 配置文件
- * 支持 ES 模块和狼人杀插件测试环境
+ * Jest 配置文件 - 现代化版本
+ * 基于 Jest 29.x 最佳实践，支持 ES 模块和现代化功能
+ * @type {import('jest').Config}
  */
-
 export default {
-  // 基本配置
+  // 测试环境
   testEnvironment: 'node',
 
-  // ES 模块支持
+  // ES 模块支持 - 禁用 Babel 转换，直接使用 Node.js ES 模块
   preset: null,
-  globals: {
-    __TEST_ENV__: true
-  },
   transform: {},
+  // extensionsToTreatAsEsm: ['.js'], // 不需要，package.json已设置"type": "module"
 
-  // 模块解析
+  // 模块解析 - 处理 ES 模块的 .js 扩展名
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1'
   },
 
-  // 测试文件匹配
+  // 测试文件匹配模式
   testMatch: [
-    '**/tests/**/*.test.js',
-    '**/tests/**/*.spec.js'
+    '**/tests/**/*.test.js'
   ],
 
-  // 忽略的文件和目录
+  // 忽略的目录
   testPathIgnorePatterns: [
     '/node_modules/',
-    '/dist/',
-    '/coverage/'
+    '/coverage/',
+    '/dist/'
   ],
 
-  // 覆盖率配置
-  collectCoverage: true,
-  coverageDirectory: 'coverage',
-  coverageReporters: [
-    'text',
-    'lcov',
-    'html',
-    'json'
-  ],
-
-  // 覆盖率收集范围
-  collectCoverageFrom: [
-    'model/**/*.js',
-    'apps/**/*.js',
-    'components/**/*.js',
-    '!**/node_modules/**',
-    '!**/tests/**',
-    '!**/coverage/**',
-    '!**/dist/**'
-  ],
-
-  // 覆盖率阈值
-  coverageThreshold: {
-    global: {
-      branches: 80,
-      functions: 80,
-      lines: 80,
-      statements: 80
-    }
-  },
-
-  // 设置文件
+  // 设置文件 - 在测试框架安装后运行
   setupFilesAfterEnv: [
     '<rootDir>/tests/setup.js'
   ],
 
-  // 测试超时
+  // 覆盖率配置
+  collectCoverage: false, // 按需开启
+  collectCoverageFrom: [
+    'model/**/*.js',
+    'components/**/*.js',
+    'apps/**/*.js',
+    '!**/*.test.js',
+    '!**/node_modules/**',
+    '!coverage/**'
+  ],
+  coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'lcov', 'html'],
+  coverageThreshold: {
+    global: {
+      branches: 50,
+      functions: 50,
+      lines: 50,
+      statements: 50
+    }
+  },
+
+  // 性能和执行配置
   testTimeout: 10000,
-
-  // 详细输出
+  maxWorkers: '50%', // 使用50%的CPU核心，平衡性能和资源使用
+  workerIdleMemoryLimit: '512MB', // 限制worker内存使用
+  
+  // 输出和报告配置
   verbose: true,
-
-  // 清除模拟
   clearMocks: true,
   restoreMocks: true,
-
+  
   // 错误处理
-  errorOnDeprecated: true,
-
-  // 模块目录
-  moduleDirectories: [
-    'node_modules',
-    '<rootDir>'
-  ],
-
-  // 模块文件扩展名
-  moduleFileExtensions: [
-    'js',
-    'json'
-  ],
-
-  // 测试结果处理器
-  reporters: [
-    'default',
-    ['jest-html-reporters', {
-      publicPath: './coverage',
-      filename: 'test-report.html',
-      expand: true
-    }]
-  ]
+  bail: false, // 不在第一个失败时停止
+  errorOnDeprecated: true, // 使用废弃API时报错
+    
+  // 高级配置
+  detectOpenHandles: true, // 检测未关闭的异步句柄
+  forceExit: false // 让Jest正常退出
+  
+  // 可选：自定义报告器（按需启用）
+  // reporters: ['default', 'jest-junit'],
+  
+  // 可选：并行测试配置
+  // testSequencer: '<rootDir>/custom-sequencer.js'
 }

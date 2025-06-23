@@ -1,17 +1,16 @@
 /**
  * 夜晚阶段状态基类
- * 继承自GameState，提供阶段管理的通用功能
+ * 提供阶段管理的通用功能，使用回调机制替代事件系统
  * 支持阶段配置管理、角色状态跟踪、并行处理、超时处理等核心功能
  *
- * {{CHENGQI: Action: Modified; Timestamp: 2025-06-22 17:18:00 +08:00; Reason: 修复EventEmitter继承问题，解决phaseState.on is not a function错误; Principle_Applied: SOLID-SRP-SingleResponsibility-OCP-OpenClosedPrinciple;}}
+ * {{CHENGQI: Action: Modified; Timestamp: 2025-06-23 09:15:00 +08:00; Reason: Shrimp Task ID: #emit-refactor-phase-4, 移除EventEmitter继承改用回调机制; Principle_Applied: SOLID-SRP-SingleResponsibility-DIP-DependencyInversion;}}
  */
 
-import { EventEmitter } from 'events'
 import { GameError } from '../core/GameError.js'
 
-export class NightPhaseState extends EventEmitter {
+export class NightPhaseState {
   constructor (game, phaseConfig) {
-    super() // 调用EventEmitter构造函数
+    // 移除EventEmitter构造函数调用
 
     // 阶段配置验证
     if (!phaseConfig) {
@@ -33,6 +32,10 @@ export class NightPhaseState extends EventEmitter {
     // 并行处理支持
     this.parallelActions = new Map() // 并行行动记录 playerId -> Promise
     this.roleActionPromises = new Map() // 角色行动Promise记录 roleType -> Promise[]
+
+    // 回调机制替代事件系统
+    this.completionCallback = null // 阶段完成回调
+    this.errorCallback = null // 阶段错误回调
 
     // 设置阶段超时时间
     this.timeLimit = Math.floor(phaseConfig.timeout / 1000) // 转换为秒
@@ -74,11 +77,14 @@ export class NightPhaseState extends EventEmitter {
       console.log(`[${this.constructor.name}] 阶段开始: ${this.phaseConfig.name}`)
     } catch (error) {
       console.error(`[${this.constructor.name}] 进入阶段时发生错误:`, error)
-      this.game.emit('error', new GameError(
-        `进入${this.phaseConfig.name}阶段失败`,
-        'PHASE_ENTER_ERROR',
-        { phase: this.phaseConfig.name, error }
-      ))
+      // 替换emit调用为回调机制
+      if (this.errorCallback) {
+        await this.errorCallback(new GameError(
+          `进入${this.phaseConfig.name}阶段失败`,
+          'PHASE_ENTER_ERROR',
+          { phase: this.phaseConfig.name, error }
+        ))
+      }
     }
   }
 
@@ -255,6 +261,24 @@ export class NightPhaseState extends EventEmitter {
     throw new Error('子类必须实现handleTimeoutActions方法')
   }
 
+  // ==================== 回调机制方法 ====================
+
+  /**
+   * 设置阶段完成回调
+   * @param {Function} callback 完成回调函数
+   */
+  setCompletionCallback (callback) {
+    this.completionCallback = callback
+  }
+
+  /**
+   * 设置阶段错误回调
+   * @param {Function} callback 错误回调函数
+   */
+  setErrorCallback (callback) {
+    this.errorCallback = callback
+  }
+
   // ==================== 通用辅助方法 ====================
 
   /**
@@ -334,15 +358,19 @@ export class NightPhaseState extends EventEmitter {
 
       console.log(`[${this.constructor.name}] 阶段完成: ${this.phaseConfig.name}`)
 
-      // 发出阶段完成事件，供PhaseManager监听
-      this.emit('phaseCompleted', {
-        phaseName: this.phaseConfig.name,
-        phaseStats: this.getPhaseStats()
-      })
+      // 替换emit调用为回调机制
+      if (this.completionCallback) {
+        await this.completionCallback({
+          phaseName: this.phaseConfig.name,
+          phaseStats: this.getPhaseStats()
+        })
+      }
     } catch (error) {
       console.error(`[${this.constructor.name}] 完成阶段时发生错误:`, error)
-      // 发出阶段错误事件
-      this.emit('phaseError', error)
+      // 替换emit调用为回调机制
+      if (this.errorCallback) {
+        await this.errorCallback(error)
+      }
     }
   }
 

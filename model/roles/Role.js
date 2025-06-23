@@ -130,25 +130,25 @@ export class Role {
   /**
    * 获取存活玩家列表
    *
-   * @returns {string[]} 存活玩家的显示信息数组，错误时返回空数组
+   * @returns {string} 存活玩家的显示信息字符串，错误时返回空字符串
    */
   getAlivePlayersList () {
     try {
       if (!this.game) {
         console.error('[Role] getAlivePlayersList: 游戏对象未初始化')
-        return []
+        return ''
       }
 
       if (!this.game.players) {
         console.error('[Role] getAlivePlayersList: 玩家数据未初始化')
-        return []
+        return ''
       }
 
       const alivePlayers = Array.from(this.game.players.values()).filter(player => player.isAlive)
-      return alivePlayers.map(player => `${player.gameNumber}号 ${player.name}`)
+      return alivePlayers.map(player => `${player.gameNumber}号 ${player.name}`).join('\n')
     } catch (error) {
       console.error('[Role] getAlivePlayersList: 获取存活玩家列表失败:', error)
-      return []
+      return ''
     }
   }
 }

@@ -9,16 +9,18 @@
  * {{CHENGQI: Action: Added; Timestamp: 2025-06-19 19:51:05 +08:00; Reason: Shrimp Task ID: #30a79ac5-422c-45a8-b53a-1c5c5c6990f5, 创建阶段管理器; Principle_Applied: SOLID-SRP-SingleResponsibility-DIP-DependencyInversion;}}
  */
 
-import { EventEmitter } from 'events'
 import { GameError } from '../core/GameError.js'
 import { NIGHT_PHASE_ORDER } from '../core/Constants.js'
+import { StateCallback } from '../core/StateCallback.js'
 
-export class PhaseManager extends EventEmitter {
-  constructor (game) {
-    super()
+export class PhaseManager {
+  constructor (game, phaseCoordinator) {
+    // 移除 super() 调用
 
     // 基础属性
     this.game = game
+    this.phaseCoordinator = phaseCoordinator
+    this.stateCallback = new StateCallback(this)
     this.currentPhaseIndex = 0 // 当前阶段索引
     this.currentPhaseState = null // 当前阶段状态实例
     this.phaseHistory = [] // 阶段历史记录
@@ -73,18 +75,20 @@ export class PhaseManager extends EventEmitter {
       // 记录阶段历史
       this.recordPhaseHistory('start', phaseConfig.name)
 
-      // 监听阶段完成事件
-      this.setupPhaseEventListeners(phaseState)
+      // 替换事件监听为回调函数设置
+      this.setupPhaseCallbacks(phaseState)
 
       // 启动阶段状态
       await this.game.stateManager.changeState(phaseState)
 
-      // 发出阶段开始事件
-      this.emit('phaseStarted', {
-        phaseName: phaseConfig.name,
-        phaseIndex: this.currentPhaseIndex,
-        phaseConfig
-      })
+      // 替换：this.emit('phaseStarted', {...})
+      if (this.phaseCoordinator) {
+        await this.phaseCoordinator.handlePhaseStarted(
+          phaseConfig.name,
+          this.currentPhaseIndex,
+          { phaseConfig, startTime: Date.now() }
+        )
+      }
 
       // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:51:10 +08:00; Reason: Shrimp Task ID: #e18d361a-009f-4c79-896e-75ac0bb4b038, 移除保存阶段状态调用; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
       // 移除了保存阶段状态的调用
@@ -110,12 +114,14 @@ export class PhaseManager extends EventEmitter {
       // 记录阶段历史
       this.recordPhaseHistory('complete', phaseName)
 
-      // 发出阶段完成事件
-      this.emit('phaseCompleted', {
-        phaseName,
-        phaseIndex: this.currentPhaseIndex,
-        phaseStats: this.currentPhaseState.getPhaseStats()
-      })
+      // 替换：this.emit('phaseCompleted', {...})
+      if (this.phaseCoordinator) {
+        await this.phaseCoordinator.handlePhaseCompleted(
+          phaseName,
+          this.currentPhaseIndex,
+          { phaseStats: this.currentPhaseState.getPhaseStats() }
+        )
+      }
 
       // 转换到下一个阶段
       await this.transitionToNextPhase()
@@ -162,10 +168,7 @@ export class PhaseManager extends EventEmitter {
 
       this.isTransitioning = true
 
-      // 清理当前阶段状态的事件监听器
-      if (this.currentPhaseState) {
-        this.cleanupPhaseEventListeners(this.currentPhaseState)
-      }
+      // 移除事件监听器清理：现在使用回调函数，无需清理事件监听器
 
       // 移动到下一个阶段
       this.currentPhaseIndex++
@@ -197,25 +200,38 @@ export class PhaseManager extends EventEmitter {
       // 记录完成历史
       this.recordPhaseHistory('complete_all', 'all_phases')
 
-      // 发出所有阶段完成事件
-      this.emit('allPhasesCompleted', {
-        totalPhases: this.phaseOrder.length,
-        phaseHistory: this.getPhaseHistory()
-      })
+      // 替换：this.emit('allPhasesCompleted', {...})
+      // 替换：this.emit('nightPhasesCompleted')
+      let result = { allCompleted: true }
+      if (this.phaseCoordinator) {
+        result = await this.phaseCoordinator.handleAllPhasesCompleted(
+          this.phaseOrder.length,
+          this.getPhaseHistory()
+        )
+
+        // 通知夜晚阶段完成并获取处理结果
+        const nightResult = await this.phaseCoordinator.handleNightPhasesCompleted()
+        if (nightResult.shouldTransitionToDay && this.phaseCoordinator.nightPhaseController) {
+          // 直接调用NightPhaseController完成夜晚流程
+          await this.phaseCoordinator.nightPhaseController.handleNightPhasesCompleted(true)
+        }
+      }
 
       // 清理阶段状态
       await this.cleanup()
 
-      // 通知StateManager转换到下一个游戏状态（如DayState）
-      // 这里不直接调用，而是发出事件让上层处理
-      this.emit('nightPhasesCompleted')
+      return result
     } catch (error) {
       console.error('[PhaseManager] 完成所有阶段失败:', error)
-      this.game.emit('error', new GameError(
-        '完成夜晚阶段失败',
-        'NIGHT_PHASES_COMPLETION_ERROR',
-        { error }
-      ))
+      // 替换：this.game.emit('error', new GameError(...))
+      await this.game.notificationCenter.handleError(
+        new GameError(
+          '完成夜晚阶段失败',
+          'NIGHT_PHASES_COMPLETION_ERROR',
+          { error }
+        )
+      )
+      throw error
     }
   }
 
@@ -275,25 +291,54 @@ export class PhaseManager extends EventEmitter {
    * 设置阶段事件监听器
    * @param {NightPhaseState} phaseState - 阶段状态实例
    */
-  setupPhaseEventListeners (phaseState) {
-    // 监听阶段完成事件
-    phaseState.on('phaseCompleted', () => {
-      this.checkPhaseCompletion()
+  setupPhaseCallbacks (phaseState) {
+    // 替换事件监听为回调函数设置
+    phaseState.setCompletionCallback(async (results) => {
+      await this.handleStateCompletion(phaseState.phaseConfig.name, results)
+      await this.transitionToNextPhase()
     })
 
-    // 监听阶段错误事件
-    phaseState.on('phaseError', (error) => {
-      this.handlePhaseError(error, 'phase_execution')
+    phaseState.setErrorCallback(async (error) => {
+      await this.handleStateError(error, phaseState.phaseConfig.name)
     })
   }
 
   /**
-   * 清理阶段事件监听器
-   * @param {NightPhaseState} phaseState - 阶段状态实例
+   * 处理状态完成 - 新增方法供StateCallback调用
+   * @param {string} stateName 状态名称
+   * @param {Object} results 状态结果
    */
-  cleanupPhaseEventListeners (phaseState) {
-    phaseState.removeAllListeners('phaseCompleted')
-    phaseState.removeAllListeners('phaseError')
+  async handleStateCompletion (stateName, results) {
+    console.log(`[PhaseManager] 状态 ${stateName} 完成`, results)
+
+    // 委托给PhaseCoordinator处理
+    if (this.phaseCoordinator) {
+      return await this.phaseCoordinator.handlePhaseCompleted(
+        stateName,
+        this.currentPhaseIndex,
+        results
+      )
+    }
+
+    return { handled: true }
+  }
+
+  /**
+   * 处理状态错误 - 新增方法供StateCallback调用
+   * @param {Error} error 错误对象
+   * @param {string} stateName 状态名称
+   */
+  async handleStateError (error, stateName) {
+    console.error(`[PhaseManager] 状态 ${stateName} 错误:`, error)
+
+    // 委托给PhaseCoordinator处理
+    if (this.phaseCoordinator) {
+      return await this.phaseCoordinator.handlePhaseError(error, { stateName, phaseIndex: this.currentPhaseIndex })
+    }
+
+    // 默认错误处理
+    await this.handlePhaseError(error, 'state_execution')
+    return { handled: true }
   }
 
   /**
@@ -321,20 +366,23 @@ export class PhaseManager extends EventEmitter {
         return
       }
 
-      // 重试次数用尽或不可重试的错误，发出错误事件
-      this.emit('phaseError', {
-        error,
-        context,
-        phaseIndex: this.currentPhaseIndex,
-        retryCount: this.retryCount
-      })
+      // 替换：this.emit('phaseError', {...})
+      if (this.phaseCoordinator) {
+        await this.phaseCoordinator.handlePhaseError(error, {
+          context,
+          phaseIndex: this.currentPhaseIndex,
+          retryCount: this.retryCount
+        })
+      }
 
-      // 通知游戏层面的错误处理
-      this.game.emit('error', new GameError(
-        `阶段管理错误: ${error.message}`,
-        'PHASE_MANAGER_ERROR',
-        { context, phaseIndex: this.currentPhaseIndex, error }
-      ))
+      // 替换：this.game.emit('error', new GameError(...))
+      await this.game.notificationCenter.handleError(
+        new GameError(
+          `阶段管理错误: ${error.message}`,
+          'PHASE_MANAGER_ERROR',
+          { context, phaseIndex: this.currentPhaseIndex, error }
+        )
+      )
     } catch (handlingError) {
       console.error('[PhaseManager] 处理阶段错误时发生异常:', handlingError)
     }
@@ -390,16 +438,21 @@ export class PhaseManager extends EventEmitter {
   }
 
   /**
+   * 获取当前阶段状态
+   * @returns {Object|null} 当前阶段状态实例
+   */
+  getCurrentPhaseState () {
+    return this.currentPhaseState
+  }
+
+  /**
    * 清理阶段管理器
    */
   async cleanup () {
     try {
       console.log('[PhaseManager] 开始清理阶段管理器')
 
-      // 清理当前阶段状态的事件监听器
-      if (this.currentPhaseState) {
-        this.cleanupPhaseEventListeners(this.currentPhaseState)
-      }
+      // 移除事件监听器清理：现在使用回调函数，无需清理事件监听器
 
       // 清理阶段状态缓存
       this.phaseStates.clear()

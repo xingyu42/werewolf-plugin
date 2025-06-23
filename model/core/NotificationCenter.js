@@ -154,6 +154,65 @@ export class NotificationCenter {
   }
 
   /**
+   * 发送私聊消息
+   * @param {string} playerId 玩家ID
+   * @param {string} content 消息内容
+   */
+  async sendPrivateMessage (playerId, content) {
+    await this.sendMessage('private', playerId, content)
+  }
+
+  /**
+   * 通知状态初始化
+   * @param {string} stateName 状态名称
+   * @param {number} turn 轮次
+   * @param {string} phase 阶段
+   */
+  async notifyStateInitialized (stateName, turn, phase) {
+    if (this.isCleanedUp) return
+
+    try {
+      console.log(`[NotificationCenter] 状态初始化: ${stateName}, 轮次: ${turn}, 阶段: ${phase}`)
+      // 可以选择是否发送消息给用户
+    } catch (error) {
+      console.error('[NotificationCenter] 状态初始化通知失败:', error)
+    }
+  }
+
+  /**
+   * 通知状态变更
+   * @param {Object} fromState 源状态
+   * @param {Object} toState 目标状态
+   * @param {number} turn 轮次
+   */
+  async notifyStateChanged (fromState, toState, turn) {
+    if (this.isCleanedUp) return
+
+    try {
+      console.log(`[NotificationCenter] 状态变更: ${fromState?.getName()} -> ${toState?.getName()}, 轮次: ${turn}`)
+      // 可以选择是否发送消息给用户
+    } catch (error) {
+      console.error('[NotificationCenter] 状态变更通知失败:', error)
+    }
+  }
+
+  /**
+   * 通知新回合
+   * @param {number} turn 轮次
+   * @param {string} phase 阶段
+   */
+  async notifyNewTurn (turn, phase) {
+    if (this.isCleanedUp) return
+
+    try {
+      console.log(`[NotificationCenter] 新回合: 第${turn}轮, 阶段: ${phase}`)
+      // 可以选择是否发送消息给用户
+    } catch (error) {
+      console.error('[NotificationCenter] 新回合通知失败:', error)
+    }
+  }
+
+  /**
    * 获取通知中心统计信息
    */
   getStats () {

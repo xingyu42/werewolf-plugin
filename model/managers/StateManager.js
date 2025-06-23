@@ -41,13 +41,12 @@ export class StateManager {
 
       console.log('[StateManager] 游戏状态初始化完成，进入阶段化夜晚流程')
 
-      // 发出初始化完成事件
-      this.game.emit('stateInitialized', {
-        initialState: 'NightPhaseController',
-        turn: this.turn,
-        phase: this.currentPhase,
-        timestamp: Date.now()
-      })
+      // 替换emit调用为notificationCenter
+      await this.game.notificationCenter.notifyStateInitialized(
+        'NightPhaseController',
+        this.turn,
+        this.currentPhase
+      )
     } catch (error) {
       console.error('[StateManager] 初始化游戏状态失败:', error)
 
@@ -62,14 +61,12 @@ export class StateManager {
         this.turn = 1
 
         console.log('[StateManager] 已回退到白天状态，跳过夜晚阶段')
-        this.game.emit('stateFallback', {
-          fallbackState: 'DayState',
-          originalError: error.message,
-          skippedPhase: 'NIGHT'
-        })
+        // 替换emit调用 - 回退通知不需要用户通知，仅记录日志
+        console.log('[StateManager] 状态回退: DayState, 原始错误:', error.message)
       } catch (fallbackError) {
         console.error('[StateManager] 简化回退机制也失败:', fallbackError)
-        this.game.emit('error', new GameError(
+        // 替换emit调用为notificationCenter
+        await this.game.notificationCenter.handleError(new GameError(
           '初始化游戏状态失败，简化回退也失败',
           'STATE_INIT_CRITICAL_ERROR',
           { originalError: error, fallbackError }
@@ -106,19 +103,19 @@ export class StateManager {
 
       console.log(`[StateManager] 状态转换: ${oldState?.getName() || 'none'} -> ${newState.getName()}`)
 
-      // 发出状态变更事件
-      this.game.emit('stateChanged', {
-        oldState: oldState?.getName() || 'none',
-        newState: newState.getName(),
-        turn: this.turn,
-        phase: this.currentPhase
-      })
+      // 替换emit调用为notificationCenter
+      await this.game.notificationCenter.notifyStateChanged(
+        oldState,
+        newState,
+        this.turn
+      )
 
       // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 移除自动保存游戏状态调用; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
       // 移除了自动保存游戏状态的调用
     } catch (error) {
       console.error('[StateManager] 状态转换失败:', error)
-      this.game.emit('error', new GameError(
+      // 替换emit调用为notificationCenter
+      await this.game.notificationCenter.handleError(new GameError(
         '状态转换失败',
         'STATE_CHANGE_ERROR',
         { newState: newState?.getName(), error }
@@ -172,11 +169,8 @@ export class StateManager {
     this.turn++
     console.log(`[StateManager] 回合数增加到: ${this.turn}`)
 
-    // 发出新回合事件
-    this.game.emit('newTurn', {
-      turn: this.turn,
-      phase: this.currentPhase
-    })
+    // 替换emit调用为notificationCenter
+    await this.game.notificationCenter.notifyNewTurn(this.turn, this.currentPhase)
 
     // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 移除保存状态调用; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
     // 移除了保存状态的调用
@@ -216,7 +210,8 @@ export class StateManager {
         const playerId = player
         player = this.game.playerManager.getPlayer(playerId)
         if (!player) {
-          this.game.emit('error', new GameError(
+          // 替换emit调用为notificationCenter
+          await this.game.notificationCenter.handleError(new GameError(
             `玩家不存在: ${playerId}`,
             'PLAYER_NOT_FOUND'
           ))
@@ -226,7 +221,8 @@ export class StateManager {
 
       // 验证行动有效性
       if (!this.isValidAction(player, action)) {
-        this.game.emit('error', new GameError(
+        // 替换emit调用为notificationCenter
+        await this.game.notificationCenter.handleError(new GameError(
           '非法操作: 玩家无法执行该动作',
           'INVALID_ACTION'
         ))
@@ -235,7 +231,8 @@ export class StateManager {
 
       const currentState = this.getCurrentState()
       if (!currentState) {
-        this.game.emit('error', new GameError(
+        // 替换emit调用为notificationCenter
+        await this.game.notificationCenter.handleError(new GameError(
           '游戏状态错误: 当前没有活动状态',
           'NO_ACTIVE_STATE'
         ))
@@ -246,7 +243,8 @@ export class StateManager {
       await currentState.handleAction(player, action, target)
     } catch (err) {
       console.error('[StateManager] 处理玩家行为时出错:', err)
-      this.game.emit('error', new GameError(
+      // 替换emit调用为notificationCenter
+      await this.game.notificationCenter.handleError(new GameError(
         err.message,
         'ACTION_ERROR',
         { player, action, target }

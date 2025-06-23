@@ -49,7 +49,8 @@ export class InterventionPhaseState extends NightPhaseState {
       await this.startSavePhase()
     } catch (error) {
       console.error('[InterventionPhaseState] 启动阶段逻辑失败:', error)
-      this.game.emit('error', new GameError(
+      // 替换emit调用为notificationCenter
+      await this.game.notificationCenter.handleError(new GameError(
         '启动干预阶段失败',
         'INTERVENTION_START_ERROR',
         { error }
@@ -385,11 +386,8 @@ export class InterventionPhaseState extends NightPhaseState {
    */
   async sendPrivateMessage (player, message) {
     try {
-      this.game.emit('message', {
-        type: 'private',
-        target: player.id,
-        content: message
-      })
+      // 替换emit调用为notificationCenter
+      await this.game.notificationCenter.sendPrivateMessage(player.id, message)
     } catch (error) {
       console.error('[InterventionPhaseState] 发送私聊消息失败:', error)
     }

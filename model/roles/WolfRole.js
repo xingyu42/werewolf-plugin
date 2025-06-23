@@ -95,10 +95,10 @@ export class WolfRole extends Role {
       wolfList = '\n\n其他存活狼人：\n' + aliveWolves.map((w) => `${w.player.gameNumber}号：${w.player.name}`).join('、')
     }
 
-    // 获取当前投票状态
+    // 获取当前投票状态 - 使用WolfRole自己的方法
     let voteStatus = ''
-    if (this.game.currentState.getName() === 'NightState') {
-      const voteCounts = this.game.currentState.getWolfVoteCounts()
+    if (this.game.currentState && this.game.currentState.getName() === 'NightState') {
+      const voteCounts = this.getVoteCounts()
       if (voteCounts.size > 0) {
         voteStatus = '\n\n当前投票情况：\n'
         for (const [targetId, count] of voteCounts.entries()) {
@@ -112,7 +112,7 @@ export class WolfRole extends Role {
     }
 
     return `【狼人】请选择今晚的击杀目标：
-${this.getAlivePlayersList().join('\n')}
+${this.getAlivePlayersList()}
 输入格式：#刀*号${wolfList}${voteStatus}
 
 你也可以与其他狼人进行队内沟通，输入格式：#讨论 你想说的话`
@@ -129,8 +129,19 @@ ${this.getAlivePlayersList().join('\n')}
 
     // 不能杀害同伴
     if (target.id === this.player.id) return false
-    const targetRole = this.game.roles.get(target.id)
-    if (targetRole.getCamp() === 'WOLF') return false
+    
+    // 检查游戏是否有roles属性，如果没有则使用playerManager
+    let targetRole
+    if (this.game.roles) {
+      targetRole = this.game.roles.get(target.id)
+    } else if (this.game.playerManager) {
+      targetRole = this.game.playerManager.getPlayerRole(target.id)
+    } else {
+      console.warn('WolfRole.isValidTarget: 无法获取目标角色信息')
+      return false
+    }
+    
+    if (targetRole && targetRole.getCamp() === 'WOLF') return false
 
     return true
   }
@@ -190,7 +201,11 @@ ${this.getAlivePlayersList().join('\n')}
       voteMsg = `【投票更新】狼人${voterNumber}号(${this.player.name})选择弃权`
     } else {
       const target = this.game.players.get(targetId)
-      voteMsg = `【投票更新】狼人${voterNumber}号(${this.player.name})投票击杀${target.name}`
+      if (target) {
+        voteMsg = `【投票更新】狼人${voterNumber}号(${this.player.name})投票击杀${target.name}`
+      } else {
+        voteMsg = `【投票更新】狼人${voterNumber}号(${this.player.name})投票击杀未知目标`
+      }
     }
 
     let voteStatus = '\n当前投票情况：\n'
@@ -239,7 +254,11 @@ ${this.getAlivePlayersList().join('\n')}
         : '【最终结果】由于投票平局，今晚狼人无法达成一致，不会击杀任何人'
     } else {
       const target = this.game.players.get(WolfRole.wolfKillTarget)
-      message = `【最终结果】狼人队伍决定击杀${target.name}`
+      if (target) {
+        message = `【最终结果】狼人队伍决定击杀${target.name}`
+      } else {
+        message = `【最终结果】狼人队伍决定击杀未知目标`
+      }
     }
 
     for (const wolf of wolves) {
@@ -335,7 +354,7 @@ ${this.getAlivePlayersList().join('\n')}
       }
 
       // 正常投票逻辑
-      if (!this.isValidTarget(target)) {
+      if (this.isValidTarget(target)) {
         try {
           const result = await this.handleVote(target.id)
           await this.sendPrivate(`你已投票击杀${target.name}`)
@@ -346,18 +365,20 @@ ${this.getAlivePlayersList().join('\n')}
         }
       }
 
-      if (action === 'kill') {
-        if (!target) return true // 空刀直接返回成功
-        if (target.protected) {
-          await this.reply(`${target.name}被守卫保护，无法击杀`)
-          return false
-        }
-        await this.game.handlePlayerDeath(target, 'WOLF_KILL')
-        return true
-      }
-
       return false
     }
+
+    if (action === 'kill') {
+      if (!target) return true // 空刀直接返回成功
+      if (target.protected) {
+        await this.reply(`${target.name}被守卫保护，无法击杀`)
+        return false
+      }
+      await this.game.handlePlayerDeath(target, 'WOLF_KILL')
+      return true
+    }
+
+    return false
   }
 
   /**

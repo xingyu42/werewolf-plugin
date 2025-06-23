@@ -629,19 +629,10 @@ export class EliminationPhaseState extends NightPhaseState {
         阶段耗时: stats.duration
       })
 
-      // 发出阶段完成事件
-      this.emit('phaseCompleted', {
-        phaseName: this.phaseConfig.name,
-        results: {
-          wolfVotes: Array.from(this.wolfVotes.values()),
-          discussionMessages: this.discussionMessages,
-          finalKillTarget: this.finalKillTarget
-        },
-        stats
-      })
+      // 移除emit调用，父类会处理回调机制
     } catch (error) {
       console.error('[EliminationPhaseState] 阶段完成处理失败:', error)
-      this.emit('phaseError', error)
+      throw error // 抛出错误让父类处理
     }
   }
 

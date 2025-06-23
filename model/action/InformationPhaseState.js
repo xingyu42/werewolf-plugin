@@ -309,18 +309,10 @@ export class InformationPhaseState extends NightPhaseState {
         阶段耗时: stats.duration
       })
 
-      // 发出阶段完成事件，通知PhaseManager转换到下一阶段
-      this.emit('phaseCompleted', {
-        phaseName: this.phaseConfig.name,
-        results: {
-          prophetResults: Array.from(this.prophetResults.values()),
-          guardProtections: Array.from(this.guardProtections.values())
-        },
-        stats
-      })
+      // 这里只需要输出日志，父类会处理回调机制
     } catch (error) {
       console.error('[InformationPhaseState] 阶段完成处理失败:', error)
-      this.emit('phaseError', error)
+      throw error // 抛出错误让父类处理
     }
   }
 

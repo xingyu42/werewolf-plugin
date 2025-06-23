@@ -5,10 +5,12 @@
 export class PhaseCoordinator {
   /**
    * 创建阶段协调器
+   * @param {NightPhaseController} nightPhaseController 夜晚阶段控制器引用（可选）
    */
-  constructor () {
+  constructor (nightPhaseController = null) {
     this.phaseHistory = []
     this.isCleanedUp = false
+    this.nightPhaseController = nightPhaseController
   }
 
   /**

@@ -43,10 +43,7 @@ export class LastWordsState extends GameState {
     // 检查死亡玩家是特殊角色
     const deadRole = this.game.roles.get(this.deadPlayer.id)
     if (deadRole instanceof HunterRole && deadRole.canAct()) {
-      this.game.emit('message', {
-        type: 'group',
-        content: `猎人 ${this.deadPlayer.name} 的遗言结束，现在可以开枪`
-      })
+      await this.game.notificationCenter.sendMessage('group', null, `猎人 ${this.deadPlayer.name} 的遗言结束，现在可以开枪`)
       await deadRole.getActionPrompt()
     }
 
@@ -55,10 +52,7 @@ export class LastWordsState extends GameState {
 
     // 如果死亡玩家是警长，转移到警长移交状态
     if (this.deadPlayer.isSheriff) {
-      this.game.emit('message', {
-        type: 'group',
-        content: `警长 ${this.deadPlayer.name} 死亡，现在可以转移警徽`
-      })
+      await this.game.notificationCenter.sendMessage('group', null, `警长 ${this.deadPlayer.name} 死亡，现在可以转移警徽`)
       await this.game.changeState(new SheriffTransferState(this.game, this.deadPlayer, this.nextState))
       return // 已经转换状态，不需要进行下一步
     }
