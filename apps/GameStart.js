@@ -1,11 +1,75 @@
 import { GameConfig, PlayerStats } from '../components/services.js'
 import { GameRegistry } from '../model/services/GameRegistry.js'
-import { GameLobby } from '../model/services/GameLobby.js'
 import { Player } from '../model/Player.js'
 import { defaultErrorHandler } from '../model/core/ErrorHandler.js'
+import { Game } from '../model/core/Game.js'
+import { StateMachine } from '../model/core/StateMachine.js'
+import { PlayerQueryService } from '../model/services/PlayerQueryService.js'
+import { VictoryChecker } from '../model/core/VictoryChecker.js'
 
-// A simple in-memory store for active lobbies
+// 简化的游戏大厅数据结构，替代 GameLobby 类
+// 结构：{ players: Player[], gameConfig: Object, botReference?: Object, timeoutTimer?: Timer }
 const lobbies = new Map()
+
+/**
+ * 大厅管理工具函数 - 替代 GameLobby 类
+ */
+const LobbyUtils = {
+  // 创建新大厅
+  createLobby(gameConfig) {
+    return {
+      players: [],
+      gameConfig: gameConfig
+    }
+  },
+
+  // 检查玩家是否已在大厅中
+  hasPlayer(lobby, playerId) {
+    return lobby.players.some(p => p.id === playerId)
+  },
+
+  // 添加玩家到大厅
+  addPlayer(lobby, player) {
+    const playerCount = lobby.players.length
+    const maxPlayers = lobby.gameConfig.game.maxPlayers
+
+    if (playerCount >= maxPlayers) {
+      throw new Error(`游戏人数已达上限${maxPlayers}人`)
+    }
+
+    if (this.hasPlayer(lobby, player.id)) {
+      throw new Error('该玩家已经在游戏中')
+    }
+
+    lobby.players.push(player)
+    return lobby
+  },
+
+  // 获取大厅玩家列表
+  getPlayers(lobby) {
+    return lobby.players
+  },
+
+  // 创建游戏实例 - 替代 GameLobby.createGame()
+  async createGame(lobby, groupId, e) {
+    const stateMachine = new StateMachine()
+    const playerQueryService = new PlayerQueryService()
+    const victoryChecker = new VictoryChecker()
+
+    const game = new Game({
+      e,
+      config: lobby.gameConfig,
+      players: lobby.players,
+      stateMachine,
+      playerQueryService,
+      victoryChecker,
+      groupId
+    })
+
+    await GameRegistry.addGame(groupId, game)
+    return game
+  }
+}
 
 export class GameStart extends plugin {
   constructor () {
@@ -23,6 +87,7 @@ export class GameStart extends plugin {
     })
 
     this.playerStats = PlayerStats
+    this.reloadfriend = false // 好友列表刷新标志
   }
 
   async createGame (e) {
@@ -33,11 +98,11 @@ export class GameStart extends plugin {
       return true
     }
 
-    const lobby = new GameLobby(GameConfig)
+    const lobby = LobbyUtils.createLobby(GameConfig)
     lobbies.set(e.group_id, lobby)
 
     const player = Player.fromEvent(e)
-    lobby.addPlayer(player)
+    LobbyUtils.addPlayer(lobby, player)
 
     e.reply(`游戏大厅创建成功，${player.name} 已自动加入游戏，其他玩家请输入 #加入狼人杀 参与`)
     return true
@@ -67,17 +132,17 @@ export class GameStart extends plugin {
       return true
     }
 
-    if (lobby.hasPlayer(e.user_id)) {
+    if (LobbyUtils.hasPlayer(lobby, e.user_id)) {
       e.reply('你已经在游戏中了')
       return true
     }
 
     // 创建新玩家
     const player = Player.fromEvent(e)
-    lobby.addPlayer(player)
+    LobbyUtils.addPlayer(lobby, player)
 
     // 获取人数统计信息
-    const currentCount = lobby.getPlayers().length
+    const currentCount = LobbyUtils.getPlayers(lobby).length
     const minPlayers = GameConfig.game.minPlayers
 
     // 构建人数统计消息
@@ -115,12 +180,10 @@ export class GameStart extends plugin {
 
     try {
       // Create the game from the lobby
-      const game = await lobby.createGame(e.group_id, e)
+      const game = await LobbyUtils.createGame(lobby, e.group_id, e)
 
-      // Set up event listeners
-      game.on('gameEnd', (result) => {
-        this.playerStats.updateStats(game, result)
-      })
+      // 注意：Game 类已移除 EventEmitter 继承，使用 NotificationCenter 进行通知
+      // 统计数据更新现在通过 NotificationCenter 在游戏结束时自动处理
 
       const result = await game.start()
 
@@ -133,7 +196,7 @@ export class GameStart extends plugin {
       // 使用统一的错误处理器
       const context = {
         groupId: e.group_id,
-        playerCount: lobby.getPlayers().length,
+        playerCount: LobbyUtils.getPlayers(lobby).length,
         action: 'startGame'
       }
 
@@ -168,7 +231,7 @@ export class GameStart extends plugin {
    * @returns {Promise<Object>} 检查结果 {allFriends: boolean, nonFriends: Array}
    */
   async checkFriendStatus (e, lobby) {
-    const players = lobby.getPlayers()
+    const players = LobbyUtils.getPlayers(lobby)
 
     try {
       // 使用简化的好友验证器
@@ -255,9 +318,12 @@ export class GameStart extends plugin {
     console.log(`[GameStart] 开始检查 ${players.length} 个玩家的好友状态`)
 
     // 刷新好友列表缓存
-    if (typeof e.bot?.reloadFriendList === 'function') {
+    if (this.reloadfriend) {
       console.log('[GameStart] 刷新好友列表缓存...')
-      e.bot.reloadFriendList()
+      if (typeof e.bot?.reloadFriendList === 'function') {
+        e.bot.reloadFriendList()
+      }
+      this.reloadfriend = false
     }
 
     for (const player of players) {
@@ -267,6 +333,8 @@ export class GameStart extends plugin {
         nonFriends.push(player)
       }
     }
+
+    if (nonFriends.length > 0) this.reloadfriend = true
 
     console.log(`[GameStart] 好友检查完成，${nonFriends.length} 个非好友`)
 

@@ -8,9 +8,11 @@ export class NotificationCenter {
   /**
    * 创建通知中心
    * @param {Object} e 通信句柄
+   * @param {Object} game 游戏实例引用（可选，用于统计数据更新）
    */
-  constructor (e) {
+  constructor (e, game = null) {
     this.e = e
+    this.game = game // 保存游戏实例引用
     this.errorCount = 0
     this.isCleanedUp = false
   }
@@ -28,8 +30,41 @@ export class NotificationCenter {
       const message = `游戏结束！\n获胜阵营：${winner}\n胜利原因：${reason}\n存活玩家：\n${alivePlayers}`
       await this.e.reply(message)
       console.log('[NotificationCenter] 游戏结束通知发送成功')
+
+      // 更新玩家统计数据
+      await this.updatePlayerStats(winner, reason)
     } catch (error) {
       console.error('[NotificationCenter] 发送游戏结束通知失败:', error)
+    }
+  }
+
+  /**
+   * 更新玩家统计数据
+   * @param {string} winner 获胜阵营
+   * @param {string} reason 胜利原因
+   * @private
+   */
+  async updatePlayerStats (winner, reason) {
+    try {
+      // 动态导入PlayerStats
+      const { PlayerStats } = await import('../../components/services.js')
+      
+      // 构造游戏结果对象，与原来的事件监听器格式保持一致
+      const gameResult = {
+        winner,
+        reason
+      }
+
+      // 获取游戏实例，需要通过一种方式访问到game对象
+      // 由于NotificationCenter在Game的构造函数中创建，我们需要传递game引用
+      if (this.game) {
+        PlayerStats.updateStats(this.game, gameResult)
+        console.log('[NotificationCenter] 玩家统计数据更新完成')
+      } else {
+        console.warn('[NotificationCenter] 无法获取游戏实例，跳过统计数据更新')
+      }
+    } catch (error) {
+      console.error('[NotificationCenter] 更新玩家统计数据失败:', error)
     }
   }
 

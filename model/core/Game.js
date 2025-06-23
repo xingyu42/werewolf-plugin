@@ -21,6 +21,9 @@ export class Game {
 
     // 初始化通知中心替代GameEventHandler
     this.notificationCenter = new NotificationCenter(e)
+    
+    // 设置游戏引用，用于统计数据更新
+    this.notificationCenter.game = this
 
     // 清理状态标志，防止重复清理
     this._isCleanedUp = false
