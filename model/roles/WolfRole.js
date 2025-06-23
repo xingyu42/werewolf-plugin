@@ -92,7 +92,7 @@ export class WolfRole extends Role {
     const aliveWolves = this.game.getAlivePlayers({ roleType: 'WolfRole', includeRole: true })
     let wolfList = ''
     if (aliveWolves.length > 0) {
-      wolfList = '\n\n其他存活狼人：\n' + aliveWolves.map((w) => `${w.player.name}`).join('、')
+      wolfList = '\n\n其他存活狼人：\n' + aliveWolves.map((w) => `${w.player.gameNumber}号：${w.player.name}`).join('、')
     }
 
     // 获取当前投票状态
