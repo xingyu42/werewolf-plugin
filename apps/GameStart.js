@@ -19,7 +19,8 @@ const LobbyUtils = {
   createLobby(gameConfig) {
     return {
       players: [],
-      gameConfig: gameConfig
+      gameConfig: gameConfig,
+      FriendReload: false  // 好友列表刷新标志
     }
   },
 
@@ -37,7 +38,7 @@ const LobbyUtils = {
       throw new Error(`游戏人数已达上限${maxPlayers}人`)
     }
 
-    if (this.hasPlayer(lobby, player.id)) {
+    if (LobbyUtils.hasPlayer(lobby, player.id)) {
       throw new Error('该玩家已经在游戏中')
     }
 
@@ -87,7 +88,6 @@ export class GameStart extends plugin {
     })
 
     this.playerStats = PlayerStats
-    this.reloadfriend = false // 好友列表刷新标志
   }
 
   async createGame (e) {
@@ -167,7 +167,8 @@ export class GameStart extends plugin {
     }
 
     // 好友状态预检测
-    const friendCheckResult = await this.checkFriendStatus(e, lobby)
+    const players = LobbyUtils.getPlayers(lobby)
+    const friendCheckResult = await this.validateBatch(players, e)
     if (!friendCheckResult.allFriends) {
       // 存在非好友用户，暂停游戏开始
       const nonFriendsList = friendCheckResult.nonFriends.map(player => `@${player.name}`).join(' ')
@@ -179,17 +180,11 @@ export class GameStart extends plugin {
     }
 
     try {
-      // Create the game from the lobby
       const game = await LobbyUtils.createGame(lobby, e.group_id, e)
-
-      // 注意：Game 类已移除 EventEmitter 继承，使用 NotificationCenter 进行通知
-      // 统计数据更新现在通过 NotificationCenter 在游戏结束时自动处理
-
       const result = await game.start()
 
       if (result) {
         e.reply('游戏开始!')
-        // Clean up the lobby once the game starts
         this.cleanupLobby(e.group_id)
       }
     } catch (error) {
@@ -214,6 +209,49 @@ export class GameStart extends plugin {
     return true
   }
 
+    /**
+   * 批量检查玩家好友状态
+   * @param {Array} players - 玩家对象数组
+   * @param {Object} e - 事件对象
+   * @returns {Promise<Object>} 检查结果 {allFriends: boolean, nonFriends: Array}
+   */
+  async validateBatch (players, e) {
+    const nonFriends = []
+
+      console.log(`[GameStart] 开始检查 ${players.length} 个玩家的好友状态`)
+
+      // 刷新好友列表缓存 - 从lobby状态读取
+      const lobby = lobbies.get(e.group_id)
+      if (lobby?.FriendReload) {
+        console.log('[GameStart] 刷新好友列表缓存...')
+        await e.bot.reloadFriendList()
+        lobby.FriendReload = false
+      }
+
+      for (const player of players) {
+          const isFriend = e.bot.fl.has(parseInt(player.id))
+          console.log(`[GameStart] 玩家 ${player.id} ${isFriend ? '在' : '不在'}好友列表中`)
+          if (!isFriend) {
+            nonFriends.push(player)
+          }
+      }
+
+      // 如果有非好友，设置lobby刷新标志供下次检查使用
+      if (nonFriends.length > 0 && lobby) {
+        lobby.FriendReload = true
+        console.log('[GameStart] 检测到非好友，设置下次检查刷新标志')
+      }
+
+      console.log(`[GameStart] 好友检查完成，${nonFriends.length} 个非好友`)
+
+      return {
+        allFriends: nonFriends.length === 0,
+        nonFriends
+      }
+    
+  }
+
+
   async endGame (e) {
     const groupId = e.group_id
 
@@ -223,29 +261,6 @@ export class GameStart extends plugin {
     return true
   }
 
-  /**
-   * 检查lobby中所有玩家的好友状态
-   * 使用strict模式进行好友验证
-   * @param {Object} e 事件对象
-   * @param {Object} lobby 游戏大厅对象
-   * @returns {Promise<Object>} 检查结果 {allFriends: boolean, nonFriends: Array}
-   */
-  async checkFriendStatus (e, lobby) {
-    const players = LobbyUtils.getPlayers(lobby)
-
-    try {
-      // 使用简化的好友验证器
-      const result = this.validateBatch(players, e)
-      return result
-    } catch (error) {
-      console.error('[GameStart] 好友验证过程中发生异常:', error)
-      // 如果验证失败，返回所有玩家都不是好友
-      return {
-        allFriends: false,
-        nonFriends: players
-      }
-    }
-  }
 
   /**
    * 设置lobby超时自动解散机制
@@ -306,41 +321,4 @@ export class GameStart extends plugin {
     }
   }
 
-  /**
-   * 批量检查玩家好友状态
-   * @param {Array} players - 玩家对象数组
-   * @param {Object} e - 事件对象
-   * @returns {Promise<Object>} 检查结果 {allFriends: boolean, nonFriends: Array}
-   */
-  validateBatch (players, e) {
-    const nonFriends = []
-
-    console.log(`[GameStart] 开始检查 ${players.length} 个玩家的好友状态`)
-
-    // 刷新好友列表缓存
-    if (this.reloadfriend) {
-      console.log('[GameStart] 刷新好友列表缓存...')
-      if (typeof e.bot?.reloadFriendList === 'function') {
-        e.bot.reloadFriendList()
-      }
-      this.reloadfriend = false
-    }
-
-    for (const player of players) {
-      const isFriend = e.bot.fl.has(parseInt(player.id))
-      console.log(`[GameStart] 玩家 ${player.id} ${isFriend ? '在' : '不在'}好友列表中`)
-      if (!isFriend) {
-        nonFriends.push(player)
-      }
-    }
-
-    if (nonFriends.length > 0) this.reloadfriend = true
-
-    console.log(`[GameStart] 好友检查完成，${nonFriends.length} 个非好友`)
-
-    return {
-      allFriends: nonFriends.length === 0,
-      nonFriends
-    }
-  }
 }
