@@ -1,4 +1,4 @@
-import { NightPhaseController } from '../action/NightPhaseController.js'
+import { NightPhaseController } from '../states/NightPhaseController.js'
 import { GameError } from '../core/GameError.js'
 import { GAME_PHASES } from '../core/Constants.js'
 

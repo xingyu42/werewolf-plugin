@@ -1,6 +1,6 @@
 import { GameConfig, PlayerStats } from '../components/services.js'
 import { GameRegistry } from '../model/services/GameRegistry.js'
-import { Player } from '../model/Player.js'
+import { Player } from '../model/core/Player.js'
 import { defaultErrorHandler } from '../model/core/ErrorHandler.js'
 import { Game } from '../model/core/Game.js'
 import { StateMachine } from '../model/core/StateMachine.js'

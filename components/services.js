@@ -2,7 +2,7 @@ import Data from './Data.js'
 import GameConfig from './GameConfig.js'
 import YamlReader from './YamlReader.js'
 import Puppeteer from './puppeteer.js'
-import PlayerStats from '../model/stats/PlayerStats.js'
+import PlayerStats from '../model/services/PlayerStats.js'
 
 // Assume redis and logger are available globally in the execution environment.
 // This is a common pattern in the Yunzai-Bot framework.

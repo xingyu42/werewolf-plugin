@@ -1,6 +1,6 @@
 import { GameRegistry } from './GameRegistry.js'
 import { GameError } from '../core/GameError.js'
-import { ValidationUtils } from '../utils/ValidationUtils.js'
+import { ValidationUtils } from '../core/ValidationUtils.js'
 
 export class ActionHandler {
   /**
