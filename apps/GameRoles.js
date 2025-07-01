@@ -38,10 +38,6 @@ export class GameRoles extends plugin {
           fnc: 'wolfKill'
         },
         {
-          reg: '^#自爆$',
-          fnc: 'wolfSuicide'
-        },
-        {
           reg: '^#空刀$',
           fnc: 'wolfSkip'
         }
@@ -50,7 +46,11 @@ export class GameRoles extends plugin {
   }
 
   // 守卫守护
-  async guardAction (e) {
+  async guardAction(e) {
+    if (e.isGroup) {
+      e.reply('请私聊发送命令')
+      return false
+    }
     await ActionHandler.handle(e, {
       role: 'GuardRole',
       target: { required: true, parse: (msg) => msg.match(/(\\d+)/)?.[1] },
@@ -93,6 +93,10 @@ export class GameRoles extends plugin {
 
   // 女巫毒人
   async witchPoison (e) {
+    if (e.isGroup) {
+      e.reply('请私聊发送命令')
+      return false
+    }
     await ActionHandler.handle(e, {
       role: 'WitchRole',
       target: { required: true, parse: (msg) => msg.match(/(\\d+)/)?.[1] },
@@ -106,6 +110,10 @@ export class GameRoles extends plugin {
 
   // 女巫救人
   async witchSave (e) {
+    if (e.isGroup) {
+      e.reply('请私聊发送命令')
+      return false
+    }
     await ActionHandler.handle(e, {
       role: 'WitchRole',
       action: async ({ role, currentState }) => {
@@ -118,6 +126,10 @@ export class GameRoles extends plugin {
 
   // 狼人杀人
   async wolfKill (e) {
+    if (e.isGroup) {
+      e.reply('请私聊发送命令')
+      return false
+    }
     await ActionHandler.handle(e, {
       role: 'WolfRole',
       target: { required: true, parse: (msg) => msg.match(/(\\d+)/)?.[1] },
@@ -128,20 +140,12 @@ export class GameRoles extends plugin {
     })
   }
 
-  // 狼人自爆
-  async wolfSuicide (e) {
-    await ActionHandler.handle(e, {
-      role: 'WolfRole',
-      checkAlive: true,
-      action: async ({ role, currentState }) => {
-        if (!role.canAct(currentState)) throw new Error('当前阶段不能执行此操作')
-        await currentState.handleAction(role.player, ACTIONS.SUICIDE)
-      }
-    })
-  }
-
   // 女巫放弃用药
   async witchSkip (e) {
+    if (e.isGroup) {
+      e.reply('请私聊发送命令')
+      return false
+    }
     await ActionHandler.handle(e, {
       role: 'WitchRole',
       action: async ({ role, currentState }) => {
@@ -152,6 +156,10 @@ export class GameRoles extends plugin {
   }
 
   async wolfSkip (e) {
+    if (e.isGroup) {
+      e.reply('请私聊发送命令')
+      return false
+    }
     await ActionHandler.handle(e, {
       role: 'WolfRole',
       action: async ({ role, currentState }) => {

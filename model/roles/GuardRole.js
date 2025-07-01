@@ -93,9 +93,9 @@ export class GuardRole extends Role {
   async act (target, action = 'protect') {
     if (!this.isValidTarget(target)) {
       if (target && target.id === this.lastProtectedId) {
-        await this.sendPrivate('你不能连续两晚守护同一个人')
+        await this.e.reply('你不能连续两晚守护同一个人')
       } else {
-        await this.sendPrivate('无效的守护目标')
+        await this.e.reply('无效的守护目标')
       }
       return false
     }
@@ -109,7 +109,7 @@ export class GuardRole extends Role {
     // 记录本次守护的玩家ID
     this.lastProtectedId = target.id
 
-    await this.sendPrivate(`你成功守护了 ${target.gameNumber}号 ${target.name}`)
+    await this.e.reply(`你成功守护了 ${target.gameNumber}号 ${target.name}`)
     return true
   }
 }

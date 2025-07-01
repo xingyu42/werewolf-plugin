@@ -47,7 +47,8 @@ export class WitchRole extends Role {
    * @async
    * @returns {Promise<boolean>} 是否成功发送提示消息
    */
-  async getActionPrompt () {
+  async getActionPrompt() {
+    if (!this.canAct()) return e.reply('女巫只能在夜晚阶段行动')
     if (!this.hasAntidote && !this.hasPoison) {
       await this.sendPrivate('【女巫】你已经没有药可以使用了')
       return false
@@ -130,33 +131,33 @@ export class WitchRole extends Role {
       // 验证救人目标
       const validation = this.isValidSaveTarget(target)
       if (!validation.isValid) {
-        await this.sendPrivate(validation.message)
+        await this.e.reply(validation.message)
         return false
       }
 
       // 检查是否能自救
       if (target.id === this.player.id && !this.canSaveSelf) {
-        await this.reply('你不能对自己使用解药')
+        await this.e.reply('你不能对自己使用解药')
         return false
       }
 
       // 使用解药 - 使用集中化的复活方法
       this.hasAntidote = false
       this.game.revivePlayer(target)
-      await this.reply(`${this.player.name}使用解药救活了${target.name}`)
+      await this.e.reply(`${this.player.name}使用解药救活了${target.name}`)
       return true
     } else if (action === 'poison') {
       // 验证毒杀目标
       const validation = this.isValidPoisonTarget(target)
       if (!validation.isValid) {
-        await this.sendPrivate(validation.message)
+        await this.e.reply(validation.message)
         return false
       }
 
       // 使用毒药 - 使用集中化的死亡处理方法
       this.hasPoison = false
       await this.game.handlePlayerDeath(target, 'POISON')
-      await this.reply(`${this.player.name}使用毒药毒杀了${target.name}`)
+              await this.e.reply(`${this.player.name}使用毒药毒杀了${target.name}`)
       return true
     }
 
@@ -165,7 +166,7 @@ export class WitchRole extends Role {
 
   // 跳过使用药水
   async skip () {
-    await this.reply(`${this.player.name}选择不使用任何药水`)
+    await this.e.reply(`${this.player.name}选择不使用任何药水`)
     return true
   }
 }

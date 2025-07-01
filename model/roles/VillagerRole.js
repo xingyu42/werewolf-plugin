@@ -32,7 +32,8 @@ export class VillagerRole extends Role {
    *
    * @returns {string} 夜晚等待提示消息
    */
-  getActionPrompt () {
-    return '【村民】夜晚请安心休息，等待天亮参与讨论和投票'
+  async getActionPrompt(e) {
+    e.reply('【村民】夜晚请安心休息，等待天亮参与讨论和投票')
+    return true
   }
 }

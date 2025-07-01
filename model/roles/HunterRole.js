@@ -129,7 +129,7 @@ export class HunterRole extends Role {
       const validation = this.isValidTarget(rawTargetId)
 
       if (!validation.isValid) {
-        await this.sendPrivate(`开枪失败: ${validation.message}`)
+        await this.e.reply(`开枪失败: ${validation.message}`)
         return false
       }
 
@@ -143,12 +143,12 @@ export class HunterRole extends Role {
       await this.game.handlePlayerDeath(target, 'HUNTER_SHOT')
 
       // 发送消息
-      await this.reply(`猎人 ${this.player.name} 开枪射杀了 ${target.name}`)
+      await this.e.reply(`猎人 ${this.player.name} 开枪射杀了 ${target.name}`)
 
       return true
     } catch (err) {
       console.error('猎人开枪失败:', err)
-      await this.sendPrivate(`开枪失败: ${err.message}`)
+      await this.e.reply(`开枪失败: ${err.message}`)
       return false
     }
   }

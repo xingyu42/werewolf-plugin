@@ -14,8 +14,6 @@ export class StateManager {
     this.turn = 0
     this.stateHistory = [] // 状态历史记录
 
-    // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 完全移除Redis持久化相关属性; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
-    // 移除了所有Redis持久化相关属性：persistenceEnabled, redis, persistenceKeyPrefix
 
     // 设置状态机上下文
     if (this.stateMachine) {
@@ -27,7 +25,6 @@ export class StateManager {
    * 初始化游戏状态
    * 设置游戏的初始状态
    *
-   * {{CHENGQI: Action: Modified; Timestamp: 2025-06-19 21:15:45 +08:00; Reason: Shrimp Task ID: #f2c4abaa-ef74-4813-bd24-e7b778e24087, 切换到新的夜晚阶段控制器; Principle_Applied: SOLID-OCP-OpenClosedPrinciple;}}
    */
   async initializeState () {
     try {
@@ -51,7 +48,6 @@ export class StateManager {
       console.error('[StateManager] 初始化游戏状态失败:', error)
 
       // 尝试使用简化的夜晚状态回退机制（如果新控制器初始化失败）
-      // {{CHENGQI: Action: Modified; Timestamp: 2025-06-21 13:43:14 +08:00; Reason: Shrimp Task ID: #e3f2f046-2904-468a-8913-56be7356be70, 更新回退机制移除NightState依赖; Principle_Applied: SOLID-DIP-DependencyInversion;}}
       try {
         console.log('[StateManager] 尝试使用简化回退机制，跳过夜晚阶段')
         const { DayState } = await import('../action/DayState.js')
@@ -110,7 +106,6 @@ export class StateManager {
         this.turn
       )
 
-      // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 移除自动保存游戏状态调用; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
       // 移除了自动保存游戏状态的调用
     } catch (error) {
       console.error('[StateManager] 状态转换失败:', error)
@@ -147,21 +142,6 @@ export class StateManager {
     return this.turn
   }
 
-  // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 完全删除saveGameState方法; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
-  // 已删除saveGameState方法
-
-  // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 完全删除loadGameState方法; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
-  // 已删除loadGameState方法
-
-  // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 完全删除clearGameState方法; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
-  // 已删除clearGameState方法
-
-  // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 完全删除hasPersistedState方法; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
-  // 已删除hasPersistedState方法
-
-  // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 完全删除cleanupExpiredStates方法; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
-  // 已删除cleanupExpiredStates方法
-
   /**
    * 增加回合数
    */
@@ -172,7 +152,6 @@ export class StateManager {
     // 替换emit调用为notificationCenter
     await this.game.notificationCenter.notifyNewTurn(this.turn, this.currentPhase)
 
-    // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 移除保存状态调用; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
     // 移除了保存状态的调用
   }
 
@@ -266,7 +245,6 @@ export class StateManager {
   async cleanup () {
     console.log('[StateManager] 开始清理状态管理器')
 
-    // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 移除持久化状态清理调用; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
     // 移除了持久化状态清理相关代码
 
     // 清理状态历史
@@ -279,21 +257,12 @@ export class StateManager {
     console.log('[StateManager] 状态管理器清理完成')
   }
 
-  // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 完全删除restoreGameState方法; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
-  // 已删除restoreGameState方法
-
-  // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 完全删除getPersistenceConfig方法; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
-  // 已删除getPersistenceConfig方法
-
-  // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:43:43 +08:00; Reason: Shrimp Task ID: #a6ff8dd3-5eec-4efb-81bc-ffd467ecc6d6, 完全删除setPersistenceEnabled方法; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
-  // 已删除setPersistenceEnabled方法
 
   /**
    * 更新当前阶段
    * @private
    * @param {GameState} state 当前状态
    *
-   * {{CHENGQI: Action: Modified; Timestamp: 2025-06-19 20:25:15 +08:00; Reason: Shrimp Task ID: #0620a86e-5d49-417f-a654-9b137ed6dd3a, 添加新阶段状态类支持; Principle_Applied: SOLID-OCP-OpenClosedPrinciple;}}
    */
   updateCurrentPhase (state) {
     if (!state) return
@@ -360,4 +329,3 @@ export class StateManager {
   }
 }
 
-// {{END MODIFICATIONS}}

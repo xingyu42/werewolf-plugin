@@ -92,24 +92,7 @@ export class Role {
   }
 
   /**
-   * 发送群聊消息
-   *
-   * @async
-   * @param {string} message - 要发送的消息内容
-   * @returns {Promise<boolean>} 发送是否成功
-   */
-  async reply (message) {
-    try {
-      await this.e.reply(message)
-      return true
-    } catch (error) {
-      console.error('[Role] reply失败:', error)
-      return false
-    }
-  }
-
-  /**
-   * 发送私聊消息 - 失败时不降级
+   * 发送私聊消息
    *
    * @async
    * @param {string} message - 要发送的消息内容

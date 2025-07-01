@@ -88,34 +88,16 @@ export class WolfRole extends Role {
    *
    * @returns {string} 行动提示消息
    */
-  getActionPrompt () {
+  async getActionPrompt(e) {
+    if (!this.canAct()) return e.reply('狼人只能在夜晚阶段行动')
     const aliveWolves = this.game.getAlivePlayers({ roleType: 'WolfRole', includeRole: true })
-    let wolfList = ''
+    let msg = ''
     if (aliveWolves.length > 0) {
-      wolfList = '\n\n其他存活狼人：\n' + aliveWolves.map((w) => `${w.player.gameNumber}号：${w.player.name}`).join('、')
+      msg += '\n\n其他存活狼人：\n' + aliveWolves.map((w) => `${w.player.gameNumber}号：${w.player.name}`).join('、')
     }
-
-    // 获取当前投票状态 - 使用WolfRole自己的方法
-    let voteStatus = ''
-    if (this.game.currentState && this.game.currentState.getName() === 'NightState') {
-      const voteCounts = this.getVoteCounts()
-      if (voteCounts.size > 0) {
-        voteStatus = '\n\n当前投票情况：\n'
-        for (const [targetId, count] of voteCounts.entries()) {
-          if (targetId === null) continue // 跳过弃权票
-          const target = this.game.players.get(targetId)
-          if (target) {
-            voteStatus += `${target.name}: ${count}票\n`
-          }
-        }
-      }
-    }
-
-    return `【狼人】请选择今晚的击杀目标：
-${this.getAlivePlayersList()}
-输入格式：#刀*号${wolfList}${voteStatus}
-
-你也可以与其他狼人进行队内沟通，输入格式：#讨论 你想说的话`
+    msg += `【狼人】请选择今晚的击杀目标：\n${this.getAlivePlayersList()}\n输入格式：#刀*号\n你也可以与其他狼人进行队内沟通，输入格式：#讨论 你想说的话`
+    await e.sendPrivate(msg)
+    return true
   }
 
   /**
@@ -126,18 +108,15 @@ ${this.getAlivePlayersList()}
    */
   isValidTarget (target) {
     if (!super.isValidTarget(target)) return false
-
-    // 不能杀害同伴
-    if (target.id === this.player.id) return false
     
     // 检查游戏是否有roles属性，如果没有则使用playerManager
     let targetRole
-    if (this.game.roles) {
+    if (this.game.roles && this.game.roles.get(target.id)) {
       targetRole = this.game.roles.get(target.id)
     } else if (this.game.playerManager) {
       targetRole = this.game.playerManager.getPlayerRole(target.id)
     } else {
-      console.warn('WolfRole.isValidTarget: 无法获取目标角色信息')
+      console.warn('WolfRole.isValidTarget: 无法安全获取目标角色信息或角色管理器未初始化')
       return false
     }
     
@@ -244,21 +223,47 @@ ${this.getAlivePlayersList()}
    */
   async notifyVoteResult () {
     const wolves = this.game.getAlivePlayers({ roleType: 'WolfRole', includeRole: true })
-    let message
+    let message = '【狼人投票统计】\n'
+    const voteCounts = this.getVoteCounts()
+    
+    // 转为数组并排序：按票数降序，票数相同时按玩家编号升序
+    const sortedVotes = [...voteCounts.entries()].sort((a, b) => {
+      const [aId, aCount] = a
+      const [bId, bCount] = b
+      
+      // 首先按票数降序排列
+      if (aCount !== bCount) {
+        return bCount - aCount
+      }
+      
+      // 票数相同时，弃权排在最后
+      if (aId === null) return 1
+      if (bId === null) return -1
+      
+      // 票数相同且都不是弃权时，按玩家编号升序
+      const aTarget = this.game.players.get(aId)
+      const bTarget = this.game.players.get(bId)
+      return (aTarget?.gameNumber || 0) - (bTarget?.gameNumber || 0)
+    })
+    
+    sortedVotes.forEach(([tId, count]) => {
+      if (tId === null) {
+        message += `弃权：${count}票\n`
+      } else {
+        const target = this.game.players.get(tId)
+        message += `${target.gameNumber}号(${target.name})：${count}票\n`
+      }
+    })
 
     if (!WolfRole.wolfKillTarget) {
       // 区分是否因为全部弃权
       const allSkipped = [...WolfRole.wolfVotes.values()].every(v => v.targetId === null)
-      message = allSkipped
-        ? '【最终结果】所有狼人选择弃权，今晚不会击杀任何人'
-        : '【最终结果】由于投票平局，今晚狼人无法达成一致，不会击杀任何人'
+      message += allSkipped
+        ? '\n【最终结果】所有狼人选择弃权，今晚不会击杀任何人'
+        : '\n【最终结果】由于投票平局，今晚狼人无法达成一致，不会击杀任何人'
     } else {
       const target = this.game.players.get(WolfRole.wolfKillTarget)
-      if (target) {
-        message = `【最终结果】狼人队伍决定击杀${target.name}`
-      } else {
-        message = `【最终结果】狼人队伍决定击杀未知目标`
-      }
+      if (target) message += `\n【最终结果】狼人队伍决定击杀${target.gameNumber}号(${target.name})`
     }
 
     for (const wolf of wolves) {
@@ -371,7 +376,7 @@ ${this.getAlivePlayersList()}
     if (action === 'kill') {
       if (!target) return true // 空刀直接返回成功
       if (target.protected) {
-        await this.reply(`${target.name}被守卫保护，无法击杀`)
+        await this.e.reply(`${target.name}被守卫保护，无法击杀`)
         return false
       }
       await this.game.handlePlayerDeath(target, 'WOLF_KILL')
@@ -381,33 +386,6 @@ ${this.getAlivePlayersList()}
     return false
   }
 
-  /**
-   * 狼人自爆
-   *
-   * @async
-   * @returns {Promise<Object>} 自爆结果对象 {success: boolean, message: string}
-   */
-  async suicide () {
-    if (!this.canSuicide) {
-      return { success: false, message: '当前游戏不允许狼人自爆' }
-    }
-
-    try {
-      // 自爆会立即死亡，通过游戏核心处理死亡逻辑，而不是直接修改状态
-      await this.game.handlePlayerDeath(this.player, 'SUICIDE')
-
-      // 通知所有玩家
-      await this.reply(`${this.player.name}选择自爆,身份是狼人`)
-
-      // 跳过当前阶段
-      await this.game.currentState.onTimeout()
-
-      return { success: true, message: '自爆成功' }
-    } catch (error) {
-      console.error('WolfRole.suicide: 自爆失败:', error)
-      return { success: false, message: `自爆失败: ${error.message || '未知错误'}` }
-    }
-  }
 
   /**
    * 狼人队内沟通
