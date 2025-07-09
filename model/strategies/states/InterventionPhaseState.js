@@ -7,8 +7,8 @@
  */
 
 import { NightPhaseState } from './NightPhaseState.js'
-import { GameError } from '../core/GameError.js'
-import { NIGHT_PHASE_CONFIG, ACTIONS } from '../core/Constants.js'
+import { GameError } from '../../core/GameError.js'
+import { NIGHT_PHASE_CONFIG, ACTIONS } from '../../core/Constants.js'
 
 export class InterventionPhaseState extends NightPhaseState {
   constructor (game) {

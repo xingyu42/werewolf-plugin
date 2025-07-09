@@ -6,7 +6,7 @@
  * {{CHENGQI: Action: Modified; Timestamp: 2025-06-23 09:15:00 +08:00; Reason: Shrimp Task ID: #emit-refactor-phase-4, 移除EventEmitter继承改用回调机制; Principle_Applied: SOLID-SRP-SingleResponsibility-DIP-DependencyInversion;}}
  */
 
-import { GameError } from '../core/GameError.js'
+import { GameError } from '../../core/GameError.js'
 
 export class NightPhaseState {
   constructor (game, phaseConfig) {

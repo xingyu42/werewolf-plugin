@@ -28,7 +28,7 @@ export default {
   // 模块解析 - 处理 ES 模块的 .js 扩展名 + 测试隔离
   moduleNameMapper: {
     // 测试环境依赖隔离 - 将生产模块映射到Mock，保持生产代码纯净
-    '^.*configurators/RoleConfigurator\\.js$': '<rootDir>/tests/__mocks__/RoleConfigurator.js',
+    '^.*setup/configurators/RoleConfigurator\\.js$': '<rootDir>/tests/__mocks__/RoleConfigurator.js',
     '^.*components/services\\.js$': '<rootDir>/tests/__mocks__/services.js',
     // ES模块扩展名处理
     '^(\\.{1,2}/.*)\\.js$': '$1'

@@ -1,7 +1,7 @@
-import { LastWordsState } from '../model/states/LastWordsState.js' // 引入 LastWordsState
-import { SheriffElectState } from '../model/states/SheriffElectState.js' // 引入 SheriffElectState
-import { SheriffTransferState } from '../model/states/SheriffTransferState.js' // 引入 SheriffTransferState
-import { WolfRole } from '../model/roles/WolfRole.js' // 引入 WolfRole
+import { LastWordsState } from '../model/strategies/states/LastWordsState.js' // 引入 LastWordsState
+import { SheriffElectState } from '../model/strategies/states/SheriffElectState.js' // 引入 SheriffElectState
+import { SheriffTransferState } from '../model/strategies/states/SheriffTransferState.js' // 引入 SheriffTransferState
+import { WolfRole } from '../model/strategies/roles/WolfRole.js' // 引入 WolfRole
 import { GameError } from '../model/core/GameError.js'
 import { ActionHandler } from '../model/cqrs/ActionHandler.js'
 import { ACTIONS } from '../model/core/Constants.js'

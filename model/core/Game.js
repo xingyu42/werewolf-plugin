@@ -1,11 +1,10 @@
 import { VictoryChecker } from './VictoryChecker.js'
-import { RoleConfigurator } from '../configurators/RoleConfigurator.js'
+import { RoleConfigurator } from '../../setup/configurators/RoleConfigurator.js'
 import { NotificationCenter } from './NotificationCenter.js'
+import { PlayerManager } from '../managers/PlayerManager.js'
 import { GameError } from './GameError.js'
 import { NightPhaseController } from '../states/NightPhaseController.js'
-import { GAME_PHASES, DEATH_REASONS } from './Constants.js'
-import { RoleFactory } from '../roles/RoleFactory.js'
-import { RoleData } from '../configurators/RoleData.js'
+import { GAME_PHASES } from './Constants.js'
 
 /**
  * 游戏核心类 - 重构后的核心协调器
@@ -31,19 +30,8 @@ export class Game {
     // 清理状态标志，防止重复清理
     this._isCleanedUp = false
 
-    // PlayerManager 属性整合到 Game 类中
-    this.players = new Map()
-    this.roles = new Map()
-    this.playerNumberMap = new Map()
-
-    // 缓存系统
-    this._cacheSystem = {
-      alivePlayers: {
-        cache: null, // 基本存活玩家缓存
-        filteredResults: {}, // 过滤结果缓存（包含阵营、角色类型等所有过滤条件）
-        lastInvalidation: Date.now() // 上次缓存失效时间
-      }
-    }
+    // 初始化管理器
+    this.playerManager = new PlayerManager(this)
 
     // StateManager 属性整合到 Game 类中
     this.stateMachine = stateMachine

@@ -256,17 +256,17 @@ export class PhaseManager {
       let PhaseStateClass
       switch (phaseConfig.name) {
         case 'information': {
-          const { InformationPhaseState } = await import('../action/InformationPhaseState.js')
+          const { InformationPhaseState } = await import('../strategies/states/InformationPhaseState.js')
           PhaseStateClass = InformationPhaseState
           break
         }
         case 'elimination': {
-          const { EliminationPhaseState } = await import('../action/EliminationPhaseState.js')
+          const { EliminationPhaseState } = await import('../strategies/states/EliminationPhaseState.js')
           PhaseStateClass = EliminationPhaseState
           break
         }
         case 'intervention': {
-          const { InterventionPhaseState } = await import('../action/InterventionPhaseState.js')
+          const { InterventionPhaseState } = await import('../strategies/states/InterventionPhaseState.js')
           PhaseStateClass = InterventionPhaseState
           break
         }

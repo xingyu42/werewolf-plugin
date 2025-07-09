@@ -1,5 +1,5 @@
 import { Role } from './Role.js'
-import { CAMPS } from '../core/Constants.js'
+import { CAMPS } from '../../core/Constants.js'
 
 /**
  * 狼人角色类

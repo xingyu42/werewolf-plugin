@@ -8,9 +8,9 @@
 
 import { GameState } from './GameState.js'
 import { DayState } from './DayState.js'
-import { PhaseManager } from '../managers/PhaseManager.js'
-import { PhaseCoordinator } from '../core/PhaseCoordinator.js'
-import { GameError } from '../core/GameError.js'
+import { PhaseManager } from '../../managers/PhaseManager.js'
+import { PhaseCoordinator } from '../../core/PhaseCoordinator.js'
+import { GameError } from '../../core/GameError.js'
 
 export class NightPhaseController extends GameState {
   constructor (game) {

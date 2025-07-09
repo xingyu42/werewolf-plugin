@@ -189,7 +189,7 @@ export class GameRegistry {
   static cleanupRoleStaticData () {
     try {
       // 动态导入并清理 WolfRole 静态数据
-      import('../roles/WolfRole.js').then(({ WolfRole }) => {
+      import('../strategies/roles/WolfRole.js').then(({ WolfRole }) => {
         if (WolfRole && typeof WolfRole.cleanup === 'function') {
           WolfRole.cleanup()
         }

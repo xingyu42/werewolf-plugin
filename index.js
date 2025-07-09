@@ -1,5 +1,5 @@
 import fs from 'node:fs'
-import { RoleFactory } from './model/roles/RoleFactory.js'
+import { RoleFactory } from './model/strategies/roles/RoleFactory.js'
 
 if (!global.segment) {
   global.segment = (await import('oicq')).segment

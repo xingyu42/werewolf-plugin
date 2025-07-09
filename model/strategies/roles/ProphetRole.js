@@ -1,5 +1,5 @@
 import { Role } from './Role.js'
-import { ValidationUtils } from '../core/ValidationUtils.js'
+import { ValidationUtils } from '../../core/ValidationUtils.js'
 
 /**
  * 预言家角色类
