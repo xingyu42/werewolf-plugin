@@ -112,7 +112,7 @@ export class InterventionPhaseState extends NightPhaseState {
   async executePlayerAction (player, action, data) {
     try {
       // 获取女巫角色实例
-      const witchRole = this.game.playerManager.roles.get(player.id)
+      const witchRole = this.game.getPlayerRole(player.id)
       if (!witchRole || witchRole.constructor.name !== 'WitchRole') {
         throw new GameError('只有女巫可以在干预阶段行动', 'INVALID_ROLE')
       }

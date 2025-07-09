@@ -167,7 +167,7 @@ export class EliminationPhaseState extends NightPhaseState {
   getVotingPrompt (player, aliveWolves) {
     const alivePlayers = this.game.getAlivePlayers()
     const validTargets = alivePlayers.filter(p => {
-      const role = this.game.playerManager.roles.get(p.id)
+      const role = this.game.getPlayerRole(p.id)
       return role && role.getCamp() !== 'WOLF'
     })
 

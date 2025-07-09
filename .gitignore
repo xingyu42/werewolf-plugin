@@ -10,3 +10,8 @@ tests/
 Docs/
 coverage/
 CLAUDE.md
+.augmentignore
+
+.cursorignore
+FileScopeMCP-tree.json
+.roomodes

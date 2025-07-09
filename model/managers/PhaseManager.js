@@ -3,7 +3,7 @@
  * 管理阶段间的顺序执行，处理阶段完成条件检查，协调角色行动状态
  *
  * 职责分工：
- * - StateManager: 负责游戏级别状态转换 (NightState -> DayState)
+ * - Game: 负责游戏级别状态转换 (NightState -> DayState)
  * - PhaseManager: 负责夜晚内部阶段转换 (信息收集 -> 消除 -> 干预)
  *
  * {{CHENGQI: Action: Added; Timestamp: 2025-06-19 19:51:05 +08:00; Reason: Shrimp Task ID: #30a79ac5-422c-45a8-b53a-1c5c5c6990f5, 创建阶段管理器; Principle_Applied: SOLID-SRP-SingleResponsibility-DIP-DependencyInversion;}}
@@ -79,7 +79,7 @@ export class PhaseManager {
       this.setupPhaseCallbacks(phaseState)
 
       // 启动阶段状态
-      await this.game.stateManager.changeState(phaseState)
+      await this.game.changeState(phaseState)
 
       // 替换：this.emit('phaseStarted', {...})
       if (this.phaseCoordinator) {

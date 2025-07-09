@@ -227,7 +227,7 @@ export class NightPhaseController extends GameState {
   async cleanupPlayerStates () {
     try {
       // 清理保护状态（保持与NightState一致）
-      for (const player of this.game.playerManager.getAllPlayers().values()) {
+      for (const player of this.game.getAllPlayers().values()) {
         player.protected = false
       }
 

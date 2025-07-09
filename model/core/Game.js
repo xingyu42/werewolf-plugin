@@ -1,8 +1,11 @@
 import { VictoryChecker } from './VictoryChecker.js'
 import { RoleConfigurator } from '../configurators/RoleConfigurator.js'
 import { NotificationCenter } from './NotificationCenter.js'
-import { PlayerManager } from '../managers/PlayerManager.js'
-import { StateManager } from '../managers/StateManager.js'
+import { GameError } from './GameError.js'
+import { NightPhaseController } from '../states/NightPhaseController.js'
+import { GAME_PHASES, DEATH_REASONS } from './Constants.js'
+import { RoleFactory } from '../roles/RoleFactory.js'
+import { RoleData } from '../configurators/RoleData.js'
 
 /**
  * 游戏核心类 - 重构后的核心协调器
@@ -28,9 +31,30 @@ export class Game {
     // 清理状态标志，防止重复清理
     this._isCleanedUp = false
 
-    // 初始化管理器
-    this.playerManager = new PlayerManager(this)
-    this.stateManager = new StateManager(this, stateMachine)
+    // PlayerManager 属性整合到 Game 类中
+    this.players = new Map()
+    this.roles = new Map()
+    this.playerNumberMap = new Map()
+
+    // 缓存系统
+    this._cacheSystem = {
+      alivePlayers: {
+        cache: null, // 基本存活玩家缓存
+        filteredResults: {}, // 过滤结果缓存（包含阵营、角色类型等所有过滤条件）
+        lastInvalidation: Date.now() // 上次缓存失效时间
+      }
+    }
+
+    // StateManager 属性整合到 Game 类中
+    this.stateMachine = stateMachine
+    this.currentPhase = GAME_PHASES.WAITING
+    this.turn = 0
+    this.stateHistory = [] // 状态历史记录
+
+    // 设置状态机上下文
+    if (this.stateMachine) {
+      this.stateMachine.setContext(this)
+    }
 
     // 如果传入了初始玩家，添加到玩家管理器
     if (players) {
@@ -130,36 +154,190 @@ export class Game {
     await this.playerManager.initializePlayerRoles(roles)
   }
 
-  // 初始化游戏状态 - 委派给StateManager
-  initState () {
-    this.stateManager.initializeState()
+  // 初始化游戏状态
+  async initState () {
+    await this.initializeState()
   }
 
-  // 委派给StateManager的方法
+  /**
+   * 初始化游戏状态
+   * 设置游戏的初始状态
+   */
+  async initializeState () {
+    try {
+      console.log('[Game] 开始初始化游戏状态，使用阶段化夜晚状态控制器')
+
+      // 切换到新的阶段化夜晚状态控制器
+      const initialState = new NightPhaseController(this)
+      await this.changeState(initialState)
+      this.currentPhase = GAME_PHASES.NIGHT
+      this.turn = 1
+
+      console.log('[Game] 游戏状态初始化完成，进入阶段化夜晚流程')
+
+      // 替换emit调用为notificationCenter
+      await this.notificationCenter.notifyStateInitialized(
+        'NightPhaseController',
+        this.turn,
+        this.currentPhase
+      )
+    } catch (error) {
+      console.error('[Game] 初始化游戏状态失败:', error)
+
+      // 尝试使用简化的夜晚状态回退机制（如果新控制器初始化失败）
+      try {
+        console.log('[Game] 尝试使用简化回退机制，跳过夜晚阶段')
+        const { DayState } = await import('../action/DayState.js')
+        const fallbackState = new DayState(this)
+        await this.changeState(fallbackState)
+        this.currentPhase = GAME_PHASES.DAY
+        this.turn = 1
+
+        console.log('[Game] 已回退到白天状态，跳过夜晚阶段')
+        // 替换emit调用 - 回退通知不需要用户通知，仅记录日志
+        console.log('[Game] 状态回退: DayState, 原始错误:', error.message)
+      } catch (fallbackError) {
+        console.error('[Game] 简化回退机制也失败:', fallbackError)
+        // 替换emit调用为notificationCenter
+        await this.notificationCenter.handleError(new GameError(
+          '初始化游戏状态失败，简化回退也失败',
+          'STATE_INIT_CRITICAL_ERROR',
+          { originalError: error, fallbackError }
+        ))
+      }
+    }
+  }
+
+  /**
+   * 改变游戏状态
+   * @param {GameState} newState 新状态
+   */
   async changeState (newState) {
-    await this.stateManager.changeState(newState)
+    try {
+      if (!newState) {
+        throw new GameError('新状态不能为空', 'INVALID_STATE')
+      }
+
+      const oldState = this.getCurrentState()
+
+      // 记录状态变更历史
+      this.stateHistory.push({
+        from: oldState ? oldState.getName() : 'none',
+        to: newState.getName(),
+        timestamp: Date.now(),
+        turn: this.turn
+      })
+
+      // 委派给状态机
+      await this.stateMachine.changeState(newState)
+
+      // 更新当前阶段
+      this.updateCurrentPhase(newState)
+
+      console.log(`[Game] 状态转换: ${oldState?.getName() || 'none'} -> ${newState.getName()}`)
+
+      // 替换emit调用为notificationCenter
+      await this.notificationCenter.notifyStateChanged(
+        oldState,
+        newState,
+        this.turn
+      )
+
+      // 移除了自动保存游戏状态的调用
+    } catch (error) {
+      console.error('[Game] 状态转换失败:', error)
+      // 替换emit调用为notificationCenter
+      await this.notificationCenter.handleError(new GameError(
+        '状态转换失败',
+        'STATE_CHANGE_ERROR',
+        { newState: newState?.getName(), error }
+      ))
+    }
   }
 
+  /**
+   * 获取当前状态
+   * @returns {GameState|null} 当前状态
+   */
   getCurrentState () {
-    return this.stateManager.getCurrentState()
+    return this.stateMachine ? this.stateMachine.getCurrentState() : null
   }
 
+  /**
+   * 获取当前游戏阶段
+   * @returns {string} 当前阶段
+   */
   getCurrentPhase () {
-    return this.stateManager.getCurrentPhase()
+    return this.currentPhase
   }
 
+  /**
+   * 获取当前回合数
+   * @returns {number} 回合数
+   */
   getCurrentTurn () {
-    return this.stateManager.getCurrentTurn()
+    return this.turn
   }
 
-  // 处理玩家行为 - 委派给StateManager
-  async handleAction (player, action, target) {
-    await this.stateManager.handleAction(player, action, target)
-  }
-
-  // 检查行为是否有效 - 委派给StateManager
+  /**
+   * 检查行动是否有效
+   * @param {Player} player 玩家
+   * @param {string} action 行动
+   * @returns {boolean} 是否有效
+   */
   isValidAction (player, action) {
-    return this.stateManager.isValidAction(player, action)
+    try {
+      const currentState = this.getCurrentState()
+      if (!currentState) {
+        return false
+      }
+
+      // 委派给当前状态进行验证
+      return currentState.isValidAction(player, action)
+    } catch (error) {
+      console.error('[Game] 验证行动有效性时出错:', error)
+      return false
+    }
+  }
+
+  /**
+   * 处理玩家行为
+   * @param {Player} player 玩家
+   * @param {string} action 行动
+   * @param {Player|null} target 目标玩家
+   */
+  async handleAction (player, action, target) {
+    try {
+      if (!player) {
+        // 替换emit调用为notificationCenter
+        await this.notificationCenter.handleError(new GameError(
+          '玩家参数不能为空',
+          'INVALID_PLAYER'
+        ))
+        return
+      }
+
+      const currentState = this.getCurrentState()
+      if (!currentState) {
+        // 替换emit调用为notificationCenter
+        await this.notificationCenter.handleError(new GameError(
+          '游戏状态错误: 当前没有活动状态',
+          'NO_ACTIVE_STATE'
+        ))
+        return
+      }
+
+      // 委派给当前状态处理
+      await currentState.handleAction(player, action, target)
+    } catch (err) {
+      console.error('[Game] 处理玩家行为时出错:', err)
+      // 替换emit调用为notificationCenter
+      await this.notificationCenter.handleError(new GameError(
+        err.message,
+        'ACTION_ERROR',
+        { player, action, target }
+      ))
+    }
   }
 
   // 结束游戏
@@ -190,9 +368,22 @@ export class Game {
   }
 
   async startNewDay () {
-    this.stateManager.incrementTurn()
-    // 替换：this.emit('newDay', { turn: this.stateManager.getCurrentTurn() })
-    await this.notificationCenter.notifyNewDay(this.stateManager.getCurrentTurn())
+    await this.incrementTurn()
+    // 替换：this.emit('newDay', { turn: this.getCurrentTurn() })
+    await this.notificationCenter.notifyNewDay(this.getCurrentTurn())
+  }
+
+  /**
+   * 增加回合数
+   */
+  async incrementTurn () {
+    this.turn++
+    console.log(`[Game] 回合数增加到: ${this.turn}`)
+
+    // 替换emit调用为notificationCenter
+    await this.notificationCenter.notifyNewTurn(this.turn, this.currentPhase)
+
+    // 移除了保存状态的调用
   }
 
   // 根据游戏内编号获取玩家ID - 保持兼容性
@@ -315,9 +506,7 @@ export class Game {
         this.playerManager.cleanup()
       }
 
-      if (this.stateManager) {
-        this.stateManager.cleanup()
-      }
+      // StateManager 功能已整合到 Game 类中，无需单独清理
 
       // 清理错误历史
       if (this.eventErrors) {
@@ -373,8 +562,85 @@ export class Game {
       eventErrorCount: this.eventErrors ? this.eventErrors.length : 0,
       hasEventHandler: !!this.eventHandler,
       listenerCount: this.listenerCount ? this.listenerCount() : 0,
-      currentPhase: this.stateManager ? this.stateManager.getCurrentPhase() : 'unknown',
-      currentTurn: this.stateManager ? this.stateManager.getCurrentTurn() : 0
+      currentPhase: this.getCurrentPhase(),
+      currentTurn: this.getCurrentTurn()
+    }
+  }
+
+  /**
+   * 获取状态历史
+   * @returns {Array} 状态历史数组
+   */
+  getStateHistory () {
+    return [...this.stateHistory]
+  }
+
+  /**
+   * 更新当前阶段
+   * @private
+   * @param {GameState} state 当前状态
+   */
+  updateCurrentPhase (state) {
+    if (!state) return
+
+    const stateName = state.getName()
+
+    // 根据状态名称映射到游戏阶段
+    switch (stateName) {
+      case 'NightState':
+      case 'NightPhaseController': // 新增：支持阶段化夜晚状态控制器
+        this.currentPhase = GAME_PHASES.NIGHT
+        break
+      // 阶段化夜晚状态支持
+      case 'InformationPhaseState':
+      case 'EliminationPhaseState':
+      case 'InterventionPhaseState':
+        this.currentPhase = GAME_PHASES.NIGHT
+        break
+      case 'DayDiscussionState':
+        this.currentPhase = GAME_PHASES.DAY_DISCUSSION
+        break
+      case 'DayVotingState':
+        this.currentPhase = GAME_PHASES.DAY_VOTING
+        break
+      case 'SheriffElectionState':
+        this.currentPhase = GAME_PHASES.SHERIFF_ELECTION
+        break
+      default:
+        // 保持当前阶段不变
+        break
+    }
+  }
+
+  /**
+   * 检查是否可以结束当前状态
+   * @returns {boolean} 是否可以结束
+   */
+  canEndCurrentState () {
+    const currentState = this.getCurrentState()
+    if (!currentState) return false
+
+    // 如果状态有canEnd方法，则调用它
+    if (typeof currentState.canEnd === 'function') {
+      return currentState.canEnd()
+    }
+
+    // 默认可以结束
+    return true
+  }
+
+  /**
+   * 强制结束当前状态（用于超时等情况）
+   */
+  async forceEndCurrentState () {
+    const currentState = this.getCurrentState()
+    if (!currentState) return
+
+    console.log(`[Game] 强制结束状态: ${currentState.getName()}`)
+
+    // 如果状态有onTimeout方法，则调用它
+    if (typeof currentState.onTimeout === 'function') {
+      await currentState.onTimeout()
     }
   }
 }

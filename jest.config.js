@@ -93,8 +93,8 @@ export default {
       lines: 80,
       statements: 80
     },
-    // 服务层 - 基本标准
-    'model/services/*.js': {
+    // CQRS层 - 基本标准
+    'model/cqrs/*.js': {
       branches: 65,
       functions: 70,
       lines: 70,

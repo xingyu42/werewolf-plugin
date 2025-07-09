@@ -1,4 +1,4 @@
-import { ActionHandler } from '../model/services/ActionHandler.js'
+import { ActionHandler } from '../model/cqrs/ActionHandler.js'
 import { ACTIONS } from '../model/core/Constants.js'
 
 export class GameRoles extends plugin {

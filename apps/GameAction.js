@@ -3,7 +3,7 @@ import { SheriffElectState } from '../model/states/SheriffElectState.js' // 引�
 import { SheriffTransferState } from '../model/states/SheriffTransferState.js' // 引入 SheriffTransferState
 import { WolfRole } from '../model/roles/WolfRole.js' // 引入 WolfRole
 import { GameError } from '../model/core/GameError.js'
-import { ActionHandler } from '../model/services/ActionHandler.js'
+import { ActionHandler } from '../model/cqrs/ActionHandler.js'
 import { ACTIONS } from '../model/core/Constants.js'
 
 export class GameAction extends plugin {

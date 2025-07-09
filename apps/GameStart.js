@@ -1,10 +1,10 @@
 import { GameConfig, PlayerStats } from '../components/services.js'
-import { GameRegistry } from '../model/services/GameRegistry.js'
+import { GameRegistry } from '../model/cqrs/GameRegistry.js'
 import { Player } from '../model/core/Player.js'
 import { defaultErrorHandler } from '../model/core/ErrorHandler.js'
 import { Game } from '../model/core/Game.js'
 import { StateMachine } from '../model/core/StateMachine.js'
-import { PlayerQueryService } from '../model/services/PlayerQueryService.js'
+import { PlayerQueryService } from '../model/cqrs/PlayerQueryService.js'
 import { VictoryChecker } from '../model/core/VictoryChecker.js'
 
 // 简化的游戏大厅数据结构，替代 GameLobby 类
@@ -199,7 +199,7 @@ export class GameStart extends plugin {
 
       // 清理资源：移除可能已创建的游戏实例
       try {
-        const { GameRegistry } = await import('../model/services/GameRegistry.js')
+        const { GameRegistry } = await import('../model/cqrs/GameRegistry.js')
         GameRegistry.removeGame(e.group_id)
       } catch (cleanupError) {
         console.warn('[GameStart] 清理游戏资源时出错:', cleanupError)

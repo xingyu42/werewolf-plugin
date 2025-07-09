@@ -95,7 +95,7 @@ export class InformationPhaseState extends NightPhaseState {
   async executePlayerAction (player, action, data) {
     try {
       // 获取玩家角色
-      const role = this.game.playerManager.roles.get(player.id)
+      const role = this.game.getPlayerRole(player.id)
       if (!role) {
         throw new GameError('玩家角色不存在', 'ROLE_NOT_FOUND', { playerId: player.id })
       }
@@ -140,7 +140,7 @@ export class InformationPhaseState extends NightPhaseState {
   async handleProphetCheck (player, role, targetId) {
     try {
       // 获取目标玩家
-      const target = this.game.playerManager.getPlayerById(targetId)
+      const target = this.game.getPlayerById(targetId)
       if (!target) {
         throw new GameError('查验目标不存在', 'TARGET_NOT_FOUND', { targetId })
       }
@@ -177,7 +177,7 @@ export class InformationPhaseState extends NightPhaseState {
   async handleGuardProtect (player, role, targetId) {
     try {
       // 获取目标玩家
-      const target = this.game.playerManager.getPlayerById(targetId)
+      const target = this.game.getPlayerById(targetId)
       if (!target) {
         throw new GameError('保护目标不存在', 'TARGET_NOT_FOUND', { targetId })
       }
@@ -233,7 +233,7 @@ export class InformationPhaseState extends NightPhaseState {
   validateSpecificAction (player, action) {
     try {
       // 获取玩家角色
-      const role = this.game.playerManager.roles.get(player.id)
+      const role = this.game.getPlayerRole(player.id)
       if (!role) {
         return false
       }
