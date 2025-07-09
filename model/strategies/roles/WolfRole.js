@@ -89,14 +89,15 @@ export class WolfRole extends Role {
    * @returns {string} 行动提示消息
    */
   async getActionPrompt(e) {
-    if (!this.canAct()) return e.reply('狼人只能在夜晚阶段行动')
+    const currentState = this.game.getCurrentState()
+    if (!this.canAct(currentState)) return e.reply('狼人只能在夜晚阶段行动')
     const aliveWolves = this.game.getAlivePlayers({ roleType: 'WolfRole', includeRole: true })
     let msg = ''
     if (aliveWolves.length > 0) {
       msg += '\n\n其他存活狼人：\n' + aliveWolves.map((w) => `${w.player.gameNumber}号：${w.player.name}`).join('、')
     }
     msg += `【狼人】请选择今晚的击杀目标：\n${this.getAlivePlayersList()}\n输入格式：#刀*号\n你也可以与其他狼人进行队内沟通，输入格式：#讨论 你想说的话`
-    await e.sendPrivate(msg)
+    await e.reply(msg)
     return true
   }
 
@@ -113,8 +114,8 @@ export class WolfRole extends Role {
     let targetRole
     if (this.game.roles && this.game.roles.get(target.id)) {
       targetRole = this.game.roles.get(target.id)
-    } else if (this.game.playerManager) {
-      targetRole = this.game.playerManager.getPlayerRole(target.id)
+    } else if (this.game.getPlayerRole) {
+      targetRole = this.game.getPlayerRole(target.id)
     } else {
       console.warn('WolfRole.isValidTarget: 无法安全获取目标角色信息或角色管理器未初始化')
       return false

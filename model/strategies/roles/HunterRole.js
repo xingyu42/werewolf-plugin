@@ -55,7 +55,8 @@ export class HunterRole extends Role {
    * @returns {Promise<boolean>} 总是返回true
    */
   async getActionPrompt () {
-    if (!this.canAct()) return true
+    const currentState = this.game.getCurrentState()
+    if (!this.canAct(currentState)) return true
 
     let msg = '【猎人】你已死亡，请开枪射向其他玩家.\n'
 

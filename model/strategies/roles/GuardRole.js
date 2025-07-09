@@ -42,7 +42,8 @@ export class GuardRole extends Role {
    * @returns {Promise<boolean|null>} 成功发送提示返回true，无法行动返回null
    */
   async getActionPrompt () {
-    if (!this.canAct()) return null
+    const currentState = this.game.getCurrentState()
+    if (!this.canAct(currentState)) return null
 
     let msg = '【守卫】请选择今晚的守护目标：\n'
 

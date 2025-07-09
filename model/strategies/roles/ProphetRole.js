@@ -44,7 +44,8 @@ export class ProphetRole extends Role {
    * @returns {string} 查验提示消息
    */
   async getActionPrompt(e) {
-    if (!this.canAct()) return e.reply('预言家只能在夜晚阶段行动')
+    const currentState = this.game.getCurrentState()
+    if (!this.canAct(currentState)) return e.reply('预言家只能在夜晚阶段行动')
     const alivePlayersList = this.getAlivePlayersList()
     const msg = `【预言家】请选择今晚的查验目标：\n ${alivePlayersList.join('\n')} \n 输入格式：#查验*号 `
     e.reply(msg)
