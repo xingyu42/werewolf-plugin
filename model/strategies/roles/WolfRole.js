@@ -88,7 +88,7 @@ export class WolfRole extends Role {
    *
    * @returns {string} 行动提示消息
    */
-  async getActionPrompt(e) {
+  async getActionPrompt (e) {
     const currentState = this.game.getCurrentState()
     if (!this.canAct(currentState)) return e.reply('狼人只能在夜晚阶段行动')
     const aliveWolves = this.game.getAlivePlayers({ roleType: 'WolfRole', includeRole: true })
@@ -109,7 +109,7 @@ export class WolfRole extends Role {
    */
   isValidTarget (target) {
     if (!super.isValidTarget(target)) return false
-    
+
     // 检查游戏是否有roles属性，如果没有则使用playerManager
     let targetRole
     if (this.game.roles && this.game.roles.get(target.id)) {
@@ -120,7 +120,7 @@ export class WolfRole extends Role {
       console.warn('WolfRole.isValidTarget: 无法安全获取目标角色信息或角色管理器未初始化')
       return false
     }
-    
+
     if (targetRole && targetRole.getCamp() === 'WOLF') return false
 
     return true
@@ -226,27 +226,27 @@ export class WolfRole extends Role {
     const wolves = this.game.getAlivePlayers({ roleType: 'WolfRole', includeRole: true })
     let message = '【狼人投票统计】\n'
     const voteCounts = this.getVoteCounts()
-    
+
     // 转为数组并排序：按票数降序，票数相同时按玩家编号升序
     const sortedVotes = [...voteCounts.entries()].sort((a, b) => {
       const [aId, aCount] = a
       const [bId, bCount] = b
-      
+
       // 首先按票数降序排列
       if (aCount !== bCount) {
         return bCount - aCount
       }
-      
+
       // 票数相同时，弃权排在最后
       if (aId === null) return 1
       if (bId === null) return -1
-      
+
       // 票数相同且都不是弃权时，按玩家编号升序
       const aTarget = this.game.players.get(aId)
       const bTarget = this.game.players.get(bId)
       return (aTarget?.gameNumber || 0) - (bTarget?.gameNumber || 0)
     })
-    
+
     sortedVotes.forEach(([tId, count]) => {
       if (tId === null) {
         message += `弃权：${count}票\n`
@@ -386,7 +386,6 @@ export class WolfRole extends Role {
 
     return false
   }
-
 
   /**
    * 狼人队内沟通

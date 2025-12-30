@@ -47,7 +47,7 @@ export class WitchRole extends Role {
    * @async
    * @returns {Promise<boolean>} 是否成功发送提示消息
    */
-  async getActionPrompt(e) {
+  async getActionPrompt (e) {
     const currentState = this.game.getCurrentState()
     if (!this.canAct(currentState)) return e.reply('女巫只能在夜晚阶段行动')
     if (!this.hasAntidote && !this.hasPoison) {
@@ -158,7 +158,7 @@ export class WitchRole extends Role {
       // 使用毒药 - 使用集中化的死亡处理方法
       this.hasPoison = false
       await this.game.handlePlayerDeath(target, 'POISON')
-              await this.e.reply(`${this.player.name}使用毒药毒杀了${target.name}`)
+      await this.e.reply(`${this.player.name}使用毒药毒杀了${target.name}`)
       return true
     }
 

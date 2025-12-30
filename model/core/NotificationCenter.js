@@ -48,7 +48,7 @@ export class NotificationCenter {
     try {
       // 动态导入PlayerStats
       const { PlayerStats } = await import('../../components/services.js')
-      
+
       // 构造游戏结果对象，与原来的事件监听器格式保持一致
       const gameResult = {
         winner,

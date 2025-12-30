@@ -66,23 +66,23 @@ export class RoleFactory {
     if (!roleName || typeof roleName !== 'string') {
       throw new Error('角色名称必须是非空字符串')
     }
-    
+
     if (!game) {
       throw new Error('游戏实例不能为空')
     }
-    
+
     if (!player) {
       throw new Error('玩家实例不能为空')
     }
-    
+
     if (!e) {
       throw new Error('通信对象不能为空')
     }
-    
+
     if (!e.reply || typeof e.reply !== 'function') {
       throw new Error('通信对象必须包含reply方法')
     }
-    
+
     if (!e.bot || !e.bot.pickFriend || typeof e.bot.pickFriend !== 'function') {
       throw new Error('通信对象必须包含bot.pickFriend方法')
     }

@@ -16,21 +16,21 @@ const lobbies = new Map()
  */
 const LobbyUtils = {
   // 创建新大厅
-  createLobby(gameConfig) {
+  createLobby (gameConfig) {
     return {
       players: [],
-      gameConfig: gameConfig,
-      FriendReload: false  // 好友列表刷新标志
+      gameConfig,
+      FriendReload: false // 好友列表刷新标志
     }
   },
 
   // 检查玩家是否已在大厅中
-  hasPlayer(lobby, playerId) {
+  hasPlayer (lobby, playerId) {
     return lobby.players.some(p => p.id === playerId)
   },
 
   // 添加玩家到大厅
-  addPlayer(lobby, player) {
+  addPlayer (lobby, player) {
     const playerCount = lobby.players.length
     const maxPlayers = lobby.gameConfig.game.maxPlayers
 
@@ -47,12 +47,12 @@ const LobbyUtils = {
   },
 
   // 获取大厅玩家列表
-  getPlayers(lobby) {
+  getPlayers (lobby) {
     return lobby.players
   },
 
   // 创建游戏实例 - 替代 GameLobby.createGame()
-  async createGame(lobby, groupId, e) {
+  async createGame (lobby, groupId, e) {
     const stateMachine = new StateMachine()
     const playerQueryService = new PlayerQueryService()
     const victoryChecker = new VictoryChecker()
@@ -209,7 +209,7 @@ export class GameStart extends plugin {
     return true
   }
 
-    /**
+  /**
    * 批量检查玩家好友状态
    * @param {Array} players - 玩家对象数组
    * @param {Object} e - 事件对象
@@ -218,39 +218,37 @@ export class GameStart extends plugin {
   async validateBatch (players, e) {
     const nonFriends = []
 
-      console.log(`[GameStart] 开始检查 ${players.length} 个玩家的好友状态`)
+    console.log(`[GameStart] 开始检查 ${players.length} 个玩家的好友状态`)
 
-      // 刷新好友列表缓存 - 从lobby状态读取
-      const lobby = lobbies.get(e.group_id)
-      if (lobby?.FriendReload) {
-        console.log('[GameStart] 刷新好友列表缓存...')
-        await e.bot.reloadFriendList()
-        lobby.FriendReload = false
+    // 刷新好友列表缓存 - 从lobby状态读取
+    const lobby = lobbies.get(e.group_id)
+    if (lobby?.FriendReload) {
+      console.log('[GameStart] 刷新好友列表缓存...')
+      await e.bot.reloadFriendList()
+      lobby.FriendReload = false
+    }
+
+    for (const player of players) {
+      const isFriend = e.bot.fl.has(parseInt(player.id))
+      console.log(`[GameStart] 玩家 ${player.id} ${isFriend ? '在' : '不在'}好友列表中`)
+      if (!isFriend) {
+        nonFriends.push(player)
       }
+    }
 
-      for (const player of players) {
-          const isFriend = e.bot.fl.has(parseInt(player.id))
-          console.log(`[GameStart] 玩家 ${player.id} ${isFriend ? '在' : '不在'}好友列表中`)
-          if (!isFriend) {
-            nonFriends.push(player)
-          }
-      }
+    // 如果有非好友，设置lobby刷新标志供下次检查使用
+    if (nonFriends.length > 0 && lobby) {
+      lobby.FriendReload = true
+      console.log('[GameStart] 检测到非好友，设置下次检查刷新标志')
+    }
 
-      // 如果有非好友，设置lobby刷新标志供下次检查使用
-      if (nonFriends.length > 0 && lobby) {
-        lobby.FriendReload = true
-        console.log('[GameStart] 检测到非好友，设置下次检查刷新标志')
-      }
+    console.log(`[GameStart] 好友检查完成，${nonFriends.length} 个非好友`)
 
-      console.log(`[GameStart] 好友检查完成，${nonFriends.length} 个非好友`)
-
-      return {
-        allFriends: nonFriends.length === 0,
-        nonFriends
-      }
-    
+    return {
+      allFriends: nonFriends.length === 0,
+      nonFriends
+    }
   }
-
 
   async endGame (e) {
     const groupId = e.group_id
@@ -260,7 +258,6 @@ export class GameStart extends plugin {
     e.reply('游戏已结束')
     return true
   }
-
 
   /**
    * 设置lobby超时自动解散机制
@@ -320,5 +317,4 @@ export class GameStart extends plugin {
       console.log(`[GameStart] 已清理群 ${groupId} 的游戏大厅`)
     }
   }
-
 }

@@ -1,9 +1,8 @@
 import { VictoryChecker } from './VictoryChecker.js'
-import { RoleConfigurator } from '../../setup/configurators/RoleConfigurator.js'
+import { RoleConfigurator } from '../../utils/configurators/RoleConfigurator.js'
 import { NotificationCenter } from './NotificationCenter.js'
-import { PlayerManager } from '../managers/PlayerManager.js'
 import { GameError } from './GameError.js'
-import { NightPhaseController } from '../states/NightPhaseController.js'
+import { NightPhaseController } from '../strategies/states/NightPhaseController.js'
 import { GAME_PHASES } from './Constants.js'
 
 /**
@@ -23,15 +22,19 @@ export class Game {
 
     // 初始化通知中心替代GameEventHandler
     this.notificationCenter = new NotificationCenter(e)
-    
+
     // 设置游戏引用，用于统计数据更新
     this.notificationCenter.game = this
 
     // 清理状态标志，防止重复清理
     this._isCleanedUp = false
 
-    // 初始化管理器
-    this.playerManager = new PlayerManager(this)
+    // PlayerManager 功能直接集成到 Game 类中
+    this._players = new Map() // 玩家集合，key为playerId，value为Player对象
+    this.roles = new Map() // 角色分配，key为playerId，value为角色名称
+    this.playerNumberMap = new Map() // 玩家号码映射，key为gameNumber，value为playerId
+    this._nextPlayerNumber = 1 // 下一个玩家号码
+    this._cacheSystem = new Map() // 缓存系统
 
     // StateManager 属性整合到 Game 类中
     this.stateMachine = stateMachine
@@ -44,15 +47,15 @@ export class Game {
       this.stateMachine.setContext(this)
     }
 
-    // 如果传入了初始玩家，添加到玩家管理器
+    // 如果传入了初始玩家，添加到玩家集合
     if (players) {
       if (players instanceof Map) {
         for (const player of players.values()) {
-          this.playerManager.addPlayer(player)
+          this.addPlayer(player)
         }
       } else if (Array.isArray(players)) {
         for (const player of players) {
-          this.playerManager.addPlayer(player)
+          this.addPlayer(player)
         }
       }
     }
@@ -61,10 +64,10 @@ export class Game {
     this.playerQueryService = playerQueryService
     if (this.playerQueryService) {
       this.playerQueryService.setContext(
-        this.playerManager.getAllPlayers(),
-        this.playerManager.roles,
-        this.playerManager.playerNumberMap,
-        this.playerManager._cacheSystem
+        this.players,
+        this.roles,
+        this.playerNumberMap,
+        this._cacheSystem
       )
     }
 
@@ -75,30 +78,110 @@ export class Game {
     this.victoryChecker = victoryChecker || new VictoryChecker()
   }
 
-  // 委派给PlayerManager的方法
+  // PlayerManager 功能直接实现
   addPlayer (player) {
-    return this.playerManager.addPlayer(player)
+    if (!player || !player.id) {
+      throw new GameError('Invalid player object', 'INVALID_PLAYER')
+    }
+
+    if (this._players.has(player.id)) {
+      throw new GameError(`Player ${player.id} already exists`, 'PLAYER_EXISTS')
+    }
+
+    // 分配游戏号码
+    player.gameNumber = this._nextPlayerNumber++
+    this.playerNumberMap.set(player.gameNumber, player.id)
+
+    // 添加到玩家集合
+    this._players.set(player.id, player)
+
+    return player
   }
 
   hasPlayer (playerId) {
-    return this.playerManager.hasPlayer(playerId)
+    return this._players.has(playerId)
   }
 
   getPlayerById (playerId) {
-    return this.playerManager.getPlayer(playerId)
+    return this._players.get(playerId)
   }
 
   getPlayerByNumber (gameNumber) {
-    return this.playerManager.getPlayerByNumber(gameNumber)
+    const playerId = this.playerNumberMap.get(gameNumber)
+    return playerId ? this._players.get(playerId) : null
   }
 
-  getAlivePlayers (options) {
-    return this.playerManager.getAlivePlayers(options)
+  getAlivePlayers (options = {}) {
+    const alivePlayers = new Map()
+    for (const [id, player] of this._players) {
+      if (player.isAlive) {
+        alivePlayers.set(id, player)
+      }
+    }
+    return alivePlayers
+  }
+
+  // 获取所有玩家
+  getAllPlayers () {
+    return this._players
+  }
+
+  // 获取玩家数量
+  getPlayerCount () {
+    return this._players.size
+  }
+
+  // 获取存活玩家数量
+  getAlivePlayerCount () {
+    return this.getAlivePlayers().size
+  }
+
+  // 初始化玩家角色
+  async initializePlayerRoles (roles) {
+    if (!roles || roles.length === 0) {
+      throw new GameError('No roles provided for initialization', 'NO_ROLES')
+    }
+
+    const players = Array.from(this._players.values())
+    if (players.length !== roles.length) {
+      throw new GameError(`Player count (${players.length}) does not match role count (${roles.length})`, 'ROLE_PLAYER_MISMATCH')
+    }
+
+    // 随机分配角色
+    const shuffledRoles = [...roles].sort(() => Math.random() - 0.5)
+
+    for (let i = 0; i < players.length; i++) {
+      const player = players[i]
+      const role = shuffledRoles[i]
+
+      player.role = role
+      this.roles.set(player.id, role)
+    }
+  }
+
+  // 处理玩家死亡
+  async _handlePlayerDeath (player, reason) {
+    if (!player) {
+      return false
+    }
+
+    // 设置玩家死亡状态
+    player.isAlive = false
+    player.deathReason = reason
+
+    // 通知死亡事件
+    this.notificationCenter.notify('playerDeath', {
+      player,
+      reason,
+      gameId: this.id
+    })
+
+    return true
   }
 
   // 获取玩家集合 - 保持向后兼容性
   get players () {
-    return this.playerManager.getAllPlayers()
+    return this._players
   }
 
   // 初始化游戏
@@ -108,9 +191,9 @@ export class Game {
     this.initState()
   }
 
-  // 初始化玩家 - 委派给PlayerManager
+  // 初始化玩家
   async initPlayers () {
-    const playerCount = this.playerManager.getPlayerCount()
+    const playerCount = this.getPlayerCount()
 
     let roles
     try {
@@ -139,7 +222,7 @@ export class Game {
       throw error
     }
 
-    await this.playerManager.initializePlayerRoles(roles)
+    await this.initializePlayerRoles(roles)
   }
 
   // 初始化游戏状态
@@ -376,7 +459,7 @@ export class Game {
 
   // 根据游戏内编号获取玩家ID - 保持兼容性
   getPlayerIdByNumber (gameNumber) {
-    const player = this.playerManager.getPlayerByNumber(gameNumber)
+    const player = this.getPlayerByNumber(gameNumber)
     return player ? player.id : null
   }
 
@@ -387,7 +470,7 @@ export class Game {
 
   // 开始游戏
   async start () {
-    const playerCount = this.playerManager.getPlayerCount()
+    const playerCount = this.getPlayerCount()
     if (playerCount < this.config.minPlayers) {
       // 直接发送群消息，不再使用事件发射
       this.e.reply(`游戏人数不足，无法开始（需要 ${this.config.minPlayers} 人，当前 ${playerCount} 人）。`)
@@ -399,10 +482,10 @@ export class Game {
   }
 
   /**
-   * 统一处理玩家死亡 - 委派给PlayerManager
+   * 统一处理玩家死亡
    */
   async handlePlayerDeath (player, reason) {
-    const result = await this.playerManager.handlePlayerDeath(player, reason)
+    const result = await this._handlePlayerDeath(player, reason)
 
     // 如果死亡处理成功，检查游戏是否结束
     if (result) {
@@ -451,7 +534,7 @@ export class Game {
    * 批量清除所有玩家的保护状态
    */
   clearAllProtectedStatus () {
-    const players = this.playerManager.getAllPlayers()
+    const players = this.getAllPlayers()
     let clearedCount = 0
 
     for (const player of players.values()) {
@@ -490,9 +573,11 @@ export class Game {
       }
 
       // 清理管理器
-      if (this.playerManager) {
-        this.playerManager.cleanup()
-      }
+      // PlayerManager 功能已整合到 Game 类中，直接清理玩家数据
+      this._players.clear()
+      this.roles.clear()
+      this.playerNumberMap.clear()
+      this._cacheSystem.clear()
 
       // StateManager 功能已整合到 Game 类中，无需单独清理
 
@@ -513,7 +598,7 @@ export class Game {
   cleanupWolfRoleStatics () {
     try {
       // 动态导入WolfRole并调用其cleanup方法
-      import('../roles/WolfRole.js').then(({ WolfRole }) => {
+      import('../strategies/roles/WolfRole.js').then(({ WolfRole }) => {
         if (WolfRole && typeof WolfRole.cleanup === 'function') {
           WolfRole.cleanup()
         }
@@ -531,7 +616,7 @@ export class Game {
   getWolfVoteStats () {
     try {
       // 动态导入WolfRole获取统计信息
-      return import('../roles/WolfRole.js').then(({ WolfRole }) => {
+      return import('../strategies/roles/WolfRole.js').then(({ WolfRole }) => {
         return WolfRole.getStats ? WolfRole.getStats() : { voteCount: 0, hasKillTarget: false }
       }).catch(() => ({ voteCount: 0, hasKillTarget: false }))
     } catch (error) {
@@ -545,8 +630,8 @@ export class Game {
    */
   getResourceStats () {
     return {
-      playerCount: this.playerManager ? this.playerManager.getPlayerCount() : 0,
-      roleCount: this.playerManager ? this.playerManager.roles.size : 0,
+      playerCount: this.getPlayerCount(),
+      roleCount: this.roles.size,
       eventErrorCount: this.eventErrors ? this.eventErrors.length : 0,
       hasEventHandler: !!this.eventHandler,
       listenerCount: this.listenerCount ? this.listenerCount() : 0,

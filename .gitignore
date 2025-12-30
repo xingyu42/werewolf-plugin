@@ -1,17 +1,13 @@
 .claude/
 .cursor/
-node_modules/
 .vscode/
-*.log
-doc/
-data/
-.codeaskdata
-tests/
-Docs/
-coverage/
-CLAUDE.md
-.augmentignore
 
-.cursorignore
-FileScopeMCP-tree.json
-.roomodes
+node_modules/
+*.log
+data/
+
+tests/
+test/
+coverage/
+
+CLAUDE.md

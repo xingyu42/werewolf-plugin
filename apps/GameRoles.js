@@ -46,7 +46,7 @@ export class GameRoles extends plugin {
   }
 
   // 守卫守护
-  async guardAction(e) {
+  async guardAction (e) {
     if (e.isGroup) {
       e.reply('请私聊发送命令')
       return false
