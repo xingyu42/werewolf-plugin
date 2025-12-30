@@ -1,6 +1,18 @@
 /**
- * 角色配置生成器
- * 基于PRD中的权重平衡系统，为不同人数的游戏动态生成或选择平衡、合理的角色配置
+ * @file RoleConfigurator.js
+ * @description 角色配置生成器，基于权重平衡系统动态生成或选择角色配置
+ * @module utils/configurators/RoleConfigurator
+ *
+ * @input GameTemplates (./GameTemplates.js), RoleData (./RoleData.js), BalanceValidator (./BalanceValidator.js), Constants (../../model/core/Constants.js), GameError (../../model/core/GameError.js)
+ * @output RoleConfigurator - 角色配置生成类
+ * @pos 工具层 - 配置生成器，为游戏提供平衡的角色分配方案
+ *
+ * @dependencies
+ * - ./GameTemplates.js - 游戏模板库
+ * - ./RoleData.js - 角色数据（权重、阵营）
+ * - ./BalanceValidator.js - 平衡性验证
+ * - ../../model/core/Constants.js - 角色和阵营常量
+ * - ../../model/core/GameError.js - 错误处理
  */
 import { GameTemplates } from './GameTemplates.js'
 import { RoleData } from './RoleData.js'

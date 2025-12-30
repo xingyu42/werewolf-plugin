@@ -1,3 +1,17 @@
+/**
+ * @file YamlReader.js
+ * @description YAML 文件读取和修改工具类
+ * @module components/YamlReader
+ *
+ * @input fs, YAML, lodash
+ * @output YamlReader - YAML 工具类
+ * @pos 组件层 - YAML 配置文件操作
+ *
+ * @dependencies
+ * - node:fs - 文件系统
+ * - yaml - YAML 解析
+ * - lodash - 工具库
+ */
 import fs from 'node:fs'
 import YAML from 'yaml'
 import _ from 'lodash'

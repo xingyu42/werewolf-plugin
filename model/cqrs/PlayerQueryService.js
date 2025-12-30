@@ -1,6 +1,13 @@
 /**
- * 玩家查询服务
- * 提供高效的玩家查询和缓存功能
+ * @file PlayerQueryService.js
+ * @description 玩家查询服务，提供高效的玩家查询和缓存功能
+ * @module model/cqrs/PlayerQueryService
+ *
+ * @input 无
+ * @output PlayerQueryService - 玩家查询服务类
+ * @pos CQRS层 - 查询服务，提供只读玩家数据查询
+ *
+ * @dependencies 无
  */
 
 export class PlayerQueryService {

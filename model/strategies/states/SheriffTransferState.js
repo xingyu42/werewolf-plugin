@@ -1,3 +1,15 @@
+/**
+ * @file SheriffTransferState.js
+ * @description 警长移交状态类，处理警长死亡后的警徽移交
+ * @module model/strategies/states/SheriffTransferState
+ *
+ * @input GameState
+ * @output SheriffTransferState - 警长移交状态类
+ * @pos 策略层 - 警长移交阶段
+ *
+ * @dependencies
+ * - ./GameState.js - 状态基类
+ */
 import { GameState } from './GameState.js'
 
 export class SheriffTransferState extends GameState {

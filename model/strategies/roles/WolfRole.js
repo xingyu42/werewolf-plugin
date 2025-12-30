@@ -1,3 +1,16 @@
+/**
+ * @file WolfRole.js
+ * @description 狼人角色类，狼人阵营的核心角色
+ * @module model/strategies/roles/WolfRole
+ *
+ * @input Role, CAMPS
+ * @output WolfRole - 狼人角色类
+ * @pos 策略层 - 狼人角色，夜晚投票击杀
+ *
+ * @dependencies
+ * - ./Role.js - 角色基类
+ * - ../../core/Constants.js - 阵营常量
+ */
 import { Role } from './Role.js'
 import { CAMPS } from '../../core/Constants.js'
 

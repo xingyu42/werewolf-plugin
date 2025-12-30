@@ -1,3 +1,15 @@
+/**
+ * @file update.js
+ * @description 插件更新应用，检查和执行插件更新
+ * @module apps/update
+ *
+ * @input update (../../other/update.js)
+ * @output WerewolfUpdate - 继承 plugin 的应用类
+ * @pos 应用层 - 插件更新管理
+ *
+ * @dependencies
+ * - ../../other/update.js - Miao-Yunzai 更新模块
+ */
 /* eslint-disable import/no-unresolved */
 import { update as Update } from '../../other/update.js'
 

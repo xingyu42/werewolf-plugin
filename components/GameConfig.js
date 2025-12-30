@@ -1,3 +1,22 @@
+/**
+ * @file GameConfig.js
+ * @description 游戏配置管理器，支持热更新和配置验证
+ * @module components/GameConfig
+ *
+ * @input YAML, chokidar, fs, lodash, cfg, YamlReader, constants, Constants
+ * @output GameConfig - 配置管理类
+ * @pos 组件层 - 配置管理，支持热更新
+ *
+ * @dependencies
+ * - yaml - YAML 解析
+ * - chokidar - 文件监听
+ * - node:fs - 文件系统
+ * - lodash - 工具库
+ * - ../../../lib/config/config.js - 框架配置
+ * - ./YamlReader.js - YAML 读取
+ * - ./constants.js - 组件常量
+ * - ../model/core/Constants.js - 核心常量
+ */
 import YAML from 'yaml'
 import chokidar from 'chokidar'
 import fs from 'node:fs'

@@ -1,3 +1,18 @@
+/**
+ * @file VoteState.js
+ * @description 投票状态类，处理玩家投票和放逐逻辑
+ * @module model/strategies/states/VoteState
+ *
+ * @input GameState, NightPhaseController, LastWordsState, Puppeteer
+ * @output VoteState - 投票状态类
+ * @pos 策略层 - 白天投票阶段
+ *
+ * @dependencies
+ * - ./GameState.js - 状态基类
+ * - ./NightPhaseController.js - 夜晚控制器
+ * - ./LastWordsState.js - 遗言状态
+ * - ../../../components/services.js - 渲染服务
+ */
 import { GameState } from './GameState.js'
 import { NightPhaseController } from './NightPhaseController.js'
 import { LastWordsState } from './LastWordsState.js'

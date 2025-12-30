@@ -1,6 +1,13 @@
 /**
- * 游戏注册表 - 管理游戏实例的生命周期
- * 增强版本，包含内存泄漏防护和资源清理机制
+ * @file GameRegistry.js
+ * @description 游戏注册表，管理游戏实例的生命周期和资源清理
+ * @module model/cqrs/GameRegistry
+ *
+ * @input 无
+ * @output GameRegistry - 游戏注册表类
+ * @pos CQRS层 - 游戏实例管理，包含自动清理机制
+ *
+ * @dependencies 无
  */
 export class GameRegistry {
   // 静态游戏实例存储

@@ -1,3 +1,21 @@
+/**
+ * @file RoleFactory.js
+ * @description 角色工厂类，根据角色名称创建对应的角色实例
+ * @module model/strategies/roles/RoleFactory
+ *
+ * @input ROLES, CAMPS, WolfRole, VillagerRole, ProphetRole, WitchRole, HunterRole, GuardRole
+ * @output RoleFactory - 角色工厂类
+ * @pos 策略层 - 角色实例化工厂
+ *
+ * @dependencies
+ * - ../../core/Constants.js - 角色和阵营常量
+ * - ./WolfRole.js - 狼人角色
+ * - ./VillagerRole.js - 村民角色
+ * - ./ProphetRole.js - 预言家角色
+ * - ./WitchRole.js - 女巫角色
+ * - ./HunterRole.js - 猎人角色
+ * - ./GuardRole.js - 守卫角色
+ */
 import { ROLES, CAMPS } from '../../core/Constants.js'
 import { WolfRole } from './WolfRole.js'
 import { VillagerRole } from './VillagerRole.js'

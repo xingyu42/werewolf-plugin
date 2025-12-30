@@ -1,6 +1,13 @@
 /**
- * 状态机配置 - 定义游戏中所有合法的状态转换路径
- * 此文件使复杂的游戏流程变得清晰、可预测、易于维护
+ * @file StateMachine.js
+ * @description 状态机配置，定义游戏中所有合法的状态转换路径
+ * @module model/core/StateMachine
+ *
+ * @input 无
+ * @output GameStateType, StateTransitions, StateMachine
+ * @pos 核心层 - 状态机，管理游戏状态转换
+ *
+ * @dependencies 无
  */
 
 // 游戏状态枚举

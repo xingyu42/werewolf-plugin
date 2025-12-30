@@ -1,3 +1,15 @@
+/**
+ * @file GameStats.js
+ * @description 玩家统计应用，查询战绩和排行榜
+ * @module apps/GameStats
+ *
+ * @input PlayerStats (services)
+ * @output GameStats - 继承 plugin 的应用类
+ * @pos 应用层 - 玩家数据统计展示
+ *
+ * @dependencies
+ * - ../components/services.js - PlayerStats
+ */
 import { PlayerStats } from '../components/services.js'
 
 export class GameStats extends plugin {

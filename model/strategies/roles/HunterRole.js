@@ -1,3 +1,15 @@
+/**
+ * @file HunterRole.js
+ * @description 猎人角色类，好人阵营的特殊角色
+ * @module model/strategies/roles/HunterRole
+ *
+ * @input Role
+ * @output HunterRole - 猎人角色类
+ * @pos 策略层 - 猎人角色，死亡时开枪
+ *
+ * @dependencies
+ * - ./Role.js - 角色基类
+ */
 import { Role } from './Role.js'
 
 /**

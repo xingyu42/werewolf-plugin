@@ -1,6 +1,13 @@
 /**
- * @description 游戏核心常量统一定义
- * 所有常量的单一数据源，避免重复定义
+ * @file Constants.js
+ * @description 游戏核心常量统一定义，所有常量的单一数据源
+ * @module model/core/Constants
+ *
+ * @input 无
+ * @output ROLES, CAMPS, ROLE_WEIGHTS, ROLE_CAMPS, GAME_PHASES, PLAYER_STATES, ACTIONS, DEATH_REASONS, NIGHT_PHASE_ORDER, NIGHT_PHASE_CONFIG, CONFIG_KEYS
+ * @pos 核心层 - 常量中心，系统单一数据源
+ *
+ * @dependencies 无
  */
 
 // ==================== 角色相关常量 ====================

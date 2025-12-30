@@ -1,11 +1,19 @@
 /**
- * 夜晚阶段控制器
- * 继承自GameState，替代现有的NightState，使用PhaseManager协调三个阶段的顺序执行
- * 实现完整的夜晚流程控制逻辑，保持与现有NightState相同的外部接口
+ * @file NightPhaseController.js
+ * @description 夜晚阶段控制器，协调三个夜晚子阶段的顺序执行
+ * @module model/strategies/states/NightPhaseController
  *
- * {{CHENGQI: Action: Added; Timestamp: 2025-06-19 20:35:00 +08:00; Reason: Shrimp Task ID: #50bcc8eb-d419-4717-b567-37f630d3ecc7, 创建阶段化夜晚状态控制器; Principle_Applied: SOLID-SRP-SingleResponsibility-DIP-DependencyInversion;}}
+ * @input GameState, DayState, PhaseManager, PhaseCoordinator, GameError
+ * @output NightPhaseController - 夜晚控制器类
+ * @pos 策略层 - 夜晚流程控制，替代 NightState
+ *
+ * @dependencies
+ * - ./GameState.js - 状态基类
+ * - ./DayState.js - 白天状态（转换目标）
+ * - ../../managers/PhaseManager.js - 阶段管理器
+ * - ../../core/PhaseCoordinator.js - 阶段协调器
+ * - ../../core/GameError.js - 游戏错误
  */
-
 import { GameState } from './GameState.js'
 import { DayState } from './DayState.js'
 import { PhaseManager } from '../../managers/PhaseManager.js'

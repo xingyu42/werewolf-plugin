@@ -1,5 +1,13 @@
 /**
- * 玩家统计数据管理器
+ * @file PlayerStats.js
+ * @description 玩家统计数据管理器，记录玩家战绩
+ * @module model/cqrs/PlayerStats
+ *
+ * @input 无
+ * @output PlayerStats - 玩家统计类（默认导出）
+ * @pos CQRS层 - 玩家统计，持久化战绩数据
+ *
+ * @dependencies 无（运行时注入 Data, redis）
  */
 class PlayerStats {
   constructor (data, redis) {

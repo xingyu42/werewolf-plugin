@@ -1,8 +1,15 @@
 /**
- * 游戏错误类 - 用于统一处理游戏中的错误
- * 提供错误码和详细信息，便于调试和日志记录
+ * @file GameError.js
+ * @description 游戏错误类，提供错误码和详细信息
+ * @module model/core/GameError
+ *
+ * @input ErrorCodes, ErrorSeverity, ErrorCategory
+ * @output GameError - 游戏错误类
+ * @pos 核心层 - 错误封装
+ *
+ * @dependencies
+ * - ./ErrorCodes.js - 错误代码定义
  */
-
 import { ErrorCodes, ErrorSeverity, ErrorCategory } from './ErrorCodes.js'
 
 export class GameError extends Error {

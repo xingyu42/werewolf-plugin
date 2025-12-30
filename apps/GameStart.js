@@ -1,3 +1,22 @@
+/**
+ * @file GameStart.js
+ * @description 游戏启动和大厅管理应用，处理创建房间、加入游戏、开始游戏等命令
+ * @module apps/GameStart
+ *
+ * @input GameConfig, PlayerStats (services), GameRegistry, Player, ErrorHandler, Game, StateMachine, PlayerQueryService, VictoryChecker
+ * @output GameStart - 继承 plugin 的应用类
+ * @pos 应用层 - 处理用户命令，协调游戏生命周期
+ *
+ * @dependencies
+ * - ../components/services.js - GameConfig, PlayerStats
+ * - ../model/cqrs/GameRegistry.js - 游戏实例注册
+ * - ../model/core/Player.js - 玩家实体
+ * - ../model/core/ErrorHandler.js - 错误处理
+ * - ../model/core/Game.js - 游戏聚合根
+ * - ../model/core/StateMachine.js - 状态机
+ * - ../model/cqrs/PlayerQueryService.js - 玩家查询服务
+ * - ../model/core/VictoryChecker.js - 胜利检查器
+ */
 import { GameConfig, PlayerStats } from '../components/services.js'
 import { GameRegistry } from '../model/cqrs/GameRegistry.js'
 import { Player } from '../model/core/Player.js'

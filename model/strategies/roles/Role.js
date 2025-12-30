@@ -1,15 +1,13 @@
 /**
- * 角色基类 - 所有游戏角色的抽象基类
+ * @file Role.js
+ * @description 角色基类，所有游戏角色的抽象基类
+ * @module model/strategies/roles/Role
  *
- * 提供角色的基本功能，包括：
- * - 角色身份管理
- * - 目标验证
- * - 消息发送
- * - 存活玩家查询
+ * @input 无
+ * @output Role - 角色抽象基类
+ * @pos 策略层 - 角色策略基类，定义角色行为接口
  *
- * 所有具体角色类都应继承此基类并实现相应的抽象方法
- *
- * @class Role
+ * @dependencies 无
  */
 export class Role {
   /**

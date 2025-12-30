@@ -1,11 +1,17 @@
 /**
- * 消除阶段状态类
- * 继承自NightPhaseState，实现消除阶段的具体逻辑
- * 处理狼人讨论和击杀的协作执行，支持多狼人的投票机制和讨论时间管理
+ * @file EliminationPhaseState.js
+ * @description 消除阶段状态类，处理狼人讨论和击杀
+ * @module model/strategies/states/EliminationPhaseState
  *
- * {{CHENGQI: Action: Added; Timestamp: 2025-06-19 20:07:48 +08:00; Reason: Shrimp Task ID: #39b77685-1730-4cb6-8f73-9e5f5daf7722, 创建消除阶段状态; Principle_Applied: SOLID-SRP-SingleResponsibility-LSP-LiskovSubstitution;}}
+ * @input NightPhaseState, GameError, NIGHT_PHASE_CONFIG, ACTIONS
+ * @output EliminationPhaseState - 消除阶段类
+ * @pos 策略层 - 夜晚第二阶段，狼人协作击杀
+ *
+ * @dependencies
+ * - ./NightPhaseState.js - 夜晚阶段基类
+ * - ../../core/GameError.js - 游戏错误
+ * - ../../core/Constants.js - 阶段配置和行动常量
  */
-
 import { NightPhaseState } from './NightPhaseState.js'
 import { GameError } from '../../core/GameError.js'
 import { NIGHT_PHASE_CONFIG, ACTIONS } from '../../core/Constants.js'

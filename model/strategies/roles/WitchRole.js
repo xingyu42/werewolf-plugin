@@ -1,3 +1,15 @@
+/**
+ * @file WitchRole.js
+ * @description 女巫角色类，好人阵营的强力角色
+ * @module model/strategies/roles/WitchRole
+ *
+ * @input Role
+ * @output WitchRole - 女巫角色类
+ * @pos 策略层 - 女巫角色，解药和毒药
+ *
+ * @dependencies
+ * - ./Role.js - 角色基类
+ */
 import { Role } from './Role.js'
 
 /**

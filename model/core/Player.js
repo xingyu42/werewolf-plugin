@@ -1,6 +1,13 @@
 /**
- * Player.js - 玩家类
- * 封装玩家数据和行为
+ * @file Player.js
+ * @description 玩家实体类，封装玩家数据和行为
+ * @module model/core/Player
+ *
+ * @input 无
+ * @output Player - 玩家实体类
+ * @pos 核心层 - 玩家实体，封装玩家状态
+ *
+ * @dependencies 无
  */
 
 export class Player {

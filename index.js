@@ -1,3 +1,18 @@
+/**
+ * @file index.js
+ * @description 插件主入口，动态加载 apps/ 目录下的所有应用模块
+ * @module werewolf-plugin
+ *
+ * @input fs (node:fs), RoleFactory (./model/strategies/roles/RoleFactory.js), oicq (动态)
+ * @output apps - 已加载的应用模块集合
+ * @pos 入口层 - 插件启动入口，负责模块加载和初始化
+ *
+ * @dependencies
+ * - node:fs - 文件系统操作
+ * - ./model/strategies/roles/RoleFactory.js - 角色工厂（预加载）
+ * - oicq - 消息段处理（动态导入）
+ * - ./apps/*.js - 应用模块（动态加载）
+ */
 import fs from 'node:fs'
 import { RoleFactory } from './model/strategies/roles/RoleFactory.js'
 

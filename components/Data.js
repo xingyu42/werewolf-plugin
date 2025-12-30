@@ -1,3 +1,17 @@
+/**
+ * @file Data.js
+ * @description 数据管理模块，提供文件读写和缓存功能
+ * @module components/Data
+ *
+ * @input lodash, fs, constants
+ * @output Data - 数据管理对象
+ * @pos 组件层 - 数据持久化和缓存
+ *
+ * @dependencies
+ * - lodash - 工具库
+ * - fs - 文件系统
+ * - ./constants.js - 组件常量
+ */
 import lodash from 'lodash'
 import fs from 'fs'
 import { _path, PLUGIN_NAME } from './constants.js'

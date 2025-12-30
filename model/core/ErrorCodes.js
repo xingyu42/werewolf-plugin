@@ -1,6 +1,13 @@
 /**
- * 统一错误代码枚举
- * 定义所有游戏相关的错误代码和分类
+ * @file ErrorCodes.js
+ * @description 统一错误代码枚举，定义所有游戏相关的错误代码和分类
+ * @module model/core/ErrorCodes
+ *
+ * @input 无
+ * @output ErrorSeverity, ErrorCategory, ErrorCodes, getErrorByName
+ * @pos 核心层 - 错误代码定义
+ *
+ * @dependencies 无
  */
 
 /**

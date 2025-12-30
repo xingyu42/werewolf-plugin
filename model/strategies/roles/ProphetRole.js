@@ -1,3 +1,16 @@
+/**
+ * @file ProphetRole.js
+ * @description 预言家角色类，好人阵营的核心角色
+ * @module model/strategies/roles/ProphetRole
+ *
+ * @input Role, ValidationUtils
+ * @output ProphetRole - 预言家角色类
+ * @pos 策略层 - 预言家角色，夜晚查验身份
+ *
+ * @dependencies
+ * - ./Role.js - 角色基类
+ * - ../../core/ValidationUtils.js - 验证工具
+ */
 import { Role } from './Role.js'
 import { ValidationUtils } from '../../core/ValidationUtils.js'
 

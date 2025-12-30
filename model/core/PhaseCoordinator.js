@@ -1,6 +1,13 @@
 /**
- * 阶段协调器 - 替代PhaseManager与NightPhaseController间的事件通信
- * 负责协调夜晚阶段的启动、完成和错误处理，采用直接调用而非事件系统
+ * @file PhaseCoordinator.js
+ * @description 阶段协调器，协调夜晚阶段的启动、完成和错误处理
+ * @module model/core/PhaseCoordinator
+ *
+ * @input 无
+ * @output PhaseCoordinator - 阶段协调器类
+ * @pos 核心层 - 阶段协调，替代事件通信
+ *
+ * @dependencies 无
  */
 export class PhaseCoordinator {
   /**

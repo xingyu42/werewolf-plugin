@@ -1,3 +1,20 @@
+/**
+ * @file DayState.js
+ * @description 白天状态类，处理白天讨论和状态转换
+ * @module model/strategies/states/DayState
+ *
+ * @input GameState, VoteState, LastWordsState, HunterRole, SheriffElectState, SheriffTransferState
+ * @output DayState - 白天状态类
+ * @pos 策略层 - 白天讨论阶段
+ *
+ * @dependencies
+ * - ./GameState.js - 状态基类
+ * - ./VoteState.js - 投票状态
+ * - ./LastWordsState.js - 遗言状态
+ * - ../roles/HunterRole.js - 猎人角色
+ * - ./SheriffElectState.js - 警长竞选状态
+ * - ./SheriffTransferState.js - 警长移交状态
+ */
 import { GameState } from './GameState.js'
 import { VoteState } from './VoteState.js'
 import { LastWordsState } from './LastWordsState.js'

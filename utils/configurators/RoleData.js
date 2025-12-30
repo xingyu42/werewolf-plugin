@@ -1,9 +1,14 @@
 /**
- * 角色数据管理模块
- * 定义角色的权重、阵营和其他属性，为配置生成器提供数据支持
- * 基于PRD中的权重平衡系统设计
+ * @file RoleData.js
+ * @description 角色数据管理，提供角色权重、阵营、解锁条件等属性查询
+ * @module utils/configurators/RoleData
  *
- * 注意：此模块现在使用统一的常量定义，避免重复定义
+ * @input Constants (../../model/core/Constants.js) - ROLES, CAMPS, ROLE_WEIGHTS, ROLE_CAMPS, ROLE_NAMES_CN
+ * @output RoleData - 角色数据查询类
+ * @pos 工具层 - 角色元数据提供者，为配置生成器和验证器提供数据支持
+ *
+ * @dependencies
+ * - ../../model/core/Constants.js - 统一的角色常量定义（权重、阵营、名称）
  */
 import { ROLES, CAMPS, ROLE_WEIGHTS, ROLE_CAMPS, ROLE_NAMES_CN } from '../../model/core/Constants.js'
 

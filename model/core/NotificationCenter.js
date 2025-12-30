@@ -1,3 +1,15 @@
+/**
+ * @file NotificationCenter.js
+ * @description 统一通知中心，负责处理所有游戏通知和消息发送
+ * @module model/core/NotificationCenter
+ *
+ * @input DEATH_REASONS (Constants)
+ * @output NotificationCenter - 通知中心类
+ * @pos 核心层 - 事件通知，替代事件驱动机制
+ *
+ * @dependencies
+ * - ./Constants.js - 常量定义
+ */
 import { DEATH_REASONS } from './Constants.js'
 
 /**

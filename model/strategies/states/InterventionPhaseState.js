@@ -1,11 +1,17 @@
 /**
- * 干预阶段状态类
- * 继承自NightPhaseState，实现干预阶段的具体逻辑
- * 处理女巫的毒药和解药使用，管理女巫行动的顺序执行（非并行）
+ * @file InterventionPhaseState.js
+ * @description 干预阶段状态类，处理女巫的毒药和解药使用
+ * @module model/strategies/states/InterventionPhaseState
  *
- * {{CHENGQI: Action: Added; Timestamp: 2025-06-19 20:15:30 +08:00; Reason: Shrimp Task ID: #19cf6a8e-ace1-479c-a452-00c3d5ae7bc1, 创建干预阶段状态; Principle_Applied: SOLID-SRP-SingleResponsibility-LSP-LiskovSubstitution;}}
+ * @input NightPhaseState, GameError, NIGHT_PHASE_CONFIG, ACTIONS
+ * @output InterventionPhaseState - 干预阶段类
+ * @pos 策略层 - 夜晚第三阶段，女巫顺序行动
+ *
+ * @dependencies
+ * - ./NightPhaseState.js - 夜晚阶段基类
+ * - ../../core/GameError.js - 游戏错误
+ * - ../../core/Constants.js - 阶段配置和行动常量
  */
-
 import { NightPhaseState } from './NightPhaseState.js'
 import { GameError } from '../../core/GameError.js'
 import { NIGHT_PHASE_CONFIG, ACTIONS } from '../../core/Constants.js'

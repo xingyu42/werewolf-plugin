@@ -1,6 +1,13 @@
 /**
- * 游戏状态基类
- * 提供状态管理的基础功能
+ * @file GameState.js
+ * @description 游戏状态基类，提供状态管理的基础功能
+ * @module model/strategies/states/GameState
+ *
+ * @input 无
+ * @output GameState - 状态抽象基类
+ * @pos 策略层 - 状态策略基类，定义状态生命周期接口
+ *
+ * @dependencies 无
  */
 
 export class GameState {

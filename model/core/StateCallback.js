@@ -1,6 +1,13 @@
 /**
- * 状态回调接口 - 替代State类与PhaseManager间的事件通信
- * 负责处理状态完成和错误的回调，采用直接调用而非事件系统
+ * @file StateCallback.js
+ * @description 状态回调接口，处理状态完成和错误的回调
+ * @module model/core/StateCallback
+ *
+ * @input 无
+ * @output StateCallback - 状态回调类
+ * @pos 核心层 - 状态回调，替代事件通信
+ *
+ * @dependencies 无
  */
 export class StateCallback {
   /**

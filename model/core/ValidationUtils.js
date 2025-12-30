@@ -1,8 +1,16 @@
 /**
- * 统一验证工具类
- * 提供可复用的验证逻辑，消除代码重复
+ * @file ValidationUtils.js
+ * @description 统一验证工具类，提供可复用的验证逻辑
+ * @module model/core/ValidationUtils
+ *
+ * @input ErrorHandler, GameError
+ * @output ValidationUtils - 验证工具类
+ * @pos 核心层 - 验证工具
+ *
+ * @dependencies
+ * - ./ErrorHandler.js - 错误处理
+ * - ./GameError.js - 游戏错误
  */
-
 import { ErrorHandler } from '../core/ErrorHandler.js'
 import { GameError } from '../core/GameError.js'
 

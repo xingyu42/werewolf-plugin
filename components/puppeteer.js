@@ -1,3 +1,21 @@
+/**
+ * @file puppeteer.js
+ * @description Puppeteer 渲染管理器，负责 HTML 转图片
+ * @module components/puppeteer
+ *
+ * @input puppeteer, path, fs, lodash, Renderer, constants, ErrorHandler
+ * @output Puppeteer - 渲染管理类
+ * @pos 组件层 - 图片渲染服务
+ *
+ * @dependencies
+ * - puppeteer - 浏览器自动化
+ * - path - 路径处理
+ * - fs - 文件系统
+ * - lodash - 工具库
+ * - ../../../lib/renderer/loader.js - 框架渲染器
+ * - ./constants.js - 组件常量
+ * - ../model/core/ErrorHandler.js - 错误处理
+ */
 import puppeteer from 'puppeteer'
 import path from 'path'
 import fs from 'fs'

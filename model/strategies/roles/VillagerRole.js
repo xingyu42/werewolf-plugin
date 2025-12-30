@@ -1,3 +1,15 @@
+/**
+ * @file VillagerRole.js
+ * @description 村民角色类，好人阵营的基础角色
+ * @module model/strategies/roles/VillagerRole
+ *
+ * @input Role
+ * @output VillagerRole - 村民角色类
+ * @pos 策略层 - 村民角色，无特殊技能
+ *
+ * @dependencies
+ * - ./Role.js - 角色基类
+ */
 import { Role } from './Role.js'
 
 /**

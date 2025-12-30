@@ -1,11 +1,15 @@
 /**
- * 夜晚阶段状态基类
- * 提供阶段管理的通用功能，使用回调机制替代事件系统
- * 支持阶段配置管理、角色状态跟踪、并行处理、超时处理等核心功能
+ * @file NightPhaseState.js
+ * @description 夜晚阶段状态基类，提供阶段管理的通用功能
+ * @module model/strategies/states/NightPhaseState
  *
- * {{CHENGQI: Action: Modified; Timestamp: 2025-06-23 09:15:00 +08:00; Reason: Shrimp Task ID: #emit-refactor-phase-4, 移除EventEmitter继承改用回调机制; Principle_Applied: SOLID-SRP-SingleResponsibility-DIP-DependencyInversion;}}
+ * @input GameError
+ * @output NightPhaseState - 夜晚阶段基类
+ * @pos 策略层 - 夜晚子阶段基类，回调机制替代事件系统
+ *
+ * @dependencies
+ * - ../../core/GameError.js - 游戏错误
  */
-
 import { GameError } from '../../core/GameError.js'
 
 export class NightPhaseState {

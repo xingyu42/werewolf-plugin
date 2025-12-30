@@ -1,3 +1,17 @@
+/**
+ * @file ActionHandler.js
+ * @description 行动处理器，统一处理玩家行动的入口
+ * @module model/cqrs/ActionHandler
+ *
+ * @input GameRegistry, GameError, ValidationUtils
+ * @output ActionHandler - 行动处理器类
+ * @pos CQRS层 - 命令处理器，路由玩家行动
+ *
+ * @dependencies
+ * - ./GameRegistry.js - 游戏注册表
+ * - ../core/GameError.js - 游戏错误
+ * - ../core/ValidationUtils.js - 验证工具
+ */
 import { GameRegistry } from './GameRegistry.js'
 import { GameError } from '../core/GameError.js'
 import { ValidationUtils } from '../core/ValidationUtils.js'

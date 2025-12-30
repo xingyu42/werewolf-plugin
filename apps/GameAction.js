@@ -1,3 +1,21 @@
+/**
+ * @file GameAction.js
+ * @description 游戏行动处理应用，处理投票、弃票、竞选警长等游戏行动命令
+ * @module apps/GameAction
+ *
+ * @input LastWordsState, SheriffElectState, SheriffTransferState, WolfRole, GameError, ActionHandler, ACTIONS
+ * @output GameAction - 继承 plugin 的应用类
+ * @pos 应用层 - 处理游戏进行中的玩家行动
+ *
+ * @dependencies
+ * - ../model/strategies/states/LastWordsState.js - 遗言状态
+ * - ../model/strategies/states/SheriffElectState.js - 警长竞选状态
+ * - ../model/strategies/states/SheriffTransferState.js - 警长移交状态
+ * - ../model/strategies/roles/WolfRole.js - 狼人角色
+ * - ../model/core/GameError.js - 游戏错误类
+ * - ../model/cqrs/ActionHandler.js - 行动处理器
+ * - ../model/core/Constants.js - 常量定义
+ */
 import { LastWordsState } from '../model/strategies/states/LastWordsState.js' // 引入 LastWordsState
 import { SheriffElectState } from '../model/strategies/states/SheriffElectState.js' // 引入 SheriffElectState
 import { SheriffTransferState } from '../model/strategies/states/SheriffTransferState.js' // 引入 SheriffTransferState

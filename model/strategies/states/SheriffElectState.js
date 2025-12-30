@@ -1,3 +1,16 @@
+/**
+ * @file SheriffElectState.js
+ * @description 警长竞选状态类，处理警长竞选、发言和投票
+ * @module model/strategies/states/SheriffElectState
+ *
+ * @input GameState, DayState
+ * @output SheriffElectState - 警长竞选状态类
+ * @pos 策略层 - 警长竞选阶段
+ *
+ * @dependencies
+ * - ./GameState.js - 状态基类
+ * - ./DayState.js - 白天状态（返回目标）
+ */
 import { GameState } from './GameState.js'
 import { DayState } from './DayState.js'
 

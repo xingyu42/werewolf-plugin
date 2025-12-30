@@ -1,3 +1,20 @@
+/**
+ * @file Game.js
+ * @description 游戏聚合根，核心协调器，管理所有游戏逻辑
+ * @module model/core/Game
+ *
+ * @input VictoryChecker, RoleConfigurator, NotificationCenter, GameError, NightPhaseController, GAME_PHASES
+ * @output Game - 游戏聚合根类
+ * @pos 核心层 - 聚合根，协调所有游戏状态和流程
+ *
+ * @dependencies
+ * - ./VictoryChecker.js - 胜利检查
+ * - ../../utils/configurators/RoleConfigurator.js - 角色配置
+ * - ./NotificationCenter.js - 通知中心
+ * - ./GameError.js - 游戏错误
+ * - ../strategies/states/NightPhaseController.js - 夜晚阶段控制器
+ * - ./Constants.js - 常量定义
+ */
 import { VictoryChecker } from './VictoryChecker.js'
 import { RoleConfigurator } from '../../utils/configurators/RoleConfigurator.js'
 import { NotificationCenter } from './NotificationCenter.js'

@@ -1,3 +1,15 @@
+/**
+ * @file GuardRole.js
+ * @description 守卫角色类，好人阵营的特殊角色
+ * @module model/strategies/roles/GuardRole
+ *
+ * @input Role
+ * @output GuardRole - 守卫角色类
+ * @pos 策略层 - 守卫角色，夜晚守护玩家
+ *
+ * @dependencies
+ * - ./Role.js - 角色基类
+ */
 import { Role } from './Role.js'
 
 /**

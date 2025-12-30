@@ -1,3 +1,18 @@
+/**
+ * @file LastWordsState.js
+ * @description 遗言状态类，处理玩家死亡后的遗言和后续流程
+ * @module model/strategies/states/LastWordsState
+ *
+ * @input GameState, HunterRole, SheriffTransferState, NightPhaseController
+ * @output LastWordsState - 遗言状态类
+ * @pos 策略层 - 遗言阶段，处理猎人开枪和警长移交
+ *
+ * @dependencies
+ * - ./GameState.js - 状态基类
+ * - ../roles/HunterRole.js - 猎人角色
+ * - ./SheriffTransferState.js - 警长移交状态
+ * - ./NightPhaseController.js - 夜晚控制器
+ */
 import { GameState } from './GameState.js'
 import { HunterRole } from '../roles/HunterRole.js'
 import { SheriffTransferState } from './SheriffTransferState.js'

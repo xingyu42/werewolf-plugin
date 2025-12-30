@@ -1,9 +1,16 @@
-/*
-* 此配置文件为系统使用，请勿修改，否则可能无法正常使用
-*
-* 如需自定义配置请复制修改上一级help_default.js
-*
-* */
+/**
+ * @file help_default.js
+ * @description 系统默认帮助配置，定义帮助页面样式和命令列表
+ * @module config/system/help_default
+ *
+ * @input 无
+ * @output helpCfg - 帮助页面样式配置, helpList - 命令分组列表, isSys - 系统配置标识
+ * @pos 配置层 - 系统默认配置，请勿直接修改
+ *
+ * @dependencies 无
+ *
+ * @note 如需自定义配置请复制修改上一级 help_default.js
+ */
 
 export const helpCfg = {
   title: '狼人杀帮助',

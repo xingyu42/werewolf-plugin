@@ -1,3 +1,16 @@
+/**
+ * @file GameRoles.js
+ * @description 角色行动应用，处理各角色技能命令（守护、查验、毒杀、救人、刀人等）
+ * @module apps/GameRoles
+ *
+ * @input ActionHandler, ACTIONS
+ * @output GameRoles - 继承 plugin 的应用类
+ * @pos 应用层 - 处理角色夜间行动命令
+ *
+ * @dependencies
+ * - ../model/cqrs/ActionHandler.js - 行动处理器
+ * - ../model/core/Constants.js - 常量定义
+ */
 import { ActionHandler } from '../model/cqrs/ActionHandler.js'
 import { ACTIONS } from '../model/core/Constants.js'
 

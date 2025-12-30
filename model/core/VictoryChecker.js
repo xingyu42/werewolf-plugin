@@ -1,8 +1,13 @@
 /**
- * VictoryChecker.js - 胜利条件检查器
+ * @file VictoryChecker.js
+ * @description 胜利条件检查器，检查游戏是否结束及获胜阵营
+ * @module model/core/VictoryChecker
  *
- * 负责检查游戏是否结束以及哪个阵营获胜
- * 使用策略模式设计，每个检查器只负责检查一种胜利条件
+ * @input 无
+ * @output VictoryChecker - 胜利检查器类
+ * @pos 核心层 - 胜利条件检查，使用策略模式
+ *
+ * @dependencies 无
  */
 
 /**

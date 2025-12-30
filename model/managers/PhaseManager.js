@@ -1,14 +1,17 @@
 /**
- * 阶段管理器 - 负责夜晚阶段的转换逻辑、状态协调和流程控制
- * 管理阶段间的顺序执行，处理阶段完成条件检查，协调角色行动状态
+ * @file PhaseManager.js
+ * @description 阶段管理器，负责夜晚阶段的转换逻辑、状态协调和流程控制
+ * @module model/managers/PhaseManager
  *
- * 职责分工：
- * - Game: 负责游戏级别状态转换 (NightState -> DayState)
- * - PhaseManager: 负责夜晚内部阶段转换 (信息收集 -> 消除 -> 干预)
+ * @input GameError, NIGHT_PHASE_ORDER, StateCallback
+ * @output PhaseManager - 阶段管理器类
+ * @pos 管理器层 - 夜晚内部阶段转换 (信息收集 -> 消除 -> 干预)
  *
- * {{CHENGQI: Action: Added; Timestamp: 2025-06-19 19:51:05 +08:00; Reason: Shrimp Task ID: #30a79ac5-422c-45a8-b53a-1c5c5c6990f5, 创建阶段管理器; Principle_Applied: SOLID-SRP-SingleResponsibility-DIP-DependencyInversion;}}
+ * @dependencies
+ * - ../core/GameError.js - 游戏错误
+ * - ../core/Constants.js - 阶段顺序常量
+ * - ../core/StateCallback.js - 状态回调
  */
-
 import { GameError } from '../core/GameError.js'
 import { NIGHT_PHASE_ORDER } from '../core/Constants.js'
 import { StateCallback } from '../core/StateCallback.js'

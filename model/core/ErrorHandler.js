@@ -1,8 +1,16 @@
 /**
- * 统一错误处理工具类
- * 提供标准化的错误处理、日志记录和用户反馈机制
+ * @file ErrorHandler.js
+ * @description 统一错误处理工具类，提供标准化的错误处理和日志记录
+ * @module model/core/ErrorHandler
+ *
+ * @input ErrorCodes, ErrorSeverity, ErrorCategory, getErrorByName, GameError
+ * @output ErrorHandler, defaultErrorHandler
+ * @pos 核心层 - 统一错误处理
+ *
+ * @dependencies
+ * - ./ErrorCodes.js - 错误代码
+ * - ./GameError.js - 游戏错误类
  */
-
 import { ErrorCodes, ErrorSeverity, ErrorCategory, getErrorByName } from './ErrorCodes.js'
 import { GameError } from './GameError.js'
 

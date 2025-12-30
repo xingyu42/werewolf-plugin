@@ -1,11 +1,17 @@
 /**
- * 信息收集阶段状态类
- * 继承自NightPhaseState，实现信息收集阶段的具体逻辑
- * 处理预言家查验和守卫保护的并行执行，管理角色行动状态和结果记录
+ * @file InformationPhaseState.js
+ * @description 信息收集阶段状态类，处理预言家查验和守卫保护
+ * @module model/strategies/states/InformationPhaseState
  *
- * {{CHENGQI: Action: Added; Timestamp: 2025-06-19 20:01:34 +08:00; Reason: Shrimp Task ID: #cb91360b-b080-4f72-90e7-7d8ea8c9a6f6, 创建信息收集阶段状态; Principle_Applied: SOLID-SRP-SingleResponsibility-LSP-LiskovSubstitution;}}
+ * @input NightPhaseState, GameError, NIGHT_PHASE_CONFIG, ACTIONS
+ * @output InformationPhaseState - 信息收集阶段类
+ * @pos 策略层 - 夜晚第一阶段，预言家和守卫并行行动
+ *
+ * @dependencies
+ * - ./NightPhaseState.js - 夜晚阶段基类
+ * - ../../core/GameError.js - 游戏错误
+ * - ../../core/Constants.js - 阶段配置和行动常量
  */
-
 import { NightPhaseState } from './NightPhaseState.js'
 import { GameError } from '../../core/GameError.js'
 import { NIGHT_PHASE_CONFIG, ACTIONS } from '../../core/Constants.js'
