@@ -1,3 +1,15 @@
+/**
+ * @file GameStats.js
+ * @description 统计应用，处理战绩查询和排行榜命令
+ * @module apps/GameStats
+ *
+ * @input StatsController
+ * @output GameStats - 继承 plugin 的应用类
+ * @pos 路由层 - 玩家统计查询
+ *
+ * @dependencies
+ * - ../controllers/StatsController.js - 统计控制器
+ */
 import { StatsController } from '../controllers/StatsController.js'
 
 export class GameStats extends plugin {

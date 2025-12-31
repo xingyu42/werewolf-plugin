@@ -1,3 +1,19 @@
+/**
+ * @file GameController.js
+ * @description 游戏控制器，管理游戏和大厅的生命周期
+ * @module controllers/GameController
+ *
+ * @input GameConfig, Player, Game, StateMachine, VictoryChecker
+ * @output GameController - 游戏控制器类
+ * @pos 控制器层 - 游戏/大厅生命周期管理
+ *
+ * @dependencies
+ * - ../utils/GameConfig.js - 游戏配置
+ * - ../models/Player.js - 玩家实体
+ * - ../models/Game.js - 游戏聚合根
+ * - ../models/StateMachine.js - 状态机
+ * - ../models/VictoryChecker.js - 胜利检查器
+ */
 import GameConfig from '../utils/GameConfig.js'
 import { Player } from '../models/Player.js'
 import { Game } from '../models/Game.js'

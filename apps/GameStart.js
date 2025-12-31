@@ -1,3 +1,15 @@
+/**
+ * @file GameStart.js
+ * @description 游戏启动应用，处理创建/加入/开始/结束游戏命令
+ * @module apps/GameStart
+ *
+ * @input GameController
+ * @output GameStart - 继承 plugin 的应用类
+ * @pos 路由层 - 游戏启动和大厅管理
+ *
+ * @dependencies
+ * - ../controllers/GameController.js - 游戏控制器
+ */
 import { GameController } from '../controllers/GameController.js'
 
 export class GameStart extends plugin {

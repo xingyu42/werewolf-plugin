@@ -1,3 +1,15 @@
+/**
+ * @file GameAction.js
+ * @description 游戏行动应用，处理投票/警长等行动命令
+ * @module apps/GameAction
+ *
+ * @input ActionController
+ * @output GameAction - 继承 plugin 的应用类
+ * @pos 路由层 - 游戏行动处理
+ *
+ * @dependencies
+ * - ../controllers/ActionController.js - 行动控制器
+ */
 import { ActionController } from '../controllers/ActionController.js'
 
 export class GameAction extends plugin {

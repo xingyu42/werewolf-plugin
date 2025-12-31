@@ -1,3 +1,19 @@
+/**
+ * @file ActionController.js
+ * @description 行动控制器，处理玩家行动验证和分发
+ * @module controllers/ActionController
+ *
+ * @input GameController, ValidationUtils, GameError, ACTIONS, 各状态类
+ * @output ActionController - 行动控制器类
+ * @pos 控制器层 - 玩家行动验证和分发
+ *
+ * @dependencies
+ * - ./GameController.js - 游戏控制器
+ * - ../utils/Validator.js - 验证工具
+ * - ../utils/GameError.js - 游戏错误
+ * - ../models/Constants.js - 行动常量
+ * - ../models/states/*.js - 状态类
+ */
 import { GameController } from './GameController.js'
 import { ValidationUtils } from '../utils/Validator.js'
 import { GameError } from '../utils/GameError.js'

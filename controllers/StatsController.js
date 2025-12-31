@@ -1,3 +1,15 @@
+/**
+ * @file StatsController.js
+ * @description 统计控制器，处理玩家战绩查询和更新
+ * @module controllers/StatsController
+ *
+ * @input PlayerStats
+ * @output StatsController - 统计控制器类
+ * @pos 控制器层 - 统计数据查询和处理
+ *
+ * @dependencies
+ * - ../utils/PlayerStats.js - 玩家统计工具
+ */
 import PlayerStats from '../utils/PlayerStats.js'
 
 export class StatsController {

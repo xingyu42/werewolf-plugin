@@ -1,3 +1,15 @@
+/**
+ * @file GameRoles.js
+ * @description 角色技能应用，处理各角色夜晚技能命令
+ * @module apps/GameRoles
+ *
+ * @input ActionController
+ * @output GameRoles - 继承 plugin 的应用类
+ * @pos 路由层 - 角色技能命令
+ *
+ * @dependencies
+ * - ../controllers/ActionController.js - 行动控制器
+ */
 import { ActionController } from '../controllers/ActionController.js'
 
 export class GameRoles extends plugin {
