@@ -11,7 +11,7 @@
  * - ../components/services.js - Data, Puppeteer
  * - lodash - 工具库
  */
-import { Data, Puppeteer } from '../components/services.js'
+import { Data, Puppeteer } from '../utils/index.js'
 import lodash from 'lodash'
 
 export class GameHelp extends plugin {

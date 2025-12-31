@@ -11,7 +11,7 @@
  * - ../../components/services.js - 获取 GameConfig 读取配置
  * - ./BalanceValidator.js - 加载时验证模板平衡性
  */
-import { GameConfig } from '../../components/services.js'
+import GameConfig from '../GameConfig.js'
 import { BalanceValidator } from './BalanceValidator.js'
 
 export class GameTemplates {

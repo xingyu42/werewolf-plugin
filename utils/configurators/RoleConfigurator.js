@@ -17,8 +17,8 @@
 import { GameTemplates } from './GameTemplates.js'
 import { RoleData } from './RoleData.js'
 import { BalanceValidator } from './BalanceValidator.js'
-import { ROLES, CAMPS } from '../../model/core/Constants.js'
-import { GameError } from '../../model/core/GameError.js'
+import { ROLES, CAMPS } from '../../models/Constants.js'
+import { GameError } from '../../utils/GameError.js'
 
 export class RoleConfigurator {
   // 配置缓存: 玩家人数 -> 角色配置数组

@@ -10,7 +10,7 @@
  * @dependencies
  * - ../../model/core/Constants.js - 统一的角色常量定义（权重、阵营、名称）
  */
-import { ROLES, CAMPS, ROLE_WEIGHTS, ROLE_CAMPS, ROLE_NAMES_CN } from '../../model/core/Constants.js'
+import { ROLES, CAMPS, ROLE_WEIGHTS, ROLE_CAMPS, ROLE_NAMES_CN } from '../../models/Constants.js'
 
 export class RoleData {
   /**

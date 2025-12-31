@@ -12,7 +12,7 @@
  * - ../../model/core/Constants.js - 平衡性阈值常量
  */
 import { RoleData } from './RoleData.js'
-import { BALANCE_THRESHOLDS } from '../../model/core/Constants.js'
+import { BALANCE_THRESHOLDS } from '../../models/Constants.js'
 
 export class BalanceValidator {
   // 平衡性阈值常量 - 使用统一定义
