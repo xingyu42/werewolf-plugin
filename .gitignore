@@ -6,8 +6,7 @@ node_modules/
 *.log
 data/
 
-tests/
-test/
 coverage/
 
 CLAUDE.md
+.ace-tool/

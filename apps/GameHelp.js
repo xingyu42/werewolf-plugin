@@ -1,4 +1,17 @@
-import { Data, Puppeteer } from '../components/services.js'
+/**
+ * @file GameHelp.js
+ * @description 帮助信息应用，显示狼人杀游戏帮助页面
+ * @module apps/GameHelp
+ *
+ * @input Data, Puppeteer (services), lodash
+ * @output GameHelp - 继承 plugin 的应用类
+ * @pos 应用层 - 帮助信息展示
+ *
+ * @dependencies
+ * - ../components/services.js - Data, Puppeteer
+ * - lodash - 工具库
+ */
+import { Data, Puppeteer } from '../utils/index.js'
 import lodash from 'lodash'
 
 export class GameHelp extends plugin {

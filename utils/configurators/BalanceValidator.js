@@ -1,14 +1,19 @@
-import { RoleData } from './RoleData.js'
-import { BALANCE_THRESHOLDS } from '../../model/core/Constants.js'
-
 /**
- * 游戏配置平衡性验证器
+ * @file BalanceValidator.js
+ * @description 游戏配置平衡性验证器，检查角色配置的阵营力量比和狼人比例
+ * @module utils/configurators/BalanceValidator
  *
- * 集中处理所有与游戏配置平衡性相关的计算与验证逻辑，
- * 确保所有配置生成都遵循统一、可维护的平衡标准。
+ * @input RoleData (./RoleData.js), Constants (../../model/core/Constants.js) - BALANCE_THRESHOLDS
+ * @output BalanceValidator - 平衡性验证类，提供 validate() 和 calculateBalanceScore()
+ * @pos 工具层 - 配置验证器，确保游戏配置符合平衡标准
  *
- * 现在使用统一的常量定义，避免重复定义阈值
+ * @dependencies
+ * - ./RoleData.js - 获取角色权重和阵营信息
+ * - ../../model/core/Constants.js - 平衡性阈值常量
  */
+import { RoleData } from './RoleData.js'
+import { BALANCE_THRESHOLDS } from '../../models/Constants.js'
+
 export class BalanceValidator {
   // 平衡性阈值常量 - 使用统一定义
   static get EVIL_RATIO_RANGE () {

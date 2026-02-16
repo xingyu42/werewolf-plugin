@@ -1,14 +1,17 @@
 /**
- * 游戏标准配置模板管理模块 *
- * 主要功能：
- * - 从modes.yaml加载角色模板，支持自定义和扩展
- * - 配置驱动角色分配机制，所有角色模板均可通过编辑modes.yaml实现
- * - 提供配置缓存机制，提高性能
+ * @file GameTemplates.js
+ * @description 游戏标准配置模板管理，从 modes.yaml 加载并缓存角色模板
+ * @module utils/configurators/GameTemplates
  *
+ * @input GameConfig (../../components/services.js), BalanceValidator (./BalanceValidator.js)
+ * @output GameTemplates - 模板管理类，提供模板查询和扩展功能
+ * @pos 工具层 - 配置模板库，支持标准模板和变种配置
  *
- * 遵循平方根法则、权重平衡系统和约束驱动生成的三大核心算法原则
+ * @dependencies
+ * - ../../components/services.js - 获取 GameConfig 读取配置
+ * - ./BalanceValidator.js - 加载时验证模板平衡性
  */
-import { GameConfig } from '../../components/services.js'
+import GameConfig from '../GameConfig.js'
 import { BalanceValidator } from './BalanceValidator.js'
 
 export class GameTemplates {
