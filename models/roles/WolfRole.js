@@ -108,16 +108,19 @@ export class WolfRole extends Role {
    *
    * @returns {string} 行动提示消息
    */
-  async getActionPrompt (e) {
+  async getActionPrompt () {
     const currentState = this.game.getCurrentState()
-    if (!this.canAct(currentState)) return e.reply('狼人只能在夜晚阶段行动')
+    if (!this.canAct(currentState)) {
+      await this.sendPrivate('狼人只能在夜晚阶段行动')
+      return false
+    }
     const aliveWolves = this.game.getAlivePlayers({ roleType: 'WolfRole', includeRole: true })
     let msg = ''
     if (aliveWolves.length > 0) {
       msg += '\n\n其他存活狼人：\n' + aliveWolves.map((w) => `${w.player.gameNumber}号：${w.player.name}`).join('、')
     }
     msg += `【狼人】请选择今晚的击杀目标：\n${this.getAlivePlayersList()}\n输入格式：#刀*号\n你也可以与其他狼人进行队内沟通，输入格式：#讨论 你想说的话`
-    await e.reply(msg)
+    await this.sendPrivate(msg)
     return true
   }
 

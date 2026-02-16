@@ -11,6 +11,7 @@
  * - ../../core/GameError.js - 游戏错误
  */
 import { GameError } from '../../utils/GameError.js'
+import { toRoleClassName } from '../Constants.js'
 
 export class NightPhaseState {
   constructor (game, phaseConfig) {
@@ -300,7 +301,7 @@ export class NightPhaseState {
 
     for (const role of this.phaseConfig.roles) {
       // 检查是否有该角色的存活玩家
-      const alivePlayers = this.game.getAlivePlayers({ roleType: role + 'Role', includeRole: true })
+      const alivePlayers = this.game.getAlivePlayers({ roleType: toRoleClassName(role), includeRole: true })
       if (alivePlayers.length > 0) {
         this.activeRoles.add(role)
       }
@@ -334,7 +335,7 @@ export class NightPhaseState {
     let allCompleted = true
 
     for (const role of this.activeRoles) {
-      const rolePlayers = this.game.getAlivePlayers({ roleType: role + 'Role', includeRole: true })
+      const rolePlayers = this.game.getAlivePlayers({ roleType: toRoleClassName(role), includeRole: true })
       const completedCount = rolePlayers.filter(({ player }) =>
         this.completedActions.has(player.id)
       ).length

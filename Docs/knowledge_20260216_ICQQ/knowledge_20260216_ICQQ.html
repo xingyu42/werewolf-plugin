@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICQQ 深度解析：QQ 协议的 Node.js 实现</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface2: #334155;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --accent: #38bdf8;
+    --accent2: #818cf8;
+    --success: #34d399;
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --border: rgba(148, 163, 184, 0.1);
+    --glass: rgba(30, 41, 59, 0.8);
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.8;
+    padding: 0 0 120px 0;
+  }
+  .hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
+    padding: 80px 40px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at 30% 50%, rgba(56, 189, 248, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 70% 50%, rgba(129, 140, 248, 0.05) 0%, transparent 50%);
+    animation: pulse 8s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+  .hero h1 {
+    font-size: 2.8em;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    position: relative;
+    margin-bottom: 16px;
+  }
+  .hero .subtitle { color: var(--text-dim); font-size: 1.1em; position: relative; }
+  .hero .tags { margin-top: 20px; position: relative; }
+  .hero .tag {
+    display: inline-block;
+    padding: 4px 14px;
+    margin: 4px;
+    border-radius: 20px;
+    background: var(--glass);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    font-size: 0.85em;
+    backdrop-filter: blur(10px);
+  }
+  #content-area {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px;
+  }
+  h2 {
+    font-size: 1.8em;
+    font-weight: 700;
+    margin: 60px 0 24px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--accent);
+    color: var(--accent);
+  }
+  h3 {
+    font-size: 1.3em;
+    font-weight: 600;
+    margin: 36px 0 16px;
+    color: var(--text);
+  }
+  h4 {
+    font-size: 1.1em;
+    font-weight: 600;
+    margin: 24px 0 12px;
+    color: var(--accent2);
+  }
+  p { margin-bottom: 16px; color: var(--text); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { color: #f1f5f9; }
+  blockquote {
+    border-left: 4px solid var(--accent);
+    background: var(--surface);
+    padding: 16px 20px;
+    margin: 20px 0;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+  code {
+    background: var(--surface2);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.9em;
+    color: var(--accent);
+  }
+  pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    overflow-x: auto;
+    margin: 20px 0;
+    position: relative;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: var(--text);
+    font-size: 0.88em;
+    line-height: 1.6;
+  }
+  .mnemonic-card {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(251, 191, 36, 0.05));
+    border: 2px dashed var(--warning);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin: 24px 0;
+    font-family: 'JetBrains Mono', monospace;
+    white-space: pre-wrap;
+    line-height: 1.6;
+    color: var(--warning);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 0.95em;
+  }
+  th {
+    background: var(--surface);
+    color: var(--accent);
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--accent);
+  }
+  td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+  tr:hover td { background: rgba(56, 189, 248, 0.03); }
+  .fission-section {
+    background: rgba(248, 113, 113, 0.05);
+    border-left: 4px solid var(--danger);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 24px;
+    margin: 30px 0;
+  }
+  .fission-section h3 { color: var(--danger); }
+  .fission-section h4 { color: var(--danger); opacity: 0.8; }
+  details {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin: 12px 0;
+    overflow: hidden;
+  }
+  summary {
+    padding: 14px 20px;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text);
+    transition: background 0.2s;
+  }
+  summary:hover { background: var(--surface2); }
+  details[open] summary { border-bottom: 1px solid var(--border); }
+  details > div, details > p { padding: 16px 20px; color: var(--text-dim); }
+  .quiz-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin: 20px 0;
+  }
+  .quiz-section ol { padding-left: 24px; }
+  .quiz-section li { margin: 8px 0; color: var(--text-dim); }
+  .quiz-section li strong { color: var(--accent2); }
+  .mermaid {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin: 20px 0;
+    text-align: center;
+  }
+  .ascii-art {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8em;
+    line-height: 1.4;
+    overflow-x: auto;
+    white-space: pre;
+    color: var(--accent);
+  }
+  .tip-box {
+    background: rgba(52, 211, 153, 0.08);
+    border-left: 4px solid var(--success);
+    padding: 16px 20px;
+    margin: 20px 0;
+    border-radius: 0 var(--radius) var(--radius) 0;
+  }
+  .warn-box {
+    background: rgba(251, 191, 36, 0.08);
+    border-left: 4px solid var(--warning);
+    padding: 16px 20px;
+    margin: 20px 0;
+    border-radius: 0 var(--radius) var(--radius) 0;
+  }
+  .danger-box {
+    background: rgba(248, 113, 113, 0.08);
+    border-left: 4px solid var(--danger);
+    padding: 16px 20px;
+    margin: 20px 0;
+    border-radius: 0 var(--radius) var(--radius) 0;
+  }
+  ul { padding-left: 24px; margin: 12px 0; }
+  li { margin: 6px 0; color: var(--text-dim); }
+  .search-bar {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    width: min(600px, 90vw);
+  }
+  .search-bar input {
+    width: 100%;
+    padding: 14px 24px;
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    background: var(--glass);
+    backdrop-filter: blur(20px);
+    color: var(--text);
+    font-size: 1em;
+    outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .search-bar input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+  }
+  .search-bar input::placeholder { color: var(--text-dim); }
+  .hidden { display: none !important; }
+  @media (max-width: 768px) {
+    .hero { padding: 40px 20px; }
+    .hero h1 { font-size: 1.8em; }
+    #content-area { padding: 20px 16px; }
+    table { font-size: 0.85em; }
+    th, td { padding: 8px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>ICQQ 深度解析</h1>
+  <p class="subtitle">QQ 安卓协议的 Node.js 实现 —— 从底层原理到实战开发</p>
+  <div class="tags">
+    <span class="tag">QQ协议</span>
+    <span class="tag">Node.js</span>
+    <span class="tag">Bot开发</span>
+    <span class="tag">即时通讯</span>
+    <span class="tag">逆向工程</span>
+  </div>
+  <p class="subtitle" style="margin-top:12px; font-size:0.85em;">作者：叫我小杨同学的小码酱 · 2026-02-16</p>
+</div>
+
+<div id="content-area">
+
+<!-- ===== 模块 0 ===== -->
+<h2>🎯 核心摘要 (TL;DR)</h2>
+
+<p><strong>一句话</strong>：ICQQ 是一个用 Node.js 实现的 QQ 安卓客户端协议库——它不是聊天软件，而是一台"QQ 翻译机"，让你的代码能像真人一样收发 QQ 消息。</p>
+
+<p><strong>认知挂钩</strong>：想象你在国外打电话，ICQQ 就是那个同声传译器——QQ 服务器说的是"协议语言"，你的 JavaScript 代码说的是"程序语言"，ICQQ 在中间实时翻译。</p>
+
+<blockquote>"本项目为协议实现，不推荐直接使用。" —— icqq README</blockquote>
+
+<p>这句话至关重要：ICQQ 是<strong>底层协议库</strong>，不是框架。就像发动机不是汽车——你需要 Miao-Yunzai、Zhin 等框架来包装它。</p>
+
+<!-- ===== 模块 1 ===== -->
+<h2>💡 概念破冰</h2>
+
+<h3>🧠 巧记卡片</h3>
+<div class="mnemonic-card">╔══════════════════════════════════════════╗
+║  ICQQ 五字诀：                            ║
+║                                          ║
+║  「创」createClient 建连接               ║
+║  「登」login 扫码/密码入                 ║
+║  「听」on('message') 接消息              ║
+║  「发」sendMsg / reply 回消息            ║
+║  「拣」pickFriend / pickGroup 选目标     ║
+║                                          ║
+║  记住：创-登-听-发-拣，五步走天下！      ║
+╚══════════════════════════════════════════╝</div>
+
+<h3>📖 故事引入：一封被拦截的信</h3>
+
+<p>2022 年的某个深夜，takayama-lily 决定归档她的 OICQ 项目——这个让无数开发者能用 Node.js 控制 QQ 的传奇库。社区陷入恐慌："我们的机器人怎么办？"</p>
+
+<p>就在这时，icqqjs 团队 fork 了 OICQ 的代码，像一群接力赛跑者那样接过了火炬。他们不仅修复了登录协议，还加入了<strong>频道支持</strong>、<strong>QQNT 协议</strong>和<strong>群精华消息</strong>——ICQQ 由此诞生。</p>
+
+<p>到 2026 年的今天，ICQQ 已经成为 Miao-Yunzai（云崽）生态的核心引擎，驱动着成千上万的 QQ 群机器人。</p>
+
+<h3>🗺️ ICQQ 在生态中的位置</h3>
+<div class="ascii-art">                    ┌─────────────────────┐
+                    │    你的 Bot 代码      │
+                    └─────────┬───────────┘
+                              │
+                    ┌─────────▼───────────┐
+                    │  框架层 (Yunzai等)    │
+                    │  路由/插件/生命周期    │
+                    └─────────┬───────────┘
+                              │
+              ╔═══════════════▼═══════════════╗
+              ║       ICQQ 协议库              ║
+              ║  ┌───────┐ ┌───────┐ ┌──────┐ ║
+              ║  │Client │ │Group  │ │Friend│ ║
+              ║  │Message│ │Member │ │Guild │ ║
+              ║  └───────┘ └───────┘ └──────┘ ║
+              ╚═══════════════╤═══════════════╝
+                              │ TCP/TLS
+                    ┌─────────▼───────────┐
+                    │   签名服务器 (sign)   │
+                    └─────────┬───────────┘
+                              │
+                    ┌─────────▼───────────┐
+                    │   QQ 服务器集群       │
+                    └─────────────────────┘</div>
+
+<!-- ===== 模块 2 ===== -->
+<h2>🔬 深度解析</h2>
+
+<h3>2.1 前世今生：从 OICQ 到 ICQQ</h3>
+<table>
+  <thead><tr><th>时间线</th><th>事件</th><th>意义</th></tr></thead>
+  <tbody>
+    <tr><td>2020</td><td>takayama-lily 创建 OICQ</td><td>第一个成熟的 Node.js QQ 协议库</td></tr>
+    <tr><td>2022</td><td>OICQ v2 发布</td><td>重构 API，引入 pick* 模式</td></tr>
+    <tr><td>2023-11</td><td>OICQ 归档 (read-only)</td><td>原作者停止维护</td></tr>
+    <tr><td>2023+</td><td>icqqjs 团队 fork → ICQQ</td><td>添加频道、QQNT、精华消息等</td></tr>
+    <tr><td>2025</td><td>包名迁移至 @icqqjs/icqq</td><td>GitHub Packages 发布</td></tr>
+    <tr><td>2026</td><td>持续维护，支持 NTLogin</td><td>适配腾讯最新协议变更</td></tr>
+  </tbody>
+</table>
+
+<h3>2.2 核心架构：Client 为王</h3>
+<p>ICQQ 的整个 API 设计围绕一个核心思想：<strong>万物皆从 Client 出发</strong>。</p>
+
+<div class="mermaid">
+graph TD
+    A["createClient(config)"] --> B["Client 实例"]
+    B --> C["client.login(uin, password?)"]
+    C --> D{"登录方式"}
+    D -->|"扫码"| E["system.login.qrcode"]
+    D -->|"密码"| F["密码 + 签名API"]
+    D -->|"Token"| G["自动尝试本地token"]
+    E --> H["system.online"]
+    F --> H
+    G --> H
+    H --> I["已上线"]
+    I --> J["client.fl 好友列表"]
+    I --> K["client.gl 群列表"]
+    I --> L["client.on message"]
+    J --> M["pickFriend"]
+    K --> N["pickGroup"]
+    M --> O["friend.sendMsg"]
+    N --> P["group.sendMsg"]
+    L --> Q["e.reply"]
+</div>
+
+<h3>2.3 六大数据容器</h3>
+<table>
+  <thead><tr><th>属性</th><th>类型</th><th>说明</th><th>使用场景</th></tr></thead>
+  <tbody>
+    <tr><td><code>client.fl</code></td><td>Map&lt;number, FriendInfo&gt;</td><td>好友列表</td><td>遍历/查找好友</td></tr>
+    <tr><td><code>client.gl</code></td><td>Map&lt;number, GroupInfo&gt;</td><td>群列表</td><td>遍历/查找群</td></tr>
+    <tr><td><code>client.gml</code></td><td>Map&lt;number, Map&lt;number, MemberInfo&gt;&gt;</td><td>群成员列表</td><td>嵌套Map: 群号→QQ号→信息</td></tr>
+    <tr><td><code>client.sl</code></td><td>Map&lt;number, StrangerInfo&gt;</td><td>陌生人列表</td><td>临时会话对象</td></tr>
+    <tr><td><code>client.guilds</code></td><td>Map&lt;string, Guild&gt;</td><td>频道列表</td><td>QQ频道操作</td></tr>
+    <tr><td><code>client.cookies</code></td><td>Object</td><td>各域名Cookie</td><td>调用Web API</td></tr>
+  </tbody>
+</table>
+
+<h3>2.4 Pick 模式：面向对象的操作入口</h3>
+<pre><code>// ❌ 旧模式（平铺在 Client 上，已废弃但保留）
+client.sendGroupMsg(群号, '消息')
+client.setGroupBan(群号, QQ号, 时长)
+
+// ✅ 新模式（pick 出对象，调用对象方法）
+const group = client.pickGroup(群号)
+group.sendMsg('消息')
+group.muteMember(QQ号, 时长)
+
+const friend = client.pickFriend(QQ号)
+friend.sendMsg('私聊消息')
+friend.thumbUp(10) // 点赞10次
+
+const member = client.pickMember(群号, QQ号)
+member.kick()       // 踢出
+member.setCard('新名片')
+member.mute(600)   // 禁言600秒</code></pre>
+
+<div class="tip-box">
+<strong>为什么这样设计？</strong> 因为旧模式下 Client 类上堆了几百个方法，违反了单一职责原则。Pick 模式将操作分散到 Group、Friend、Member 等对象上，每个对象只管自己的事。
+</div>
+
+<h3>2.5 事件系统：分层命名的精髓</h3>
+<pre><code>message                          ← 监听所有消息
+├── message.group                ← 监听所有群消息
+│   ├── message.group.normal     ← 普通群消息
+│   └── message.group.anonymous  ← 匿名群消息
+├── message.private              ← 监听所有私聊
+│   ├── message.private.friend   ← 好友私聊
+│   ├── message.private.group    ← 群临时会话
+│   └── message.private.self     ← 我的设备
+└── message.discuss              ← 讨论组消息
+
+notice                           ← 监听所有通知
+├── notice.group.increase        ← 群员增加
+├── notice.group.decrease        ← 群员减少
+├── notice.group.ban             ← 群禁言
+├── notice.group.admin           ← 管理员变更
+├── notice.group.poke            ← 戳一戳
+├── notice.group.recall          ← 消息撤回
+├── notice.group.transfer        ← 群转让
+├── notice.friend.increase       ← 新增好友
+├── notice.friend.decrease       ← 好友减少
+└── notice.friend.recall         ← 撤回消息
+
+request                          ← 监听所有请求
+├── request.friend.add           ← 添加好友请求
+├── request.group.add            ← 加群申请
+└── request.group.invite         ← 群邀请
+
+system                           ← 系统事件
+├── system.online                ← 上线
+├── system.offline.kickoff       ← 被踢下线
+├── system.offline.network       ← 网络断开
+├── system.login.qrcode          ← 二维码
+├── system.login.slider          ← 滑动验证
+├── system.login.device          ← 设备锁
+└── system.login.error           ← 登录错误</code></pre>
+
+<div class="tip-box">
+<strong>精妙之处</strong>：监听 <code>message</code> 可以捕获<strong>所有</strong>消息类型，监听 <code>message.group</code> 只捕获群消息。这种冒泡机制让你可以精确控制监听粒度，而无需写条件判断。
+</div>
+
+<h3>2.6 消息元素：统一的 Sendable 类型</h3>
+<pre><code>// Sendable = string | MessageElem | (string | MessageElem)[]
+
+// 纯文本
+group.sendMsg('Hello World')
+
+// 图片
+group.sendMsg({ type: 'image', file: '/path/to/img.jpg' })
+
+// 混合消息：@某人 + 文本 + 图片
+group.sendMsg([
+  { type: 'at', qq: 123456 },
+  '你好！看看这张图：',
+  { type: 'image', file: 'https://example.com/cat.jpg' }
+])
+
+// 引用回复
+group.sendMsg('回复内容', sourceMessage)</code></pre>
+
+<table>
+  <thead><tr><th>type</th><th>说明</th><th>关键属性</th></tr></thead>
+  <tbody>
+    <tr><td><code>text</code></td><td>文本</td><td>text</td></tr>
+    <tr><td><code>face</code></td><td>QQ 表情</td><td>id</td></tr>
+    <tr><td><code>image</code></td><td>图片</td><td>file (路径/URL/Buffer)</td></tr>
+    <tr><td><code>at</code></td><td>@某人</td><td>qq (QQ号, 'all'为@全体)</td></tr>
+    <tr><td><code>reply</code></td><td>引用回复</td><td>id (消息id)</td></tr>
+    <tr><td><code>json</code></td><td>JSON卡片</td><td>data</td></tr>
+    <tr><td><code>xml</code></td><td>XML卡片</td><td>data</td></tr>
+    <tr><td><code>ptt</code></td><td>语音</td><td>file</td></tr>
+    <tr><td><code>video</code></td><td>视频</td><td>file</td></tr>
+    <tr><td><code>flash</code></td><td>闪照</td><td>file</td></tr>
+    <tr><td><code>file</code></td><td>文件</td><td>file, name</td></tr>
+    <tr><td><code>share</code></td><td>链接分享</td><td>url, title</td></tr>
+    <tr><td><code>poke</code></td><td>戳一戳</td><td>id</td></tr>
+    <tr><td><code>mface</code></td><td>商城表情</td><td>多个属性</td></tr>
+  </tbody>
+</table>
+
+<h3>2.7 登录机制：三条路径</h3>
+<div class="mermaid">
+graph TD
+    Start["client.login(uin, password?)"] --> Check{"有 uin?"}
+    Check -->|"无"| QR["扫码登录 Watch协议"]
+    Check -->|"有"| Token{"本地有 token?"}
+    Token -->|"有"| TryToken["尝试 token 登录"]
+    Token -->|"无"| HasPwd{"有密码?"}
+    TryToken -->|"成功"| Online["system.online"]
+    TryToken -->|"失败"| HasPwd
+    HasPwd -->|"有"| PwdLogin["密码登录"]
+    HasPwd -->|"无"| QR
+    PwdLogin --> SignAPI{"签名 API 可用?"}
+    SignAPI -->|"是"| Verify{"需要验证?"}
+    SignAPI -->|"否"| Fail["登录失败"]
+    Verify -->|"滑块"| Slider["system.login.slider"]
+    Verify -->|"设备锁"| Device["system.login.device"]
+    Verify -->|"无"| Online
+    Slider -->|"submitSlider"| Online
+    Device -->|"sendSmsCode+submitSmsCode"| Online
+    QR -->|"扫码确认"| Online
+</div>
+
+<div class="danger-box">
+<strong>⚠️ 真理锚点校准</strong>：文档中未充分强调<strong>签名 API（sign_api_addr）是登录的硬性依赖</strong>。没有可用的签名服务，密码登录将直接失败。这是 2024 年以来腾讯加强安全验证后的现实。
+</div>
+
+<h3>2.8 类继承体系</h3>
+<div class="mermaid">
+graph BT
+    Client["Client"] --> BaseClient["core.BaseClient"]
+    Group["Group"] --> Discuss["Discuss"]
+    Friend["Friend"] --> User["User"]
+    Member["Member"] --> User
+    Guild["Guild"]
+    Gfs["Gfs 群文件系统"]
+    Client -.->|"pickGroup()"| Group
+    Client -.->|"pickFriend()"| Friend
+    Client -.->|"pickMember()"| Member
+    Client -.->|"pickGuild()"| Guild
+    Group -.->|".fs"| Gfs
+    Group -.->|"pickMember()"| Member
+</div>
+
+<div class="tip-box">
+<strong>设计哲学</strong>：Friend 和 Member 都继承自 User——因为无论是好友还是群员，本质上都是"用户"。Group 继承自 Discuss（讨论组），因为群就是增强版的讨论组。这种继承关系精确反映了 QQ 的产品演进历史。
+</div>
+
+<!-- ===== 模块 3 ===== -->
+<div class="fission-section">
+<h2>⚛️ 深度裂变</h2>
+
+<h3>🔬 原子级矛盾分析</h3>
+
+<h4>矛盾 1：协议逆向的法律灰区</h4>
+<p>ICQQ 的本质是对 QQ 安卓客户端协议的逆向实现。腾讯的用户协议明确禁止使用第三方客户端，这意味着：签名 API 需要频繁更新、账号有被封禁的风险、项目使用 MPL-2.0 许可证而非 MIT。</p>
+
+<h4>矛盾 2：OICQ vs ICQQ 的 API 分裂</h4>
+<p>ICQQ 保留了大量 OICQ v1 的兼容方法（标记为 @Cqhttp），同时推荐使用新的 pick* 模式。同一功能有两种调用方式，新开发者容易混淆。</p>
+
+<h4>矛盾 3：QQNT 协议的双轨运行</h4>
+<p>腾讯正在将 QQ 迁移至 QQNT 架构。ICQQ 通过 NTLogin 和 QQNT 两个标志同时支持新旧协议，但部分 API 行为取决于协议版本。未来旧协议 API 可能失效。</p>
+
+<p><strong>🔍 搜索内化</strong>：经验证，OICQ 原仓库已于 2023-11-02 正式归档。ICQQ npm 包名已从 icqq 迁移至 @icqqjs/icqq。当前版本 0.6.10。</p>
+</div>
+
+<!-- ===== 模块 4 ===== -->
+<h2>🛠️ 实战指南</h2>
+
+<h3>4.1 快速开始：5 分钟搭一个回声机器人</h3>
+<pre><code>const { createClient } = require('@icqqjs/icqq')
+
+// 创建客户端（Watch 协议支持扫码）
+const client = createClient({
+  platform: 3,
+  ver: '2.1.7',
+  sign_api_addr: 'http://127.0.0.1:8080/'
+})
+
+// 监听上线
+client.on('system.online', () =&gt; {
+  console.log('🎉 登录成功！')
+  console.log(`好友数: ${client.fl.size}, 群数: ${client.gl.size}`)
+})
+
+// 群消息回声
+client.on('message.group', (e) =&gt; {
+  if (e.raw_message === 'echo') {
+    e.reply('🔊 Echo!', true)
+  }
+})
+
+// 扫码登录
+client.on('system.login.qrcode', () =&gt; {
+  console.log('请扫描 ./data/qrcode.png')
+  process.stdin.once('data', () =&gt; client.login())
+})
+
+client.login()</code></pre>
+
+<h3>4.2 避坑指南</h3>
+<table>
+  <thead><tr><th>陷阱</th><th>症状</th><th>解决方案</th></tr></thead>
+  <tbody>
+    <tr><td>没有签名 API</td><td>密码登录永远失败</td><td>部署 sign-server 或使用 Watch 扫码</td></tr>
+    <tr><td>platform 选错</td><td>扫码登录不了</td><td>扫码必须用 platform: 3 (Watch)</td></tr>
+    <tr><td>群图发私聊裂图</td><td>图片显示红叉</td><td>好友/群图片格式不同，分别制作</td></tr>
+    <tr><td>频繁重连</td><td>账号被冻结</td><td>调大 reconn_interval，检查网络</td></tr>
+    <tr><td>gml 为空</td><td>拿不到群成员</td><td>设置 cache_group_member: true</td></tr>
+    <tr><td>消息发送失败</td><td>ApiRejection</td><td>检查禁言/频率限制/签名过期</td></tr>
+    <tr><td>NT 图片获取失败</td><td>URL 为 null</td><td>使用 getNTPicURL 系列方法</td></tr>
+  </tbody>
+</table>
+
+<h3>4.3 与 Miao-Yunzai 的集成</h3>
+<pre><code>// Yunzai 中，e 对象就是 ICQQ 的 MessageEvent + 框架扩展
+export class MyPlugin extends plugin {
+  constructor() {
+    super({
+      name: '我的插件',
+      rule: [{ reg: '^#hello$', fnc: 'hello' }]
+    })
+  }
+
+  async hello(e) {
+    e.reply('Hello from plugin!')  // ICQQ GroupMessageEvent.reply()
+    const group = e.bot.pickGroup(e.group_id)  // ICQQ Client.pickGroup()
+    const friend = e.bot.pickFriend(e.user_id) // ICQQ Client.pickFriend()
+  }
+}</code></pre>
+
+<!-- ===== 模块 5 ===== -->
+<h2>📚 温故知新</h2>
+
+<h3>FAQ</h3>
+
+<details>
+<summary><strong>Q1: ICQQ 和 OICQ 有什么区别？</strong></summary>
+<div>ICQQ 是 OICQ 的 fork。OICQ 于 2023-11 归档停止维护，ICQQ 继续维护并添加了：频道支持、QQNT 协议、群精华消息、ForwardElem 消息类型、指定群/好友监听等功能。API 基本兼容。</div>
+</details>
+
+<details>
+<summary><strong>Q2: 为什么密码登录总是失败？</strong></summary>
+<div>99% 的原因是签名 API 不可用。自 2024 年起，腾讯加强了协议签名验证，必须配置 sign_api_addr 指向一个可用的签名服务。</div>
+</details>
+
+<details>
+<summary><strong>Q3: pickGroup 和 client.sendGroupMsg 有什么区别？</strong></summary>
+<div>功能相同。pickGroup().sendMsg() 是新版推荐方式（OOP 风格），client.sendGroupMsg() 是旧版兼容方式。新代码应一律使用 pick 模式。</div>
+</details>
+
+<details>
+<summary><strong>Q4: 如何处理滑块验证码？</strong></summary>
+<div>监听 system.login.slider 事件，获取验证 URL，通过浏览器或第三方工具获取 ticket，然后调用 client.submitSlider(ticket)。Miao-Yunzai 内置了自动获取机制。</div>
+</details>
+
+<details>
+<summary><strong>Q5: ICQQ 支持 QQNT 吗？</strong></summary>
+<div>部分支持。Client 有 NTLogin 和 QQNT 两个标志位，默认 true。NT 版本下部分 API 行为不同（如聊天记录数量不受 20 条限制、图片获取用 getNTPicURL 系列）。</div>
+</details>
+
+<details>
+<summary><strong>Q6: 如何发送合并转发消息？</strong></summary>
+<div>使用 makeForwardMsg 制作，然后 sendMsg 发送。注意好友图片和群图片格式不同，跨场景发送可能裂图。</div>
+</details>
+
+<details>
+<summary><strong>Q7: 账号会被封禁吗？</strong></summary>
+<div>存在风险。降低风险的做法：避免高频操作、使用正确的协议版本、保持签名 API 更新、不要频繁切换登录设备。</div>
+</details>
+
+<details>
+<summary><strong>Q8: 如何获取 Cookie 和 bkn 来调用 Web API？</strong></summary>
+<div>登录成功后自动获取：client.cookies[domain] 获取 Cookie，client.bkn 获取 CSRF Token。支持 qun.qq.com、vip.qq.com 等 20+ 域名。</div>
+</details>
+
+<h3>🧪 自测题</h3>
+<div class="quiz-section">
+<ol>
+  <li><strong>[基础]</strong> <code>createClient</code> 的 <code>platform: 3</code> 代表什么协议？为什么扫码登录必须用它？</li>
+  <li><strong>[基础]</strong> <code>client.fl</code>、<code>client.gl</code>、<code>client.gml</code> 分别存储什么数据？它们的类型是什么？</li>
+  <li><strong>[进阶]</strong> <code>client.on('message')</code> 和 <code>client.on('message.group')</code> 的区别是什么？前者能捕获后者的事件吗？</li>
+  <li><strong>[进阶]</strong> 为什么 <code>pickGroup(gid).sendMsg()</code> 优于 <code>client.sendGroupMsg(gid, msg)</code>？从 SOLID 的哪个原则可以解释？</li>
+  <li><strong>[实战]</strong> 如何实现一个"只监听群号 123 和 456 的消息"的过滤器？</li>
+  <li><strong>[实战]</strong> 群图片发给好友后裂图，根本原因是什么？如何解决？</li>
+  <li><strong>[深度]</strong> Friend 和 Member 都继承自 User，但 Group 继承自 Discuss。这反映了 QQ 产品的什么历史？</li>
+  <li><strong>[深度]</strong> <code>client.cookies</code> 为什么要按域名分开存储？这与浏览器的什么安全策略一致？</li>
+</ol>
+</div>
+
+<h3>📎 参考资源</h3>
+<ul>
+  <li><a href="https://icqq.pages.dev/" target="_blank">ICQQ TypeDoc 文档</a></li>
+  <li><a href="https://github.com/icqqjs/icqq" target="_blank">ICQQ GitHub 仓库</a></li>
+  <li><a href="https://github.com/takayama-lily/oicq" target="_blank">OICQ 原仓库（已归档）</a></li>
+  <li><a href="https://github.com/yoimiya-kokomi/Miao-Yunzai" target="_blank">Miao-Yunzai 框架</a></li>
+  <li><a href="https://github.com/zhinjs/zhin" target="_blank">Zhin 框架（基于 ICQQ）</a></li>
+  <li><a href="https://github.com/lc-cn/onebots" target="_blank">OneBots（CQHTTP 兼容层）</a></li>
+  <li><a href="https://github.com/icqqjs/icqq/wiki/%E5%AF%86%E7%A0%81%E7%99%BB%E5%BD%95%E6%B5%81%E7%A8%8B" target="_blank">ICQQ 密码登录教程</a></li>
+</ul>
+
+</div><!-- end #content-area -->
+
+<div class="search-bar">
+  <input type="text" id="search-input" placeholder="🔍 搜索文章内容... (输入关键词即时过滤)" />
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'dark',
+  themeVariables: {
+    primaryColor: '#1e293b',
+    primaryTextColor: '#e2e8f0',
+    primaryBorderColor: '#38bdf8',
+    lineColor: '#38bdf8',
+    secondaryColor: '#334155',
+    tertiaryColor: '#0f172a'
+  }
+});
+</script>
+<script>
+window.onload = function() {
+  const input = document.getElementById('search-input');
+  if(!input) return;
+  input.addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase().trim();
+    const contentArea = document.getElementById('content-area');
+    const blocks = contentArea.querySelectorAll('p, li, blockquote, .fission-section, .mnemonic-card, details, .mermaid, pre, table, .tip-box, .warn-box, .danger-box, .ascii-art, .quiz-section');
+
+    if(term.length === 0) {
+      blocks.forEach(el => el.classList.remove('hidden'));
+      document.querySelectorAll('h1, h2, h3, h4').forEach(el => el.classList.remove('hidden'));
+      return;
+    }
+
+    blocks.forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('h1, h2, h3, h4').forEach(el => el.classList.add('hidden'));
+
+    blocks.forEach(el => {
+      if(el.innerText.toLowerCase().includes(term)) {
+        el.classList.remove('hidden');
+        // Also show parent heading
+        let prev = el.previousElementSibling;
+        while(prev) {
+          if(prev.tagName && prev.tagName.match(/^H[1-4]$/)) {
+            prev.classList.remove('hidden');
+            break;
+          }
+          prev = prev.previousElementSibling;
+        }
+      }
+    });
+  });
+};
+</script>
+
+</body>
+</html>

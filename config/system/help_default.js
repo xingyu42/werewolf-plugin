@@ -97,8 +97,8 @@ export const helpList = [{
     desc: '守护*号'
   }, {
     icon: 5,
-    title: '#反杀*号',
-    desc: '反杀*号'
+    title: '#开枪*号',
+    desc: '开枪*号'
   }, {
     icon: 10,
     title: '#查验*号',

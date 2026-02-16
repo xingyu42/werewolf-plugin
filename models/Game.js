@@ -68,6 +68,7 @@ export class Game {
     this.config = config
 
     this._isCleanedUp = false
+    this.startTime = Date.now()
     this.eventErrors = []
 
     // Player data
@@ -149,7 +150,12 @@ export class Game {
 
   shuffle (arr) {
     if (!Array.isArray(arr)) return []
-    return [...arr].sort(() => Math.random() - 0.5)
+    const result = [...arr]
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[result[i], result[j]] = [result[j], result[i]]
+    }
+    return result
   }
 
   get sheriff () {
@@ -219,9 +225,10 @@ export class Game {
     }
 
     // shuffle
-    const shuffled = [...roleNames].sort(() => Math.random() - 0.5)
+    const shuffled = this.shuffle(roleNames)
 
     this.roles.clear()
+    const notifyPromises = []
     for (let i = 0; i < players.length; i++) {
       const player = players[i]
       const roleName = shuffled[i]
@@ -235,7 +242,19 @@ export class Game {
       }
 
       this.roles.set(player.id, roleInstance)
+
+      // 私聊通知玩家角色信息
+      const roleNameCN = ROLE_NAMES_CN[roleName] || roleName
+      const msg = `你的游戏编号是：${player.gameNumber}号\n你的身份是：${roleNameCN}`
+      notifyPromises.push(
+        this.notificationCenter.sendPrivateMessage(player.id, msg)
+      )
     }
+
+    // Best-effort 发送，不阻塞游戏开始流程
+    Promise.allSettled(notifyPromises).catch(err => {
+      console.warn('[Game] role notification failed:', err)
+    })
   }
 
   // ==================== Game Flow ====================
@@ -274,9 +293,18 @@ export class Game {
       await this.changeState(initialState)
       this.currentPhase = GAME_PHASES.NIGHT
     } catch (error) {
-      console.error('[Game] initializeState failed:', error)
-      await this.e.reply('初始化游戏状态失败，请重新创建游戏。')
-      throw error
+      console.error('[Game] initializeState NightPhase failed:', error)
+      try {
+        const { DayState } = await import('./states/DayState.js')
+        const fallback = new DayState(this)
+        await this.changeState(fallback)
+        this.currentPhase = GAME_PHASES.DAY_DISCUSSION
+        await this.e.reply('夜晚阶段初始化异常，已回退至白天讨论阶段')
+      } catch (fallbackError) {
+        console.error('[Game] DayState fallback also failed:', fallbackError)
+        await this.e.reply('初始化游戏状态失败，请重新创建游戏。')
+        throw fallbackError
+      }
     }
   }
 

@@ -66,9 +66,12 @@ export class WitchRole extends Role {
    * @async
    * @returns {Promise<boolean>} 是否成功发送提示消息
    */
-  async getActionPrompt (e) {
+  async getActionPrompt () {
     const currentState = this.game.getCurrentState()
-    if (!this.canAct(currentState)) return e.reply('女巫只能在夜晚阶段行动')
+    if (!this.canAct(currentState)) {
+      await this.sendPrivate('女巫只能在夜晚阶段行动')
+      return false
+    }
     if (!this.hasAntidote && !this.hasPoison) {
       await this.sendPrivate('【女巫】你已经没有药可以使用了')
       return false

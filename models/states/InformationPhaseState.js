@@ -14,7 +14,7 @@
  */
 import { NightPhaseState } from './NightPhaseState.js'
 import { GameError } from '../../utils/GameError.js'
-import { NIGHT_PHASE_CONFIG, ACTIONS } from '../Constants.js'
+import { NIGHT_PHASE_CONFIG, ACTIONS, toRoleClassName } from '../Constants.js'
 
 export class InformationPhaseState extends NightPhaseState {
   constructor (game) {
@@ -38,7 +38,7 @@ export class InformationPhaseState extends NightPhaseState {
       const notificationPromises = []
 
       for (const role of this.activeRoles) {
-        const roleType = role + 'Role' // 转换为角色类名
+        const roleType = toRoleClassName(role)
         const notificationPromise = this.notifyRoleAction(roleType)
         notificationPromises.push(notificationPromise)
       }
@@ -74,10 +74,8 @@ export class InformationPhaseState extends NightPhaseState {
       for (const { player, role } of rolePlayers) {
         try {
           if (role && typeof role.getActionPrompt === 'function') {
-            const prompt = role.getActionPrompt()
-            if (prompt) {
-              await this.game.e.bot.pickFriend(player.id).sendMsg(prompt)
-            }
+            // 角色内部通过 sendPrivate 发送私聊消息，await 确保完成
+            await role.getActionPrompt()
           }
         } catch (error) {
           console.warn(`[InformationPhaseState] 向 ${roleType} 玩家 ${player.id} 发送行动提示失败:`, error.message)
@@ -275,7 +273,7 @@ export class InformationPhaseState extends NightPhaseState {
 
       // 为每个活跃角色的未行动玩家设置默认行动
       for (const role of this.activeRoles) {
-        const roleType = role + 'Role'
+        const roleType = toRoleClassName(role)
         const rolePlayers = this.game.getAlivePlayers({ roleType, includeRole: true })
 
         for (const { player } of rolePlayers) {

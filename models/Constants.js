@@ -10,6 +10,20 @@
  * @dependencies 无
  */
 
+// ==================== 角色工具函数 ====================
+
+/**
+ * 将角色常量转换为角色类名
+ * 例如 'PROPHET' -> 'ProphetRole', 'WOLF' -> 'WolfRole'
+ *
+ * @param {string} roleConstant - ROLES 枚举值 (全大写)
+ * @returns {string} 对应的角色类名 (PascalCase + 'Role')
+ */
+export function toRoleClassName (roleConstant) {
+  if (!roleConstant || typeof roleConstant !== 'string') return ''
+  return roleConstant.charAt(0).toUpperCase() + roleConstant.slice(1).toLowerCase() + 'Role'
+}
+
 // ==================== 角色相关常量 ====================
 
 /**
