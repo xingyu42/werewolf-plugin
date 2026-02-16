@@ -477,30 +477,6 @@ export class ForwardMsg extends plugin {
 }
 ```
 
----
-
-## 配置管理
-
-### 系统配置
-
-```javascript
-// 系统常量 (不可修改)
-import { BOT_NAME } from 'yunzaijs'
-
-// 系统配置器 (可修改)
-import { ConfigController } from 'yunzaijs'
-```
-
-### 配置文件
-
-#### alemon.config.yaml
-
-```yaml
-pm2:
-  name: 'qq'
-  script: 'node lib/main.js'
-```
-
 ## 注意事项
 
 ### 全局变量

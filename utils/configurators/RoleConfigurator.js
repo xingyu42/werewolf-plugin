@@ -21,26 +21,14 @@ import { ROLES, CAMPS } from '../../models/Constants.js'
 import { GameError } from '../../utils/GameError.js'
 
 export class RoleConfigurator {
-  // 配置缓存: 玩家人数 -> 角色配置数组
-  static configCache = new Map()
-
-  // 最近生成的配置历史记录
-  static recentConfigs = []
-
-  // 最大历史记录长度
-  static MAX_HISTORY_LENGTH = 10
-
   /**
    * 生成角色配置
    * 根据玩家人数生成平衡合理的角色配置
    * @param {number} playerCount - 玩家人数
-   * @param {Object} options - 可选参数
-   * @param {boolean} [options.avoidRepeat=true] - 是否避免重复配置
-   * @param {Object} [options.constraints] - 角色约束条件
    * @returns {Array<string>} 角色名称数组
-   * @throws {Error} 如果无法生成有效配置或玩家人数不支持
+   * @throws {GameError} 如果无法生成有效配置或玩家人数不支持
    */
-  static generate (playerCount, options = {}) {
+  static generate (playerCount) {
     // 验证输入
     if (!Number.isInteger(playerCount) || playerCount < 6) {
       throw new GameError(
@@ -73,8 +61,6 @@ export class RoleConfigurator {
         }
       }
 
-      // 3. 记录并返回最终配置
-      RoleConfigurator._recordConfig(config)
       return config
     } catch (error) {
       console.error(`角色配置生成失败: ${error.message}`)
@@ -124,68 +110,6 @@ export class RoleConfigurator {
     // 添加村民
     for (let i = 0; i < villagerCount; i++) {
       config.push(ROLES.VILLAGER)
-    }
-
-    return config
-  }
-
-  /**
-   * 检查配置是否最近使用过
-   * @private
-   * @param {Array<string>} config - 角色配置
-   * @returns {boolean} 是否最近使用过
-   */
-  static _isRecentlyUsed (config) {
-    if (!config) return false
-
-    const configStr = [...config].sort().join(',')
-    return RoleConfigurator.recentConfigs.some(c => [...c].sort().join(',') === configStr)
-  }
-
-  /**
-   * 记录配置到历史记录
-   * @private
-   * @param {Array<string>} config - 角色配置
-   */
-  static _recordConfig (config) {
-    if (!config) return
-
-    RoleConfigurator.recentConfigs.unshift([...config])
-
-    // 限制历史记录长度
-    if (RoleConfigurator.recentConfigs.length > RoleConfigurator.MAX_HISTORY_LENGTH) {
-      RoleConfigurator.recentConfigs.pop()
-    }
-  }
-
-  /**
-   * 生成配置变化
-   * 在保持总人数和基本平衡的前提下，对配置进行小变化
-   * @private
-   * @param {Array<string>} baseConfig - 基础配置
-   * @param {number} playerCount - 玩家人数
-   * @returns {Array<string>} 变化后的配置
-   */
-  static _generateVariation (baseConfig, playerCount) {
-    // 简单实现：在一定条件下替换特殊角色
-    // 在后续任务中将会实现更复杂的变化逻辑
-    const config = [...baseConfig]
-
-    // 尝试替换一些角色
-    if (playerCount >= 8 && Math.random() > 0.5) {
-      const availableRoles = RoleData.getAvailableRoles(playerCount)
-      const godRoles = availableRoles.filter(role => RoleData.isGod(role))
-
-      // 有概率替换女巫为猎人，或猎人为女巫
-      for (let i = 0; i < config.length; i++) {
-        if (config[i] === ROLES.WITCH && Math.random() > 0.7 && godRoles.includes(ROLES.HUNTER)) {
-          config[i] = ROLES.HUNTER
-          break
-        } else if (config[i] === ROLES.HUNTER && Math.random() > 0.7 && godRoles.includes(ROLES.WITCH)) {
-          config[i] = ROLES.WITCH
-          break
-        }
-      }
     }
 
     return config

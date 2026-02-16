@@ -10,9 +10,9 @@ describe('StateMachine / isValidTransition', () => {
   })
 
   test('rejects transition when target is not allowed', () => {
-    const result = isValidTransition('DayState', 'LastWordsState', { turn: 1 })
+    const result = isValidTransition('DayState', 'SheriffTransferState', { turn: 1 })
     expect(result.allowed).toBe(false)
-    expect(result.reason).toContain('不允许从 DayState 转换到 LastWordsState')
+    expect(result.reason).toContain('不允许从 DayState 转换到 SheriffTransferState')
   })
 
   test('rejects conditional transition when condition not met', () => {
@@ -22,7 +22,7 @@ describe('StateMachine / isValidTransition', () => {
   })
 
   test('allows conditional transition when condition met', () => {
-    const result = isValidTransition('DayState', 'SheriffElectState', { turn: 1 })
+    const result = isValidTransition('DayState', 'SheriffElectState', { turn: 0 })
     expect(result.allowed).toBe(true)
   })
 

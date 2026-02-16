@@ -88,9 +88,13 @@ export const StateTransitions = {
       description: '白天讨论结束，进入投票',
       condition: (game) => true // 始终允许此转换
     },
+    [GameStateType.LAST_WORDS]: {
+      description: '首夜死亡玩家遗言流程',
+      condition: (game) => game.turn === 0
+    },
     [GameStateType.SHERIFF_ELECT]: {
       description: '首日特殊流程，进入警长竞选',
-      condition: (game) => game.turn === 1 // 仅在第一天允许
+      condition: (game) => game.turn === 0 // 仅在第一天允许（首夜过渡到白天时）
     }
   },
 
@@ -111,6 +115,10 @@ export const StateTransitions = {
     [GameStateType.NIGHT]: {
       description: '遗言结束，进入夜晚',
       condition: (game, deadPlayer) => !deadPlayer.isSheriff // 死者不是警长
+    },
+    [GameStateType.DAY]: {
+      description: '首夜遗言结束，继续白天流程',
+      condition: (game) => game.turn === 0
     },
     [GameStateType.SHERIFF_TRANSFER]: {
       description: '死者是警长，需要移交警徽',

@@ -8,8 +8,8 @@
 
 | 文件名 | 导出 | 描述 | 主要依赖 |
 |--------|------|------|----------|
-| RoleConfigurator.js | RoleConfigurator | 角色配置器，生成和验证角色组合 | GameTemplates, RoleData, BalanceValidator |
-| GameTemplates.js | GameTemplates | 游戏模板管理 | services, BalanceValidator |
+| RoleConfigurator.js | RoleConfigurator | 角色配置器，生成角色组合 | GameTemplates, RoleData, BalanceValidator |
+| GameTemplates.js | GameTemplates | 游戏模板管理 | GameConfig, BalanceValidator |
 | RoleData.js | RoleData | 角色数据和属性 | Constants |
 | BalanceValidator.js | BalanceValidator | 平衡验证器 | RoleData, Constants |
 
@@ -17,38 +17,41 @@
 
 ### RoleConfigurator.js - 角色配置器
 
-核心配置类，负责角色组合的生成和验证：
+核心配置类，根据玩家人数生成平衡的角色配置：
 
 ```javascript
 class RoleConfigurator {
   // 根据玩家数量生成角色组合
-  static generateRoles(playerCount, options) { ... }
+  static generate(playerCount) { ... }
 
-  // 验证角色组合是否有效
-  static validateRoles(roles) { ... }
-
-  // 从模板生成角色
-  static fromTemplate(templateName, playerCount) { ... }
-
-  // 自定义角色组合
-  static customRoles(roleList) { ... }
+  // 程序化生成配置（内部方法）
+  static _generateProceduralConfig(playerCount) { ... }
 }
 ```
 
 ### GameTemplates.js - 游戏模板
 
-预设的游戏模板管理：
+从 `modes.yaml` 加载预设模板：
 
 ```javascript
 class GameTemplates {
-  // 获取所有可用模板
-  static getTemplates() { ... }
+  // 获取指定人数的标准模板
+  static getTemplate(playerCount) { ... }
 
-  // 根据人数获取推荐模板
-  static getRecommendedTemplate(playerCount) { ... }
+  // 获取所有支持的玩家人数
+  static getAvailablePlayerCounts() { ... }
 
-  // 获取模板详情
-  static getTemplate(name) { ... }
+  // 获取指定人数的模板变种
+  static getTemplateVariations(playerCount) { ... }
+
+  // 随机获取一个配置（标准或变种）
+  static getRandomTemplate(playerCount) { ... }
+
+  // 获取最接近的模板（处理非标准人数）
+  static getNearestTemplate(playerCount) { ... }
+
+  // 获取模板元数据（名称、描述）
+  static getTemplateMetadata(playerCount) { ... }
 }
 ```
 
@@ -58,21 +61,31 @@ class GameTemplates {
 
 ```javascript
 class RoleData {
-  // 角色权重（用于平衡计算）
-  static weights = {
-    wolf: -6,
-    villager: 1,
-    prophet: 4,
-    witch: 3,
-    hunter: 2,
-    guard: 2
-  }
+  // 获取角色权重
+  static getWeight(roleName) { ... }
 
-  // 获取角色属性
-  static getRoleInfo(roleName) { ... }
+  // 获取角色阵营
+  static getCamp(roleName) { ... }
 
-  // 获取阵营角色列表
+  // 获取角色解锁所需最小人数
+  static getUnlockCount(roleName) { ... }
+
+  // 获取角色描述
+  static getDescription(roleName) { ... }
+
+  // 获取角色中文名
+  static getRoleDisplayName(roleName) { ... }
+
+  // 获取指定人数下可用的角色
+  static getAvailableRoles(playerCount) { ... }
+
+  // 获取指定阵营的所有角色
   static getRolesByCamp(camp) { ... }
+
+  // 判断角色阵营
+  static isWolf(roleName) { ... }
+  static isGod(roleName) { ... }
+  static isVillager(roleName) { ... }
 }
 ```
 
@@ -82,14 +95,12 @@ class RoleData {
 
 ```javascript
 class BalanceValidator {
-  // 计算平衡度分数
-  static calculateBalance(roles) { ... }
+  // 验证配置是否平衡
+  static validate(template) { ... }
+  // => { isValid: boolean, reason: string, details: Object }
 
-  // 检查是否平衡
-  static isBalanced(roles) { ... }
-
-  // 获取平衡建议
-  static getBalanceSuggestions(roles) { ... }
+  // 计算平衡度评分 (0-100)
+  static calculateBalanceScore(template) { ... }
 }
 ```
 
@@ -106,7 +117,10 @@ class BalanceValidator {
 | 猎人 | +2 | 中等战力角色 |
 | 守卫 | +2 | 中等保护角色 |
 
-**平衡条件**: 总权重在 `[-2, +2]` 范围内视为平衡
+**验证条件**：
+- 阵营力量比（evilRatio）需在合理范围内
+- 狼人比例（wolfRatio）需在 20%-35% 之间
+- 特殊角色需满足解锁人数要求
 
 ## 依赖关系
 
@@ -115,10 +129,10 @@ graph TB
     RoleConfigurator --> GameTemplates
     RoleConfigurator --> RoleData
     RoleConfigurator --> BalanceValidator
-    RoleConfigurator --> Constants["core/Constants"]
-    RoleConfigurator --> GameError["core/GameError"]
+    RoleConfigurator --> Constants["models/Constants"]
+    RoleConfigurator --> GameError["utils/GameError"]
 
-    GameTemplates --> services["components/services"]
+    GameTemplates --> GameConfig["utils/GameConfig"]
     GameTemplates --> BalanceValidator
 
     RoleData --> Constants
@@ -133,36 +147,33 @@ graph TB
 import { RoleConfigurator } from './utils/configurators/RoleConfigurator.js'
 
 // 根据人数自动生成角色
-const roles = RoleConfigurator.generateRoles(9)
-// => ['wolf', 'wolf', 'wolf', 'prophet', 'witch', 'hunter', 'guard', 'villager', 'villager']
-
-// 使用模板
-const roles = RoleConfigurator.fromTemplate('standard', 9)
-
-// 验证自定义组合
-const isValid = RoleConfigurator.validateRoles(['wolf', 'wolf', 'prophet', ...])
+const roles = RoleConfigurator.generate(9)
+// => ['WOLF', 'WOLF', 'WOLF', 'PROPHET', 'WITCH', 'HUNTER', 'VILLAGER', 'VILLAGER', 'VILLAGER']
 ```
 
 ## 配置文件
 
-配置器读取 `config/config/roles.yaml` 中的角色配置：
+GameTemplates 读取 `config/config/modes.yaml` 中的游戏模板：
 
 ```yaml
-# 可用角色池
-available_roles:
-  - wolf
-  - villager
-  - prophet
-  - witch
-  - hunter
-  - guard
-
-# 人数对应的狼人数量
-wolf_count:
-  6: 1
-  7: 2
-  8: 2
-  9: 3
-  10: 3
-  12: 4
+presets:
+  9:
+    name: "9人标准预女猎"
+    description: "3狼, 1预, 1女, 1猎, 3民"
+    roles:
+      WOLF: 3
+      PROPHET: 1
+      WITCH: 1
+      HUNTER: 1
+      VILLAGER: 3
+  10:
+    name: "10人标准预女猎守"
+    description: "3狼, 1预, 1女, 1猎, 1守, 3民"
+    roles:
+      WOLF: 3
+      PROPHET: 1
+      WITCH: 1
+      HUNTER: 1
+      GUARD: 1
+      VILLAGER: 3
 ```

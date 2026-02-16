@@ -243,20 +243,17 @@ describe('Game', () => {
 
     expect(ok).toBe(true)
     expect(game.getCurrentPhase()).toBe(GAME_PHASES.NIGHT)
-    expect(game.getCurrentTurn()).toBe(1)
+    expect(game.getCurrentTurn()).toBe(0)
   })
 
-  test('initPlayers uses fixedRoles when counts match, otherwise falls back to generate()', async () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
-    const fixedRoles = ['WOLF', 'VILLAGER']
-
+  test('initPlayers always uses RoleConfigurator.generate()', async () => {
     const { Game, RoleConfigurator } = await loadGame({
       roleConfiguratorGenerate: (count) => Array.from({ length: count }, () => 'WOLF')
     })
 
     const game = new Game({
       e: makeEvent(),
-      config: { roles: { useFixedRoles: true, fixedRoles: fixedRoles.slice(0, 1) } },
+      config: {},
       players: [{ id: 'u1', isAlive: true }, { id: 'u2', isAlive: true }],
       stateMachine: makeStateMachine(),
       groupId: 1
@@ -264,25 +261,6 @@ describe('Game', () => {
 
     await game.initPlayers()
     expect(RoleConfigurator.generate).toHaveBeenCalledWith(2)
-    expect(warn).toHaveBeenCalled()
-    warn.mockRestore()
-  })
-
-  test('initPlayers uses fixedRoles when counts match', async () => {
-    const { Game, RoleConfigurator } = await loadGame({
-      roleConfiguratorGenerate: () => ['WOLF']
-    })
-
-    const game = new Game({
-      e: makeEvent(),
-      config: { roles: { useFixedRoles: true, fixedRoles: ['WOLF'] } },
-      players: [{ id: 'u1', isAlive: true }],
-      stateMachine: makeStateMachine(),
-      groupId: 1
-    })
-
-    await game.initPlayers()
-    expect(RoleConfigurator.generate).not.toHaveBeenCalled()
   })
 
   test('initializePlayerRoles assigns role and normalizes async getCamp', async () => {
@@ -307,14 +285,14 @@ describe('Game', () => {
     expect(roleInstance.getCamp.constructor.name).not.toBe('AsyncFunction')
   })
 
-  test('initializeState sets Night phase and turn=1', async () => {
+  test('initializeState sets Night phase and keeps turn=0', async () => {
     const { Game, GAME_PHASES } = await loadGame()
     const game = new Game({ e: makeEvent(), config: {}, players: [{ id: 'u1', isAlive: true }], stateMachine: makeStateMachine(), groupId: 1 })
 
     await game.initializeState()
 
     expect(game.getCurrentPhase()).toBe(GAME_PHASES.NIGHT)
-    expect(game.getCurrentTurn()).toBe(1)
+    expect(game.getCurrentTurn()).toBe(0)
   })
 
   test('initializeState replies and rethrows when state init fails', async () => {

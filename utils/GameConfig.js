@@ -1,9 +1,9 @@
 /**
  * @file GameConfig.js
- * @description 游戏配置管理器，支持热更新和配置验证
+ * @description 游戏配置管理器，支持热更新
  * @module components/GameConfig
  *
- * @input YAML, chokidar, fs, lodash, cfg, YamlReader, constants, Constants
+ * @input YAML, chokidar, fs, lodash, cfg, YamlReader, constants
  * @output GameConfig - 配置管理类
  * @pos 组件层 - 配置管理，支持热更新
  *
@@ -15,7 +15,6 @@
  * - ../../../lib/config/config.js - 框架配置
  * - ./YamlReader.js - YAML 读取
  * - ./constants.js - 组件常量
- * - ../model/core/Constants.js - 核心常量
  */
 import YAML from 'yaml'
 import chokidar from 'chokidar'
@@ -24,7 +23,6 @@ import _ from 'lodash'
 import cfg from '../../../lib/config/config.js'
 import YamlReader from './YamlReader.js'
 import { PLUGIN_NAME, PLUGIN_PATH } from './constants.js'
-import { CONFIG_KEYS } from '../models/Constants.js'
 
 const logPrefix = `[${PLUGIN_NAME}插件]`
 
@@ -37,100 +35,7 @@ class GameConfig {
     /** 监听文件 */
     this.watcher = { config: {}, defSet: {} }
 
-    /** 配置验证规则 */
-    this.validationRules = this._initValidationRules()
-
     this.initCfg()
-  }
-
-  /**
-   * 初始化配置验证规则
-   * @private
-   */
-  _initValidationRules () {
-    return {
-      [CONFIG_KEYS.MIN_PLAYERS]: {
-        type: 'number',
-        min: 6,
-        max: 20,
-        required: true
-      },
-      [CONFIG_KEYS.MAX_PLAYERS]: {
-        type: 'number',
-        min: 6,
-        max: 20,
-        required: true
-      },
-      [CONFIG_KEYS.SPEAK_TIME_LIMIT]: {
-        type: 'number',
-        min: 30,
-        max: 300,
-        required: true
-      },
-      [CONFIG_KEYS.VOTE_TIME_LIMIT]: {
-        type: 'number',
-        min: 10,
-        max: 120,
-        required: true
-      },
-      [CONFIG_KEYS.SHERIFF]: {
-        type: 'boolean',
-        required: false
-      },
-      [CONFIG_KEYS.ENABLE_TUBIAN]: {
-        type: 'boolean',
-        required: false
-      }
-    }
-  }
-
-  /**
-   * 验证配置值
-   * @param {string} key 配置键名
-   * @param {any} value 配置值
-   * @returns {boolean} 验证结果
-   */
-  validateConfig (key, value) {
-    const rule = this.validationRules[key]
-    if (!rule) {
-      return true // 没有验证规则的配置项默认通过
-    }
-
-    // 必填项检查
-    if (rule.required && (value === undefined || value === null)) {
-      this.logger.error(`${logPrefix}配置项 ${key} 是必填项`)
-      return false
-    }
-
-    // 类型检查
-    if (value !== undefined && value !== null) {
-      if (rule.type === 'number' && typeof value !== 'number') {
-        this.logger.error(`${logPrefix}配置项 ${key} 必须是数字类型`)
-        return false
-      }
-      if (rule.type === 'boolean' && typeof value !== 'boolean') {
-        this.logger.error(`${logPrefix}配置项 ${key} 必须是布尔类型`)
-        return false
-      }
-      if (rule.type === 'string' && typeof value !== 'string') {
-        this.logger.error(`${logPrefix}配置项 ${key} 必须是字符串类型`)
-        return false
-      }
-
-      // 数值范围检查
-      if (rule.type === 'number') {
-        if (rule.min !== undefined && value < rule.min) {
-          this.logger.error(`${logPrefix}配置项 ${key} 不能小于 ${rule.min}`)
-          return false
-        }
-        if (rule.max !== undefined && value > rule.max) {
-          this.logger.error(`${logPrefix}配置项 ${key} 不能大于 ${rule.max}`)
-          return false
-        }
-      }
-    }
-
-    return true
   }
 
   /** 初始化配置 */
@@ -254,7 +159,7 @@ class GameConfig {
   }
 
   /**
-   * 安全地获取配置值，带验证
+   * 安全地获取配置值
    * @param {string} configName 配置文件名
    * @param {string} key 配置键名（使用CONFIG_KEYS常量）
    * @param {any} defaultValue 默认值
@@ -267,12 +172,6 @@ class GameConfig {
 
       // 如果值不存在，返回默认值
       if (value === undefined || value === null) {
-        return defaultValue
-      }
-
-      // 验证配置值
-      if (!this.validateConfig(key, value)) {
-        this.logger.warn(`${logPrefix}配置项 ${key} 验证失败，使用默认值`)
         return defaultValue
       }
 
@@ -295,10 +194,10 @@ class GameConfig {
 
   /**
    * 配置热重载机制
-   * 当配置文件发生变化时，自动重新验证配置
+   * 当配置文件发生变化时，自动重新加载配置
    */
   enableHotReload () {
-    // 重写原有的watch方法，添加验证逻辑
+    // 重写原有的watch方法，添加热重载逻辑
     this.watch = (file, name, type = 'default_config') => {
       let key = `${type}.${name}`
 
@@ -309,10 +208,9 @@ class GameConfig {
       watcher.on('change', path => {
         delete this.config[key]
 
-        // 重新加载并验证配置
         try {
-          const newConfig = this.getYaml(type, name)
-          this._validateAllConfigs(newConfig, name)
+          // 重新加载配置（不做校验）
+          this.getYaml(type, name)
         } catch (error) {
           this.logger.error(`${logPrefix}[配置热重载失败][${type}][${name}]：${error}`)
         }
@@ -325,22 +223,6 @@ class GameConfig {
       })
 
       this.watcher[key] = watcher
-    }
-  }
-
-  /**
-   * 验证所有配置项
-   * @private
-   * @param {Object} config 配置对象
-   * @param {string} configName 配置名称
-   */
-  _validateAllConfigs (config, configName) {
-    if (!config || typeof config !== 'object') return
-
-    for (const [key, value] of Object.entries(config)) {
-      if (!this.validateConfig(key, value)) {
-        this.logger.warn(`${logPrefix}[配置验证失败][${configName}][${key}]: ${value}`)
-      }
     }
   }
 
@@ -522,6 +404,21 @@ class GameConfig {
     }
     delete this.config[`${type}.${name}`]
     return true
+  }
+
+  /**
+   * 清理所有文件监听器
+   * 在游戏结束或插件卸载时调用
+   */
+  cleanup () {
+    for (const key in this.watcher) {
+      const watcher = this.watcher[key]
+      if (watcher && typeof watcher.close === 'function') {
+        watcher.close()
+      }
+    }
+    this.watcher = {}
+    this.logger.mark(`${logPrefix}[配置监听器已清理]`)
   }
 }
 

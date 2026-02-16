@@ -1,6 +1,19 @@
 /**
  * @file Game.js
- * @description Game aggregate root (refactored for models/), without NotificationCenter dependency.
+ * @description 游戏聚合根，管理玩家、状态机、胜利检查
+ * @module models/Game
+ *
+ * @input VictoryChecker, RoleFactory, NightPhaseController, Constants, RoleConfigurator, GameError
+ * @output Game - 游戏聚合根类
+ * @pos 模型层 - 游戏聚合根，核心业务逻辑
+ *
+ * @dependencies
+ * - ./VictoryChecker.js - 胜利条件检查
+ * - ./roles/RoleFactory.js - 角色工厂
+ * - ./states/NightPhaseController.js - 夜晚控制器
+ * - ./Constants.js - 游戏常量
+ * - ../utils/configurators/RoleConfigurator.js - 角色配置器
+ * - ../utils/GameError.js - 游戏错误类
  *
  * Notes:
  * - Keeps core responsibilities: player management, state machine coordination, victory checking.
@@ -75,6 +88,11 @@ export class Game {
     this.stateMachine = stateMachine
     this.currentPhase = GAME_PHASES.WAITING
     this.turn = 0
+    // Day-start coordination flags (kept on Game so they survive intermediate states like LastWords/SheriffElect)
+    this._dayStartPending = false
+    this._dayStartDeathsAnnounced = false
+    this._firstNightLastWordsHandled = false
+    this._firstDaySheriffElectionHandled = false
     this.stateHistory = []
     this.currentState = null // compatibility alias used by some roles
 
@@ -242,18 +260,7 @@ export class Game {
 
   async initPlayers () {
     const playerCount = this.getPlayerCount()
-
-    let roles
-    if (this.config?.roles?.useFixedRoles && Array.isArray(this.config?.roles?.fixedRoles)) {
-      roles = this.config.roles.fixedRoles
-      if (roles.length !== playerCount) {
-        console.warn(`固定角色配置数量(${roles.length})与玩家数量(${playerCount})不匹配，使用动态生成`)
-        roles = RoleConfigurator.generate(playerCount)
-      }
-    } else {
-      roles = RoleConfigurator.generate(playerCount)
-    }
-
+    const roles = RoleConfigurator.generate(playerCount)
     await this.initializePlayerRoles(roles)
   }
 
@@ -266,7 +273,6 @@ export class Game {
       const initialState = new NightPhaseController(this)
       await this.changeState(initialState)
       this.currentPhase = GAME_PHASES.NIGHT
-      this.turn = 1
     } catch (error) {
       console.error('[Game] initializeState failed:', error)
       await this.e.reply('初始化游戏状态失败，请重新创建游戏。')

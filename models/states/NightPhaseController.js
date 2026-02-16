@@ -219,10 +219,10 @@ export class NightPhaseController extends GameState {
     try {
       console.log('[NightPhaseController] 转换到白天状态')
 
-      // 检查游戏回合（保持与NightState一致的逻辑）
-      if (this.game.turn === 0) {
-        await this.game.changeState(new DayState(this.game))
-      }
+      // 每个夜晚结束后都应转换到白天
+      this.game._dayStartPending = true
+      this.game._dayStartDeathsAnnounced = false
+      await this.game.changeState(new DayState(this.game))
     } catch (error) {
       console.error('[NightPhaseController] 转换到白天状态失败:', error)
       throw error

@@ -24,7 +24,7 @@ export class GameRoles extends plugin {
         { reg: '^#查验(\\d+)号$', fnc: 'check' },
         { reg: '^#毒杀(\\d+)号$', fnc: 'poison' },
         { reg: '^#救人$', fnc: 'save' },
-        { reg: '^#空过$', fnc: 'skip' },
+        { reg: '^#跳过$', fnc: 'skip' },
         { reg: '^#刀(\\d+)号$', fnc: 'kill' },
         { reg: '^#开枪(\\d+)号$', fnc: 'shoot' }
       ]
