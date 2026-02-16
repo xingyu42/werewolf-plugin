@@ -76,7 +76,7 @@ export class HunterRole extends Role {
     const playersList = this.getAlivePlayersList()
 
     msg += playersList.join('\n')
-    msg += '\n\n输入：#反杀*号'
+    msg += '\n\n输入：#开枪*号'
 
     await this.sendPrivate(msg)
     return true

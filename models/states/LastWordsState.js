@@ -61,24 +61,29 @@ export class LastWordsState extends GameState {
       await this.game.notificationCenter.sendMessage('group', null, `猎人 ${this.deadPlayer.name} 的遗言结束，现在可以开枪`)
       await deadRole.getActionPrompt()
     }
+  }
 
-    // 设置状态转换上下文，包含死亡玩家信息
+  getResolvedNextState () {
+    const fallbackNextState = this.nextState || new NightPhaseController(this.game)
+
+    if (!this.deadPlayer?.isSheriff) {
+      return fallbackNextState
+    }
+
+    return new SheriffTransferState(this.game, this.deadPlayer, fallbackNextState)
+  }
+
+  async transitionToNextState () {
+    const resolvedNextState = this.getResolvedNextState()
+
+    // 状态校验依赖 deadPlayer，上下文必须在调用 changeState 前设置
     this.game.setStateTransitionContext({ deadPlayer: this.deadPlayer })
 
-    // 如果死亡玩家是警长，转移到警长移交状态
-    if (this.deadPlayer.isSheriff) {
+    if (this.deadPlayer?.isSheriff && resolvedNextState instanceof SheriffTransferState) {
       await this.game.notificationCenter.sendMessage('group', null, `警长 ${this.deadPlayer.name} 死亡，现在可以转移警徽`)
-      await this.game.changeState(new SheriffTransferState(this.game, this.deadPlayer, this.nextState))
-      return // 已经转换状态，不需要进行下一步
     }
 
-    // 死亡玩家不是警长，直接进入下一个状态（通常是夜晚）
-    if (this.nextState) {
-      await this.game.changeState(this.nextState)
-    } else {
-      // 如果没有指定下一个状态，默认进入夜晚
-      await this.game.changeState(new NightPhaseController(this.game))
-    }
+    await this.game.changeState(resolvedNextState)
   }
 
   // 处理玩家行为
@@ -123,7 +128,7 @@ export class LastWordsState extends GameState {
       await this.e.reply(`${player.name}放弃了遗言`)
 
       // 进入下一个状态
-      await this.game.changeState(this.nextState)
+      await this.transitionToNextState()
     } catch (err) {
       console.error('处理跳过遗言时出错:', err)
       this.hasSpoken = false
@@ -147,12 +152,13 @@ export class LastWordsState extends GameState {
         await this.e.reply(`\n=== ${this.deadPlayer.name}的遗言结束 ===\n`)
 
         // 进入下一个状态
-        await this.game.changeState(this.nextState)
+        await this.transitionToNextState()
       }
     } catch (err) {
       console.error('结束遗言出错:', err)
       // 强制进入下一个状态
-      await this.game.changeState(this.nextState)
+      const fallbackNextState = this.nextState || new NightPhaseController(this.game)
+      await this.game.changeState(fallbackNextState)
     }
   }
 }

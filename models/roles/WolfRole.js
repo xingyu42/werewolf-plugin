@@ -91,7 +91,14 @@ export class WolfRole extends Role {
    * @returns {boolean} 狼人只能在夜晚阶段行动
    */
   canAct (state) {
-    return state.getName() === 'NightState'
+    const stateName = state?.getName?.() || state?.constructor?.name
+    return [
+      'NightState',
+      'NightPhaseController',
+      'InformationPhaseState',
+      'EliminationPhaseState',
+      'InterventionPhaseState'
+    ].includes(stateName)
   }
 
   /**
@@ -409,7 +416,7 @@ export class WolfRole extends Role {
    */
   async discuss (message) {
     // 检查当前是否为夜晚阶段
-    if (this.game.currentState.getName() !== 'NightState') {
+    if (!this.canAct(this.game.currentState)) {
       return { success: false, message: '只有在夜晚阶段才能使用狼人队内沟通' }
     }
 

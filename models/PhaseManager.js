@@ -183,8 +183,12 @@ export class PhaseManager {
         return
       }
 
+      // 启动下一个阶段前解除转换锁，避免被 startPhase 的保护逻辑拦截
+      this.isTransitioning = false
+
       // 启动下一个阶段
       await this.startPhase(this.currentPhaseIndex)
+      return
     } catch (error) {
       console.error('[PhaseManager] 转换到下一阶段失败:', error)
       await this.handlePhaseError(error, 'transition')

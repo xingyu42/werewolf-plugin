@@ -43,7 +43,7 @@ export class RoleData {
     [ROLES.PROPHET]: 6, // 基础角色，至少6人
     [ROLES.WITCH]: 6, // 基础角色，至少6人
     [ROLES.HUNTER]: 8, // 8人及以上解锁
-    [ROLES.GUARD]: 9 // 9人及以上解锁
+    [ROLES.GUARD]: 7 // 7人及以上解锁
   }
 
   /**

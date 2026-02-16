@@ -44,7 +44,14 @@ export class GuardRole extends Role {
    * @returns {boolean} 守卫只能在夜晚阶段行动
    */
   canAct (state) {
-    return state.getName() === 'NightState'
+    const stateName = state?.getName?.() || state?.constructor?.name
+    return [
+      'NightState',
+      'NightPhaseController',
+      'InformationPhaseState',
+      'EliminationPhaseState',
+      'InterventionPhaseState'
+    ].includes(stateName)
   }
 
   /**

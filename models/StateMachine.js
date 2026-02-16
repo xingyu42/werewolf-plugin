@@ -32,17 +32,22 @@ export const GameStateType = {
  * 对于某些特殊情况，还可以定义条件检查函数
  */
 export const StateTransitions = {
-  // 夜晚状态可以转换到白天状态
+  // 夜晚状态可以转换到白天状态或夜晚子阶段
   [GameStateType.NIGHT]: {
+    [GameStateType.INFORMATION_PHASE]: {
+      description: '夜晚开始，进入信息收集阶段',
+      condition: (game) => true
+    },
+    [GameStateType.ELIMINATION_PHASE]: {
+      description: '夜晚阶段跳过信息收集，直接进入消除阶段',
+      condition: (game) => true
+    },
+    [GameStateType.INTERVENTION_PHASE]: {
+      description: '夜晚阶段跳过前置阶段，直接进入干预阶段',
+      condition: (game) => true
+    },
     [GameStateType.DAY]: {
       description: '夜晚结束，进入白天',
-      condition: (game) => true // 始终允许此转换
-    }
-  },
-  // 允许 NightPhaseController 作为夜晚状态的别名进行状态转换
-  NightPhaseController: {
-    [GameStateType.DAY]: {
-      description: '夜晚阶段控制器结束，进入白天',
       condition: (game) => true // 始终允许此转换
     }
   },
@@ -114,7 +119,7 @@ export const StateTransitions = {
   [GameStateType.LAST_WORDS]: {
     [GameStateType.NIGHT]: {
       description: '遗言结束，进入夜晚',
-      condition: (game, deadPlayer) => !deadPlayer.isSheriff // 死者不是警长
+      condition: (game, deadPlayer) => !deadPlayer?.isSheriff // 死者不是警长
     },
     [GameStateType.DAY]: {
       description: '首夜遗言结束，继续白天流程',
@@ -122,7 +127,7 @@ export const StateTransitions = {
     },
     [GameStateType.SHERIFF_TRANSFER]: {
       description: '死者是警长，需要移交警徽',
-      condition: (game, deadPlayer) => deadPlayer.isSheriff // 死者是警长
+      condition: (game, deadPlayer) => !!deadPlayer?.isSheriff // 死者是警长
     }
   },
 
@@ -138,6 +143,10 @@ export const StateTransitions = {
   [GameStateType.SHERIFF_TRANSFER]: {
     [GameStateType.NIGHT]: {
       description: '警长移交结束，进入夜晚',
+      condition: (game) => true // 始终允许此转换
+    },
+    [GameStateType.DAY]: {
+      description: '警长移交结束，返回白天流程',
       condition: (game) => true // 始终允许此转换
     }
   }

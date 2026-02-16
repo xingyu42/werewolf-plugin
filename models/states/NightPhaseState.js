@@ -182,7 +182,7 @@ export class NightPhaseState {
       }
 
       // 检查玩家是否存活
-      if (!player.isAlive()) {
+      if (!player.isAlive) {
         return false
       }
 
@@ -192,7 +192,14 @@ export class NightPhaseState {
       }
 
       // 检查玩家角色是否在当前阶段活跃
-      const playerRole = player.role?.constructor.name.replace('Role', '').toUpperCase()
+      const playerRole =
+        (typeof player.role === 'string' && player.role) ||
+        this.game.getPlayerRole?.(player.id)?.constructor?.name?.replace('Role', '').toUpperCase()
+
+      if (!playerRole) {
+        return false
+      }
+
       if (!this.activeRoles.has(playerRole)) {
         return false
       }

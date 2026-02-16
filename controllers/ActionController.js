@@ -157,7 +157,6 @@ export class ActionController {
 
     const player = this._getPlayerOrReply(e, game)
     if (!player) return false
-    if (!this._assertAliveOrReply(e, player)) return false
     if (!this._assertStateOrReply(e, game, [SheriffTransferState])) return false
 
     if (!player.isSheriff) {
@@ -186,7 +185,6 @@ export class ActionController {
 
     const player = this._getPlayerOrReply(e, game)
     if (!player) return false
-    if (!this._assertAliveOrReply(e, player)) return false
     if (!this._assertStateOrReply(e, game, [SheriffTransferState])) return false
 
     if (!player.isSheriff) {
