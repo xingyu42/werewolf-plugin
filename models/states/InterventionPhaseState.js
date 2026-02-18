@@ -109,6 +109,33 @@ export class InterventionPhaseState extends NightPhaseState {
   }
 
   /**
+   * 覆写父类 handleAction，按子阶段独立跟踪完成状态
+   * 避免父类 completedActions 全局检查阻断女巫双行动
+   */
+  async handleAction (player, action, data) {
+    // 基础验证
+    if (!this.isValidAction(player, action)) {
+      throw new GameError('无效的行动', 'INVALID_ACTION', {
+        playerId: player.id,
+        action,
+        phase: this.phaseConfig.name
+      })
+    }
+
+    // 按子阶段检查是否已完成（替代全局 completedActions 检查）
+    if (this.currentSubPhase === 'save' && this.savePhaseCompleted) {
+      throw new GameError('已完成救人操作', 'ACTION_ALREADY_COMPLETED')
+    }
+    if (this.currentSubPhase === 'poison' && this.poisonPhaseCompleted) {
+      throw new GameError('已完成毒杀操作', 'ACTION_ALREADY_COMPLETED')
+    }
+
+    // 执行行动（executePlayerAction 处理 witchActions 记录和子阶段完成检查）
+    const result = await this.executePlayerAction(player, action, data)
+    return result
+  }
+
+  /**
    * 执行具体的玩家行动逻辑
    * @param {Object} player - 玩家对象
    * @param {string} action - 行动类型

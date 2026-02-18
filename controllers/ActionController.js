@@ -27,7 +27,7 @@ import { DayState } from '../models/states/DayState.js'
 
 export class ActionController {
   static _getGameOrReply (e) {
-    const game = GameController.getGame(e.group_id)
+    const game = GameController.getGame(e.group_id) || GameController.getGameByPlayer(e.user_id)
     if (!game) {
       e.reply('当前群没有进行中的游戏。')
       return null

@@ -32,6 +32,20 @@ export class GameController {
     return this.games.get(groupId) || null
   }
 
+  /**
+   * 通过玩家ID查找其所在的游戏实例
+   * 用于私聊消息场景（e.group_id 不可用时的回退查找）
+   * @param {string|number} userId - 玩家ID
+   * @returns {Game|null}
+   */
+  static getGameByPlayer (userId) {
+    if (!userId) return null
+    for (const game of this.games.values()) {
+      if (game.hasPlayer(userId)) return game
+    }
+    return null
+  }
+
   static hasGame (groupId) {
     return this.games.has(groupId)
   }

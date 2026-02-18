@@ -37,6 +37,7 @@ export class Player {
     this.protected = false // 被守卫保护
     this.gameNumber = gameNumber // 游戏内编号
     this.deathReason = null // 死亡原因: WOLF_KILL(狼人杀死), EXILE(放逐), POISON(毒杀), HUNTER_SHOT(猎人射杀)
+    this.deathTurn = null // 死亡回合，用于区分不同夜晚的死亡
   }
 
   /**

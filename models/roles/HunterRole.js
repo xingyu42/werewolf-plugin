@@ -75,7 +75,7 @@ export class HunterRole extends Role {
     // 获取存活玩家列表
     const playersList = this.getAlivePlayersList()
 
-    msg += playersList.join('\n')
+    msg += playersList
     msg += '\n\n输入：#开枪*号'
 
     await this.sendPrivate(msg)

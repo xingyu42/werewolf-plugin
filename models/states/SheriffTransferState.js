@@ -40,7 +40,7 @@ export class SheriffTransferState extends GameState {
 
     if (action === 'transfer') {
       await this.handleTransfer(player, targetId)
-    } else if (action === 'skip') {
+    } else if (action === 'skip' || action === 'giveup') {
       await this.handleSkip(player)
     } else {
       throw new Error(`未知操作: ${action}`)
@@ -55,7 +55,7 @@ export class SheriffTransferState extends GameState {
     if (this.hasTransferred) {
       return '警徽已经移交'
     }
-    if (action !== 'transfer' && action !== 'skip') {
+    if (action !== 'transfer' && action !== 'skip' && action !== 'giveup') {
       return '无效的操作类型'
     }
     return '未知原因'
@@ -66,7 +66,7 @@ export class SheriffTransferState extends GameState {
     if (player !== this.sheriff) return false
     if (this.hasTransferred) return false
 
-    return action === 'transfer' || action === 'skip'
+    return action === 'transfer' || action === 'skip' || action === 'giveup'
   }
 
   // 处理移交
@@ -109,6 +109,8 @@ export class SheriffTransferState extends GameState {
   async handleSkip (player) {
     try {
       this.hasTransferred = true
+      // 清除警长标记，避免 DayState.announceDeaths 重复检测导致死循环
+      this.sheriff.isSheriff = false
 
       await this.game.notificationCenter.sendMessage('group', null,
         '\n=== 警长移交结果 ===\n' +
@@ -129,6 +131,8 @@ export class SheriffTransferState extends GameState {
   async onTimeout () {
     try {
       if (!this.hasTransferred) {
+        // 清除警长标记，避免 DayState.announceDeaths 重复检测导致死循环
+        this.sheriff.isSheriff = false
         await this.e.reply('\n=== 警长移交结果 ===\n' + `警长 ${this.sheriff.name} 超时未移交,警徽将被带走\n` + '====================')
 
         // 进入下一个状态

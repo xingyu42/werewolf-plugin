@@ -69,7 +69,7 @@ export class GuardRole extends Role {
     // 获取存活玩家列表
     const alivePlayers = this.getAlivePlayersList()
 
-    msg += alivePlayers.join('\n')
+    msg += alivePlayers
     msg += '\n\n输入格式：#守护*号'
 
     // 添加上次守护信息

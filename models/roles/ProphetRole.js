@@ -70,7 +70,7 @@ export class ProphetRole extends Role {
       return false
     }
     const alivePlayersList = this.getAlivePlayersList()
-    const msg = `【预言家】请选择今晚的查验目标：\n ${alivePlayersList.join('\n')} \n 输入格式：#查验*号 `
+    const msg = `【预言家】请选择今晚的查验目标：\n ${alivePlayersList} \n 输入格式：#查验*号 `
     await this.sendPrivate(msg)
     return true
   }

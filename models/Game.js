@@ -68,6 +68,7 @@ export class Game {
     this.config = config
 
     this._isCleanedUp = false
+    this._isGameOver = false
     this.startTime = Date.now()
     this.eventErrors = []
 
@@ -310,6 +311,10 @@ export class Game {
 
   async changeState (newState) {
     if (!newState) throw new GameError('新状态不能为空', 'E1201')
+    if (this._isGameOver) {
+      console.warn('[Game] 游戏已结束，拒绝状态切换')
+      return false
+    }
 
     const oldState = this.getCurrentState()
 
@@ -373,6 +378,7 @@ export class Game {
 
   async handleAction (player, action, data) {
     if (!player) throw new GameError('玩家参数不能为空', 'E1100')
+    if (this._isGameOver) throw new GameError('游戏已结束', 'E1201')
 
     const currentState = this.getCurrentState()
     if (!currentState) throw new GameError('游戏尚未开始或已结束', 'E1201')
@@ -387,20 +393,50 @@ export class Game {
 
   // ==================== Death / Victory ====================
 
+  clearAllProtectedStatus () {
+    for (const player of this._players.values()) {
+      player.protected = false
+    }
+  }
+
+  setProtectedStatus (targetOrId, status = true) {
+    const player = typeof targetOrId === 'string'
+      ? this._players.get(targetOrId)
+      : targetOrId
+    if (!player) return false
+    player.protected = !!status
+    return true
+  }
+
+  revivePlayer (targetOrId) {
+    const player = typeof targetOrId === 'string'
+      ? this._players.get(targetOrId)
+      : targetOrId
+    if (!player) return false
+    player.isAlive = true
+    player.deathReason = null
+    player.deathTurn = null
+    return true
+  }
+
   async handlePlayerDeath (player, reason) {
     if (!player) return false
 
     player.isAlive = false
     player.deathReason = reason
+    player.deathTurn = this.turn // 记录死亡回合，供 DayState 按回合过滤
 
-    // After a death, check victory
-    await this.endGame()
-    return true
+    const gameOver = await this.endGame()
+    return gameOver
   }
 
   async endGame () {
+    if (this._isGameOver) return true
+
     const victoryResult = this.victoryChecker.checkVictory(this)
     if (!victoryResult?.gameOver) return false
+
+    this._isGameOver = true
 
     const alivePlayers = this.getAlivePlayers()
     const alivePlayersStr = alivePlayers.length > 0

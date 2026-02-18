@@ -94,7 +94,7 @@ export class WitchRole extends Role {
     // 如果有毒药
     if (this.hasPoison) {
       const alivePlayersList = this.getAlivePlayersList()
-      prompt += `${this.hasAntidote ? '2' : '1'}. 使用毒药毒人：\n${alivePlayersList.join('\n')}\n   输入格式：#毒杀*号\n`
+      prompt += `${this.hasAntidote ? '2' : '1'}. 使用毒药毒人：\n${alivePlayersList}\n   输入格式：#毒杀*号\n`
     }
 
     prompt += '\n也可以选择什么都不做：#跳过'

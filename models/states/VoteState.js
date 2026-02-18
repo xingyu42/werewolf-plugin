@@ -21,9 +21,11 @@ import Puppeteer from '../../utils/Puppeteer.js'
 export class VoteState extends GameState {
   constructor (game) {
     super(game)
-    this.timeLimit = game.getConfig().game.voteTimeLimit // 投票时间限制
+    this.timeLimit = 0 // 禁用基类定时器，使用自有 voteTimeout
+    this._voteTimeLimit = game.getConfig().game.voteTimeLimit
     this.votes = new Map() // 记录投票情况
     this.votedPlayers = new Set() // 已经投票的玩家
+    this._resolved = false // resolveVotes 幂等锁
     this.ABSTAIN = 'ABSTAIN' // 弃票标记
   }
 
@@ -38,7 +40,7 @@ export class VoteState extends GameState {
     // 显示可投票的玩家列表
     const playerList = [...this.game.players.values()]
       .filter((p) => p.isAlive)
-      .map((p, i) => `${i}:${p.name}`)
+      .map((p) => `${p.gameNumber}:${p.name}`)
       .join('\n')
 
     this.e.reply(playerList)
@@ -46,7 +48,7 @@ export class VoteState extends GameState {
     // 设置投票时间限制
     this.voteTimeout = setTimeout(async () => {
       await this.onTimeout() // 超时处理
-    }, this.timeLimit * 1000) // 将秒转换为毫秒
+    }, this._voteTimeLimit * 1000)
   }
 
   // 处理投票
@@ -95,14 +97,14 @@ export class VoteState extends GameState {
 
   // 统计投票结果
   tallyVotes () {
-    const results = {}
+    const results = new Map()
     this.votes.forEach((targetId, voterId) => {
       // 不统计弃票
       if (targetId !== this.ABSTAIN) {
         // 获取投票者是否是警长
         const voter = this.game.players.get(voterId)
         const voteWeight = voter.isSheriff ? 1.5 : 1
-        results[targetId] = (results[targetId] || 0) + voteWeight
+        results.set(targetId, (results.get(targetId) || 0) + voteWeight)
       }
     })
     return results
@@ -116,13 +118,23 @@ export class VoteState extends GameState {
 
   // 处理投票结果
   async resolveVotes () {
+    // 幂等锁：防止超时 + 全员投票同时触发
+    if (this._resolved) return
+    this._resolved = true
+
+    // 清除定时器
+    if (this.voteTimeout) {
+      clearTimeout(this.voteTimeout)
+      this.voteTimeout = null
+    }
+
     // 统计票数
     const voteCount = this.tallyVotes()
 
     // 找出最高票数的玩家
     let maxVotes = 0
     let votedPlayers = []
-    for (const [targetId, count] of Object.entries(voteCount)) {
+    for (const [targetId, count] of voteCount.entries()) {
       if (count > maxVotes) {
         maxVotes = count
         votedPlayers = [targetId]
@@ -150,9 +162,11 @@ export class VoteState extends GameState {
         voteData.abstained.push(voterInfo)
       } else {
         // 找到或创建目标玩家的投票记录
-        let targetVotes = voteData.others.find(v => v.number === parseInt(targetId))
+        const targetPlayer = this.game.players.get(targetId)
+        const targetNumber = targetPlayer?.gameNumber ?? targetId
+        let targetVotes = voteData.others.find(v => v.number === targetNumber)
         if (!targetVotes) {
-          targetVotes = { number: parseInt(targetId), voters: [] }
+          targetVotes = { number: targetNumber, voters: [] }
           voteData.others.push(targetVotes)
         }
         targetVotes.voters.push(voterInfo)
@@ -161,8 +175,9 @@ export class VoteState extends GameState {
 
     // 如果有放逐目标,将其从others移到exiled
     if (votedPlayers.length === 1) {
-      const exiledId = parseInt(votedPlayers[0])
-      const exiledIndex = voteData.others.findIndex(v => v.number === exiledId)
+      const exiledPlayer = this.game.players.get(votedPlayers[0])
+      const exiledNumber = exiledPlayer?.gameNumber ?? votedPlayers[0]
+      const exiledIndex = voteData.others.findIndex(v => v.number === exiledNumber)
       if (exiledIndex !== -1) {
         voteData.exiled = voteData.others.splice(exiledIndex, 1)[0]
       }
@@ -185,14 +200,14 @@ export class VoteState extends GameState {
     const minVotes = this.game.getConfig().game.minVotesToKill // 最少投票数
     if (maxVotes <= minVotes) {
       this.e.reply('没有玩家得票数超过最低要求,无人出局')
-      this.game.changeState(new NightPhaseController(this.game))
+      await this.game.changeState(new NightPhaseController(this.game))
       return
     }
 
     // 如果有平票,则无人出局
     if (votedPlayers.length > 1) {
       this.e.reply('出现平票,无人出局')
-      this.game.changeState(new NightPhaseController(this.game))
+      await this.game.changeState(new NightPhaseController(this.game))
       return
     }
 
@@ -201,8 +216,11 @@ export class VoteState extends GameState {
     const votedPlayer = this.game.players.get(votedId)
 
     // 先处理玩家死亡
-    await this.game.handlePlayerDeath(votedPlayer, 'EXILE')
+    const gameOver = await this.game.handlePlayerDeath(votedPlayer, 'EXILE')
     this.e.reply(`${votedPlayer.name}被投票放逐出局`)
+
+    // 游戏已结束，不再创建后续状态
+    if (gameOver) return
 
     // 创建下一个状态（夜晚）
     const nextState = new NightPhaseController(this.game)
@@ -213,7 +231,10 @@ export class VoteState extends GameState {
 
   // 超时处理
   async onTimeout () {
-    clearTimeout(this.voteTimeout) // 清除定时器
+    if (this.voteTimeout) {
+      clearTimeout(this.voteTimeout)
+      this.voteTimeout = null
+    }
     await this.resolveVotes()
   }
 }

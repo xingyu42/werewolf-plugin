@@ -233,9 +233,9 @@ export class WolfRole extends Role {
     }
 
     // 通知其他狼人
-    for (const wolf of wolves) {
-      if (wolf.id !== this.player.id) {
-        await this.sendPrivate(voteMsg + '\n' + voteStatus, wolf.id)
+    for (const { player: wolfPlayer } of wolves) {
+      if (wolfPlayer.id !== this.player.id) {
+        await this.sendPrivate(voteMsg + '\n' + voteStatus, wolfPlayer.id)
       }
     }
   }
@@ -290,8 +290,8 @@ export class WolfRole extends Role {
       if (target) message += `\n【最终结果】狼人队伍决定击杀${target.gameNumber}号(${target.name})`
     }
 
-    for (const wolf of wolves) {
-      await this.sendPrivate(message, wolf.id)
+    for (const { player: wolfPlayer } of wolves) {
+      await this.sendPrivate(message, wolfPlayer.id)
     }
   }
 
@@ -319,7 +319,7 @@ export class WolfRole extends Role {
 
     // 单狼直接返回
     if (aliveWolves.length === 1) {
-      const vote = WolfRole.wolfVotes.get(aliveWolves[0].id)
+      const vote = WolfRole.wolfVotes.get(aliveWolves[0].player.id)
       return vote ? vote.targetId : null
     }
 
@@ -347,7 +347,7 @@ export class WolfRole extends Role {
    */
   isAllWolvesVoted () {
     const aliveWolves = this.game.getAlivePlayers({ roleType: 'WolfRole', includeRole: true })
-    return aliveWolves.every(wolf => WolfRole.wolfVotes.has(wolf.id))
+    return aliveWolves.every(({ player }) => WolfRole.wolfVotes.has(player.id))
   }
 
   /**
@@ -357,7 +357,9 @@ export class WolfRole extends Role {
    */
   getUnvotedWolves () {
     const aliveWolves = this.game.getAlivePlayers({ roleType: 'WolfRole', includeRole: true })
-    return aliveWolves.filter(wolf => !WolfRole.wolfVotes.has(wolf.id))
+    return aliveWolves
+      .filter(({ player }) => !WolfRole.wolfVotes.has(player.id))
+      .map(({ player }) => player)
   }
 
   /**

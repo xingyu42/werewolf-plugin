@@ -18,11 +18,13 @@ export class SheriffElectState extends GameState {
   constructor (game) {
     super(game)
     this.SPEECH_TIME = game.getConfig().game.sheriffSpeechTime // 每人发言时间（秒）
+    this.VOTE_TIMEOUT = 60 // 投票阶段超时（秒）
     this.phase = 'REGISTER' // 阶段：REGISTER(报名), SPEECH(发言), VOTE(投票)
     this.candidates = [] // 候选人
     this.votes = new Map() // 投票记录
     this.votedPlayers = new Set() // 已投票玩家
     this.speechRecords = new Map() // 发言记录
+    this._voteTimer = null // 投票阶段超时定时器
   }
 
   // 进入竞选阶段
@@ -31,6 +33,9 @@ export class SheriffElectState extends GameState {
 
     // 通知开始警长竞选
     await this.e.reply('开始竞选警长环节,想要竞选警长的玩家请发言"#竞选警长"')
+
+    // 启动报名超时计时器，无人报名时自动跳过
+    this.startRegisterTimer()
   }
 
   async onExit () {
@@ -45,6 +50,11 @@ export class SheriffElectState extends GameState {
     if (this.speechTimeout) {
       clearTimeout(this.speechTimeout)
       this.speechTimeout = null
+    }
+    // 清除投票计时器
+    if (this._voteTimer) {
+      clearTimeout(this._voteTimer)
+      this._voteTimer = null
     }
   }
 
@@ -74,11 +84,15 @@ export class SheriffElectState extends GameState {
 
     await this.e.reply(`${player.name}参与警长竞选`)
 
-    // 使用状态锁防止竞态条件
+    // 有人报名时重置计时器
+    this.startRegisterTimer()
+  }
+
+  // 启动/重置报名计时器
+  startRegisterTimer () {
     if (this._registerTimer) {
       clearTimeout(this._registerTimer)
     }
-    // 竞选计时器
     this._registerTimer = setTimeout(async () => {
       try {
         if (this.phase === 'REGISTER' && !this._phaseChanging) {
@@ -176,6 +190,18 @@ export class SheriffElectState extends GameState {
       .join('\n')
 
     await this.e.reply(candidateList)
+
+    // 设置投票超时定时器
+    this._voteTimer = setTimeout(async () => {
+      try {
+        if (this.phase === 'VOTE') {
+          await this.e.reply('投票时间到，自动结算投票结果')
+          await this.resolveVotes()
+        }
+      } catch (err) {
+        console.error('警长竞选投票超时处理失败:', err)
+      }
+    }, this.VOTE_TIMEOUT * 1000)
   }
 
   // 处理投票
@@ -203,6 +229,16 @@ export class SheriffElectState extends GameState {
 
   // 处理投票结果
   async resolveVotes () {
+    // 幂等锁
+    if (this._votesResolved) return
+    this._votesResolved = true
+
+    // 清除投票定时器
+    if (this._voteTimer) {
+      clearTimeout(this._voteTimer)
+      this._voteTimer = null
+    }
+
     // 统计票数
     const voteCount = new Map()
     for (const targetId of this.votes.values()) {
