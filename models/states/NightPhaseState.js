@@ -78,8 +78,6 @@ export class NightPhaseState {
 
       // 启动阶段逻辑
       await this.startPhaseLogic()
-
-      console.log(`[${this.constructor.name}] 阶段开始: ${this.phaseConfig.name}`)
     } catch (error) {
       console.error(`[${this.constructor.name}] 进入阶段时发生错误:`, error.message || error)
       // 替换emit调用为回调机制
@@ -109,8 +107,6 @@ export class NightPhaseState {
 
       // 执行阶段清理逻辑
       await this.cleanupPhase()
-
-      console.log(`[${this.constructor.name}] 阶段结束: ${this.phaseConfig.name}`)
     } catch (error) {
       console.error(`[${this.constructor.name}] 退出阶段时发生错误:`, error.message || error)
     } finally {
@@ -224,8 +220,6 @@ export class NightPhaseState {
    */
   async onTimeout () {
     try {
-      console.log(`[${this.constructor.name}] 阶段超时: ${this.phaseConfig.name}`)
-
       // 为未行动的玩家设置默认行动
       await this.handleTimeoutActions()
 
@@ -306,17 +300,13 @@ export class NightPhaseState {
         this.activeRoles.add(role)
       }
     }
-
-    console.log(`[${this.constructor.name}] 活跃角色:`, Array.from(this.activeRoles))
   }
 
   /**
    * 阶段开始通知 — 夜晚子阶段对群聊保持静默以避免身份/存活信息泄露
    * 私聊提示由具体角色/阶段自行发送
    */
-  async notifyPhaseStart () {
-    console.log(`[${this.constructor.name}] 阶段开始: ${this.phaseConfig.name}`)
-  }
+  async notifyPhaseStart () {}
 
   /**
    * 检查阶段是否完成
@@ -363,8 +353,6 @@ export class NightPhaseState {
       // 执行阶段完成逻辑（由子类实现）
       await this.onPhaseComplete()
 
-      console.log(`[${this.constructor.name}] 阶段完成: ${this.phaseConfig.name}`)
-
       // 替换emit调用为回调机制
       if (this.completionCallback) {
         await this.completionCallback({
@@ -385,7 +373,6 @@ export class NightPhaseState {
    * 强制完成阶段（超时时调用）
    */
   async forceCompletePhase () {
-    console.log(`[${this.constructor.name}] 强制完成阶段: ${this.phaseConfig.name}`)
     await this.completePhase()
   }
 

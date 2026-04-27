@@ -43,7 +43,6 @@ export class InterventionPhaseState extends NightPhaseState {
       // 检查是否有女巫存活
       const witchPlayers = this.game.getAlivePlayers({ roleType: 'WitchRole', includeRole: true })
       if (witchPlayers.length === 0) {
-        console.log('[InterventionPhaseState] 没有存活的女巫，跳过干预阶段')
         await this.completePhase()
         return
       }
@@ -79,8 +78,6 @@ export class InterventionPhaseState extends NightPhaseState {
       this.subPhaseTimeout = setTimeout(async () => {
         await this.onSubPhaseTimeout('save')
       }, this.savePhaseTime)
-
-      console.log('[InterventionPhaseState] 解药阶段开始')
     } catch (error) {
       console.error('[InterventionPhaseState] 启动解药阶段失败:', error.message || error)
     }
@@ -101,8 +98,6 @@ export class InterventionPhaseState extends NightPhaseState {
       this.subPhaseTimeout = setTimeout(async () => {
         await this.onSubPhaseTimeout('poison')
       }, this.poisonPhaseTime)
-
-      console.log('[InterventionPhaseState] 毒药阶段开始')
     } catch (error) {
       console.error('[InterventionPhaseState] 启动毒药阶段失败:', error.message || error)
     }
@@ -480,8 +475,6 @@ export class InterventionPhaseState extends NightPhaseState {
    */
   async onSubPhaseTimeout (subPhase) {
     try {
-      console.log(`[InterventionPhaseState] ${subPhase}阶段超时`)
-
       // 为未行动的女巫设置默认跳过行动
       const witchPlayers = this.game.getAlivePlayers({ roleType: 'WitchRole', includeRole: true })
 
@@ -518,8 +511,6 @@ export class InterventionPhaseState extends NightPhaseState {
         clearTimeout(this.subPhaseTimeout)
         this.subPhaseTimeout = null
       }
-
-      console.log('[InterventionPhaseState] 干预阶段完成')
     } catch (error) {
       console.error('[InterventionPhaseState] 阶段完成处理失败:', error.message || error)
     }

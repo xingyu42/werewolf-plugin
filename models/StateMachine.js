@@ -229,7 +229,6 @@ export class StateMachine {
 
     // 如果正在切换中，队列化请求而非丢弃
     if (this._changingState) {
-      console.log(`StateMachine: Queuing state change to ${newState.constructor.name} (currently transitioning)`)
       this._pendingState = newState
       return true
     }

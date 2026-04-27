@@ -55,10 +55,8 @@ export class WolfRole extends Role {
    * @static
    */
   static cleanup () {
-    console.log('[WolfRole] 清理静态数据...')
     this.wolfVotes.clear()
     this.wolfKillTarget = null
-    console.log('[WolfRole] 静态数据清理完成')
   }
 
   /**

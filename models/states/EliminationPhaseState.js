@@ -41,12 +41,9 @@ export class EliminationPhaseState extends NightPhaseState {
    */
   async startPhaseLogic () {
     try {
-      console.log('[EliminationPhaseState] 启动消除阶段逻辑')
-
       // 检查是否有存活的狼人
       const aliveWolves = this.game.getAlivePlayers({ roleType: 'WolfRole', includeRole: true })
       if (aliveWolves.length === 0) {
-        console.log('[EliminationPhaseState] 没有存活的狼人，跳过消除阶段')
         await this.completePhase()
         return
       }
@@ -66,8 +63,6 @@ export class EliminationPhaseState extends NightPhaseState {
     try {
       this.discussionStartTime = Date.now()
       this.isVotingPhase = false
-
-      console.log('[EliminationPhaseState] 开始狼人讨论阶段')
 
       // 通知所有狼人开始讨论
       await this.notifyWolvesDiscussion()
@@ -91,8 +86,6 @@ export class EliminationPhaseState extends NightPhaseState {
     try {
       this.votingStartTime = Date.now()
       this.isVotingPhase = true
-
-      console.log('[EliminationPhaseState] 开始狼人投票阶段')
 
       // 通知所有狼人开始投票
       await this.notifyWolvesVoting()
@@ -120,8 +113,6 @@ export class EliminationPhaseState extends NightPhaseState {
         const discussionPrompt = this.getDiscussionPrompt(player, aliveWolves)
         await role.sendPrivate(discussionPrompt)
       }
-
-      console.log(`[EliminationPhaseState] 已通知 ${aliveWolves.length} 个狼人开始讨论`)
     } catch (error) {
       console.error('[EliminationPhaseState] 通知狼人讨论失败:', error.message || error)
     }
@@ -138,8 +129,6 @@ export class EliminationPhaseState extends NightPhaseState {
         const votingPrompt = this.getVotingPrompt(player, aliveWolves)
         await role.sendPrivate(votingPrompt)
       }
-
-      console.log(`[EliminationPhaseState] 已通知 ${aliveWolves.length} 个狼人开始投票`)
     } catch (error) {
       console.error('[EliminationPhaseState] 通知狼人投票失败:', error.message || error)
     }
@@ -253,8 +242,6 @@ export class EliminationPhaseState extends NightPhaseState {
       if (!role) {
         throw new GameError('玩家角色不存在', 'ROLE_NOT_FOUND', { playerId: player.id })
       }
-
-      console.log(`[EliminationPhaseState] 执行狼人 ${player.id} 的 ${action} 行动`)
 
       let result = null
 
@@ -497,8 +484,6 @@ export class EliminationPhaseState extends NightPhaseState {
    */
   async processVoteResult () {
     try {
-      console.log('[EliminationPhaseState] 处理狼人投票结果')
-
       // 统计投票
       this.finalKillTarget = this.tallyVotes()
 
@@ -575,13 +560,11 @@ export class EliminationPhaseState extends NightPhaseState {
 
       // 检查是否被守卫保护
       if (target.protected) {
-        console.log(`[EliminationPhaseState] ${target.name} 被守卫保护，击杀失败`)
         return
       }
 
       // 执行击杀
       await this.game.handlePlayerDeath(target, 'WOLF_KILL')
-      console.log(`[EliminationPhaseState] 成功击杀 ${target.name}`)
     } catch (error) {
       console.error('[EliminationPhaseState] 执行击杀失败:', error.message || error)
     }
@@ -592,8 +575,6 @@ export class EliminationPhaseState extends NightPhaseState {
    */
   async handleVotingTimeout () {
     try {
-      console.log('[EliminationPhaseState] 投票阶段超时')
-
       // 为未投票的狼人设置默认空刀
       const aliveWolves = this.game.getAlivePlayers({ roleType: 'WolfRole', includeRole: true })
 
@@ -661,8 +642,6 @@ export class EliminationPhaseState extends NightPhaseState {
    */
   async handleTimeoutActions () {
     try {
-      console.log('[EliminationPhaseState] 处理消除阶段超时')
-
       if (!this.isVotingPhase) {
         // 讨论阶段超时，进入投票阶段
         await this.startVotingPhase()
@@ -680,18 +659,7 @@ export class EliminationPhaseState extends NightPhaseState {
    */
   async onPhaseComplete () {
     try {
-      console.log('[EliminationPhaseState] 消除阶段完成')
-
-      // 输出阶段统计信息
-      const stats = this.getPhaseStats()
-      console.log('[EliminationPhaseState] 阶段统计:', {
-        狼人投票数: this.wolfVotes.size,
-        讨论消息数: this.discussionMessages.length,
-        最终击杀目标: this.finalKillTarget,
-        阶段耗时: stats.duration
-      })
-
-      // 移除emit调用，父类会处理回调机制
+      // 父类会处理回调机制
     } catch (error) {
       console.error('[EliminationPhaseState] 阶段完成处理失败:', error.message || error)
       throw error // 抛出错误让父类处理
@@ -721,8 +689,6 @@ export class EliminationPhaseState extends NightPhaseState {
 
       // 调用父类清理方法
       await super.cleanupPhase()
-
-      console.log('[EliminationPhaseState] 消除阶段资源清理完成')
     } catch (error) {
       console.error('[EliminationPhaseState] 清理阶段资源失败:', error.message || error)
     }

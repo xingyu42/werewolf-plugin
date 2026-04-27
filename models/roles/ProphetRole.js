@@ -100,7 +100,6 @@ export class ProphetRole extends Role {
    */
   async act (target, action = 'check') {
     if (!target) {
-      console.debug('ProphetRole.act: target 为空')
       return false
     }
 

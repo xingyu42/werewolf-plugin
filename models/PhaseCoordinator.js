@@ -42,8 +42,6 @@ export class PhaseCoordinator {
         eventData
       })
 
-      console.log(`[PhaseCoordinator] 阶段开始: ${phaseName} (索引: ${phaseIndex})`)
-
       return {
         success: true,
         phaseName,
@@ -78,8 +76,6 @@ export class PhaseCoordinator {
         timestamp: Date.now()
       })
 
-      console.log(`[PhaseCoordinator] 阶段完成: ${phaseName} (索引: ${phaseIndex})`)
-
       return {
         success: true,
         shouldContinue: true,
@@ -112,8 +108,6 @@ export class PhaseCoordinator {
         timestamp: Date.now()
       })
 
-      console.log('[PhaseCoordinator] 所有阶段完成')
-
       return {
         allCompleted: true,
         totalPhases,
@@ -141,8 +135,6 @@ export class PhaseCoordinator {
         action: 'night_completed',
         timestamp: Date.now()
       })
-
-      console.log('[PhaseCoordinator] 夜晚阶段完成')
 
       return {
         nightCompleted: true,
@@ -242,16 +234,12 @@ export class PhaseCoordinator {
    */
   cleanup () {
     if (this.isCleanedUp) {
-      console.debug('[PhaseCoordinator] 已经清理过，跳过重复清理')
       return
     }
-
-    console.log('[PhaseCoordinator] 开始清理阶段协调器...')
 
     try {
       this.isCleanedUp = true
       this.phaseHistory.length = 0
-      console.log('[PhaseCoordinator] 阶段协调器清理完成')
     } catch (error) {
       console.error('[PhaseCoordinator] 清理阶段协调器时发生错误:', error.message || error)
     }
