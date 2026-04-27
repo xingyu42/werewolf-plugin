@@ -510,20 +510,16 @@ export class InterventionPhaseState extends NightPhaseState {
   }
 
   /**
-   * 阶段完成时的处理逻辑
+   * 阶段完成时的处理逻辑 — 不向群聊广播，避免泄露女巫存活/行动信息
    */
   async onPhaseComplete () {
     try {
-      // 清理子阶段超时定时器
       if (this.subPhaseTimeout) {
         clearTimeout(this.subPhaseTimeout)
         this.subPhaseTimeout = null
       }
 
       console.log('[InterventionPhaseState] 干预阶段完成')
-
-      // 通知阶段完成
-      await this.game.e.reply('🌙 女巫行动完成')
     } catch (error) {
       console.error('[InterventionPhaseState] 阶段完成处理失败:', error.message || error)
     }

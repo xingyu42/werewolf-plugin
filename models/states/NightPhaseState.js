@@ -311,16 +311,11 @@ export class NightPhaseState {
   }
 
   /**
-   * 发送阶段开始通知
+   * 阶段开始通知 — 夜晚子阶段对群聊保持静默以避免身份/存活信息泄露
+   * 私聊提示由具体角色/阶段自行发送
    */
   async notifyPhaseStart () {
-    try {
-      // 发送阶段开始通知
-      const message = `🌙 ${this.phaseConfig.description || this.phaseConfig.name}开始，请查看私聊消息`
-      await this.game.e.reply(message)
-    } catch (error) {
-      console.error(`[${this.constructor.name}] 发送阶段开始通知失败:`, error.message || error)
-    }
+    console.log(`[${this.constructor.name}] 阶段开始: ${this.phaseConfig.name}`)
   }
 
   /**

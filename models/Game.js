@@ -335,7 +335,8 @@ export class Game {
 
     this.updateCurrentPhase(newState)
 
-    await this.e.reply(`游戏进入${newState.getName()}阶段`)
+    // 不再自动广播状态切换：内部类名（NightPhaseController/SheriffElectState 等）会泄露夜晚/竞选时序，
+    // 且对玩家无意义。各状态的 onEnter() 会自行发送面向玩家的提示。
   }
 
   setStateTransitionContext (context) {
@@ -493,11 +494,27 @@ export class Game {
     }
   }
 
-  cleanup () {
+  async cleanup () {
     if (this._isCleanedUp) return
     this._isCleanedUp = true
 
     try {
+      // 先退出当前状态，让状态自己清理 setTimeout/计时器，
+      // 否则游戏结束后旧状态的定时器仍会回调到已销毁的 game 实例，
+      // 污染下一局的消息队列（"=== 第 N 天 ===" 鬼火）
+      const currentState = this.stateMachine?.getCurrentState?.()
+      if (currentState && typeof currentState.onExit === 'function') {
+        try {
+          await currentState.onExit()
+        } catch (err) {
+          console.warn('[Game] currentState.onExit failed during cleanup:', err?.message || err)
+        }
+      }
+      if (this.stateMachine) {
+        this.stateMachine.currentState = null
+        this.stateMachine._pendingState = null
+      }
+
       this.cleanupWolfRoleStatics()
       this.notificationCenter?.cleanup?.()
       this._players.clear()

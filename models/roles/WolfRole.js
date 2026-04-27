@@ -402,7 +402,7 @@ export class WolfRole extends Role {
     if (action === 'kill') {
       if (!target) return true // 空刀直接返回成功
       if (target.protected) {
-        await this.e.reply(`${target.name}被守卫保护，无法击杀`)
+        await this.sendPrivate(`${target.name}被守卫保护，无法击杀`)
         return false
       }
       await this.game.handlePlayerDeath(target, 'WOLF_KILL')
