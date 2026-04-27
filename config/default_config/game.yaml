@@ -10,6 +10,10 @@ voteTimeLimit: 15
 lastWordsTimeLimit: 30
 #竞选发言时间
 sheriffSpeechTime: 30
+#警长竞选报名等待时间
+sheriffRegisterTime: 30
+#警长竞选投票时间
+sheriffVoteTime: 60
 #最少投票数
 minVotesToKill: 2
 #屠边规则

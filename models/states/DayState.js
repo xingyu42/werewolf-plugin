@@ -241,6 +241,15 @@ export class DayState extends GameState {
     }
   }
 
+  async onResume () {
+    if (this.currentSpeakerIndex < this.speakOrder.length) {
+      const currentPlayer = this.speakOrder[this.currentSpeakerIndex]
+      this.speakTimeout = setTimeout(() => {
+        this.handleSpeakTimeout(currentPlayer)
+      }, this.speakTimeLimit * 1000)
+    }
+  }
+
   async onTimeout () {
     await this.e.reply('发言时间结束，进入投票阶段')
     await this.game.changeState(new VoteState(this.game))

@@ -132,6 +132,15 @@ export class GameController {
       return false
     }
 
+    // 仅创建者或主人可开始游戏
+    const creator = lobby.players?.find(p => p.isCreator)
+    const triggerUserId = String(e.user_id)
+    const isCreator = creator && String(creator.id) === triggerUserId
+    if (!isCreator && !e.isMaster) {
+      e.reply(`只有创建者${creator ? ` ${creator.name} ` : ''}或主人可以开始游戏`)
+      return false
+    }
+
     // 好友状态预检测
     const friendCheck = await this._checkFriendStatus(e, lobby)
     if (!friendCheck.allFriends) {

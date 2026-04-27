@@ -247,6 +247,22 @@ export class ActionController {
     return true
   }
 
+  static wolfReadyVote (e) {
+    const game = this._getGameOrReply(e)
+    if (!game) return false
+
+    const player = this._getPlayerOrReply(e, game)
+    if (!player) return false
+    if (!this._assertAliveOrReply(e, player)) return false
+
+    if (!this._assertActionAllowedOrReply(e, game, player, 'ready_vote')) return false
+
+    game.handleAction(player, 'ready_vote').catch(err => {
+      e.reply(err instanceof GameError ? err.message : '操作失败，发生了未知错误。')
+    })
+    return true
+  }
+
   static endSpeech (e) {
     const game = this._getGameOrReply(e)
     if (!game) return false

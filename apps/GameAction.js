@@ -28,6 +28,7 @@ export class GameAction extends plugin {
         { reg: '^#放弃移交$', fnc: 'handleGiveupTransfer' },
         { reg: '^#支持(\\d+)号$', fnc: 'handleSupport' },
         { reg: '^#讨论(.*)$', fnc: 'wolfDiscuss' },
+        { reg: '^#准备投票$', fnc: 'wolfReadyVote' },
         { reg: '^#结束发言$', fnc: 'handleEndSpeech' }
       ]
     })
@@ -41,5 +42,6 @@ export class GameAction extends plugin {
   async handleGiveupTransfer (e) { return ActionController.giveupTransfer(e) }
   async handleSupport (e) { return ActionController.support(e) }
   async wolfDiscuss (e) { return ActionController.wolfDiscuss(e) }
+  async wolfReadyVote (e) { return ActionController.wolfReadyVote(e) }
   async handleEndSpeech (e) { return ActionController.endSpeech(e) }
 }

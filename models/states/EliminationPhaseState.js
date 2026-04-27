@@ -206,6 +206,45 @@ export class EliminationPhaseState extends NightPhaseState {
   }
 
   /**
+   * 覆写父类 handleAction：discuss / ready_vote 是非终结行动，
+   * 不应记入 completedActions，否则会让父类的 checkPhaseCompletion
+   * 误判阶段完成，从而绕过 processVoteResult，狼刀失效。
+   */
+  async handleAction (player, action, data) {
+    if (!this.isValidAction(player, action)) {
+      throw new GameError('无效的行动', 'INVALID_ACTION', {
+        playerId: player.id,
+        action,
+        phase: this.phaseConfig.name
+      })
+    }
+
+    const isNonTerminal = action === 'discuss' || action === 'ready_vote'
+
+    if (!isNonTerminal && this.completedActions.has(player.id)) {
+      throw new GameError('玩家已完成行动', 'ACTION_ALREADY_COMPLETED', {
+        playerId: player.id,
+        phase: this.phaseConfig.name
+      })
+    }
+
+    const result = await this.executePlayerAction(player, action, data)
+
+    if (!isNonTerminal) {
+      this.completedActions.set(player.id, {
+        player,
+        action,
+        data,
+        result,
+        timestamp: Date.now()
+      })
+      await this.checkPhaseCompletion()
+    }
+
+    return result
+  }
+
+  /**
    * 执行具体的玩家行动逻辑
    */
   async executePlayerAction (player, action, data) {
@@ -573,6 +612,23 @@ export class EliminationPhaseState extends NightPhaseState {
       await this.processVoteResult()
     } catch (error) {
       console.error('[EliminationPhaseState] 处理投票超时失败:', error.message || error)
+    }
+  }
+
+  async onResume () {
+    if (this.isPhaseCompleted) return
+    if (!this.isVotingPhase) {
+      this.discussionTimeout = setTimeout(async () => {
+        if (!this.isVotingPhase && !this.isPhaseCompleted) {
+          await this.startVotingPhase()
+        }
+      }, this.discussionTime)
+    } else {
+      this.votingTimeout = setTimeout(async () => {
+        if (!this.isPhaseCompleted) {
+          await this.handleVotingTimeout()
+        }
+      }, this.votingTime)
     }
   }
 

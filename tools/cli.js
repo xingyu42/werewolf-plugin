@@ -153,6 +153,13 @@ async function cmdRestart () {
   } catch (err) { handleConnectionError(err) }
 }
 
+async function cmdShutdown () {
+  try {
+    const result = await httpPostSimple('/api/shutdown')
+    output(result, 0)
+  } catch (err) { handleConnectionError(err) }
+}
+
 // ==================== Output ====================
 
 function httpPostSimple (urlPath) {
@@ -246,6 +253,11 @@ switch (command) {
   case 'restart':
     await cmdRestart()
     break
+  case 'shutdown':
+  case 'kill':
+  case 'stop':
+    await cmdShutdown()
+    break
   case 'pause':
     await cmdPause(flags)
     break
@@ -266,7 +278,8 @@ switch (command) {
         'resume': 'Resume game. Flags: --group G',
         'logs': 'Get recent logs. Flags: --lines N, --type command|error',
         'status': 'Check Bot status',
-        'restart': 'Restart Bot (exit process, use with auto-restart wrapper)'
+        'restart': 'Restart Bot (exit process, use with auto-restart wrapper)',
+        'shutdown': 'Gracefully shut down Bot process (alias: kill, stop)'
       },
       examples: [
         'cli.js send "#创建狼人杀" --user 10001 --group 123',

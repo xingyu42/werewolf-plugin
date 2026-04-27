@@ -24,7 +24,7 @@ globalThis.__miaoCliMessages = globalThis.__miaoCliMessages || []
 const TIMER_PROPS = [
   'timer', 'speakTimeout', '_hunterShootTimeout', 'discussionTimeout',
   'votingTimeout', 'subPhaseTimeout', 'speechTimeout', 'voteTimeout',
-  '_registerTimer', '_voteTimer', '_retryTimer'
+  '_registerTimer', '_voteTimer', '_retryTimer', 'phaseTimeout'
 ]
 
 export class CliServer extends plugin {
@@ -112,6 +112,10 @@ export class CliServer extends plugin {
 
     if (req.method === 'POST' && url.pathname === '/api/restart') {
       return this._handleRestart(req, res)
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/shutdown') {
+      return this._handleShutdown(req, res)
     }
 
     this._json(res, 404, { success: false, error: 'NOT_FOUND' })
@@ -325,6 +329,14 @@ export class CliServer extends plugin {
     }
 
     game._cliPaused = false
+
+    const state = game.stateMachine?.currentState || game.getCurrentState?.()
+    if (state?.onResume) {
+      state.onResume().catch(err => {
+        console.error('[miao-cli] onResume failed:', err)
+      })
+    }
+
     this._json(res, 200, { success: true, paused: false })
   }
 
@@ -362,6 +374,14 @@ export class CliServer extends plugin {
       child.unref()
       process.exit(0)
     }, 1000)
+  }
+
+  // ==================== POST /api/shutdown ====================
+
+  _handleShutdown (_req, res) {
+    this._json(res, 200, { success: true, message: 'Bot 正在关闭...', pid: process.pid })
+    logger.info(`[miao-cli] 收到关闭请求 (pid=${process.pid})，1 秒后退出`)
+    setTimeout(() => process.exit(0), 1000)
   }
 
   // ==================== fakeE Factory ====================
