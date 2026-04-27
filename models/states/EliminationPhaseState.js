@@ -54,7 +54,7 @@ export class EliminationPhaseState extends NightPhaseState {
       // 开始讨论阶段
       await this.startDiscussionPhase()
     } catch (error) {
-      console.error('[EliminationPhaseState] 启动阶段逻辑失败:', error)
+      console.error('[EliminationPhaseState] 启动阶段逻辑失败:', error.message || error)
       throw error
     }
   }
@@ -79,7 +79,7 @@ export class EliminationPhaseState extends NightPhaseState {
         }
       }, this.discussionTime)
     } catch (error) {
-      console.error('[EliminationPhaseState] 开始讨论阶段失败:', error)
+      console.error('[EliminationPhaseState] 开始讨论阶段失败:', error.message || error)
       throw error
     }
   }
@@ -104,7 +104,7 @@ export class EliminationPhaseState extends NightPhaseState {
         }
       }, this.votingTime)
     } catch (error) {
-      console.error('[EliminationPhaseState] 开始投票阶段失败:', error)
+      console.error('[EliminationPhaseState] 开始投票阶段失败:', error.message || error)
       throw error
     }
   }
@@ -123,7 +123,7 @@ export class EliminationPhaseState extends NightPhaseState {
 
       console.log(`[EliminationPhaseState] 已通知 ${aliveWolves.length} 个狼人开始讨论`)
     } catch (error) {
-      console.error('[EliminationPhaseState] 通知狼人讨论失败:', error)
+      console.error('[EliminationPhaseState] 通知狼人讨论失败:', error.message || error)
     }
   }
 
@@ -141,7 +141,7 @@ export class EliminationPhaseState extends NightPhaseState {
 
       console.log(`[EliminationPhaseState] 已通知 ${aliveWolves.length} 个狼人开始投票`)
     } catch (error) {
-      console.error('[EliminationPhaseState] 通知狼人投票失败:', error)
+      console.error('[EliminationPhaseState] 通知狼人投票失败:', error.message || error)
     }
   }
 
@@ -241,7 +241,7 @@ export class EliminationPhaseState extends NightPhaseState {
 
       return result
     } catch (error) {
-      console.error('[EliminationPhaseState] 执行玩家行动失败:', error)
+      if (!(error instanceof GameError)) console.error('[EliminationPhaseState] 执行玩家行动失败:', error.message || error)
       throw error
     }
   }
@@ -290,7 +290,7 @@ export class EliminationPhaseState extends NightPhaseState {
 
       return true
     } catch (error) {
-      console.error('[EliminationPhaseState] 处理狼人击杀失败:', error)
+      if (!(error instanceof GameError)) console.error('[EliminationPhaseState] 处理狼人击杀失败:', error.message || error)
       throw error
     }
   }
@@ -309,7 +309,7 @@ export class EliminationPhaseState extends NightPhaseState {
       await role.sendPrivate('你选择了跳过讨论')
       return true
     } catch (error) {
-      console.error('[EliminationPhaseState] 处理狼人跳过失败:', error)
+      console.error('[EliminationPhaseState] 处理狼人跳过失败:', error.message)
       throw error
     }
   }
@@ -328,7 +328,7 @@ export class EliminationPhaseState extends NightPhaseState {
 
       return result
     } catch (error) {
-      console.error('[EliminationPhaseState] 处理狼人自爆失败:', error)
+      console.error('[EliminationPhaseState] 处理狼人自爆失败:', error.message || error)
       throw error
     }
   }
@@ -357,7 +357,7 @@ export class EliminationPhaseState extends NightPhaseState {
 
       return true
     } catch (error) {
-      console.error('[EliminationPhaseState] 处理狼人讨论失败:', error)
+      console.error('[EliminationPhaseState] 处理狼人讨论失败:', error.message || error)
       throw error
     }
   }
@@ -386,7 +386,7 @@ export class EliminationPhaseState extends NightPhaseState {
 
       return true
     } catch (error) {
-      console.error('[EliminationPhaseState] 处理准备投票失败:', error)
+      console.error('[EliminationPhaseState] 处理准备投票失败:', error.message || error)
       throw error
     }
   }
@@ -405,7 +405,7 @@ export class EliminationPhaseState extends NightPhaseState {
         }
       }
     } catch (error) {
-      console.error('[EliminationPhaseState] 广播讨论消息失败:', error)
+      console.error('[EliminationPhaseState] 广播讨论消息失败:', error.message || error)
     }
   }
 
@@ -426,7 +426,7 @@ export class EliminationPhaseState extends NightPhaseState {
         }
       }
     } catch (error) {
-      console.error('[EliminationPhaseState] 通知投票更新失败:', error)
+      console.error('[EliminationPhaseState] 通知投票更新失败:', error.message || error)
     }
   }
 
@@ -474,7 +474,7 @@ export class EliminationPhaseState extends NightPhaseState {
       // 完成阶段
       await this.completePhase()
     } catch (error) {
-      console.error('[EliminationPhaseState] 处理投票结果失败:', error)
+      console.error('[EliminationPhaseState] 处理投票结果失败:', error.message || error)
       throw error
     }
   }
@@ -519,7 +519,7 @@ export class EliminationPhaseState extends NightPhaseState {
         await role.sendPrivate(message)
       }
     } catch (error) {
-      console.error('[EliminationPhaseState] 通知投票结果失败:', error)
+      console.error('[EliminationPhaseState] 通知投票结果失败:', error.message || error)
     }
   }
 
@@ -544,7 +544,7 @@ export class EliminationPhaseState extends NightPhaseState {
       await this.game.handlePlayerDeath(target, 'WOLF_KILL')
       console.log(`[EliminationPhaseState] 成功击杀 ${target.name}`)
     } catch (error) {
-      console.error('[EliminationPhaseState] 执行击杀失败:', error)
+      console.error('[EliminationPhaseState] 执行击杀失败:', error.message || error)
     }
   }
 
@@ -572,7 +572,7 @@ export class EliminationPhaseState extends NightPhaseState {
       // 处理投票结果
       await this.processVoteResult()
     } catch (error) {
-      console.error('[EliminationPhaseState] 处理投票超时失败:', error)
+      console.error('[EliminationPhaseState] 处理投票超时失败:', error.message || error)
     }
   }
 
@@ -595,7 +595,7 @@ export class EliminationPhaseState extends NightPhaseState {
       const validActions = [ACTIONS.KILL, ACTIONS.SKIP, ACTIONS.SUICIDE, 'discuss', 'ready_vote']
       return validActions.includes(action)
     } catch (error) {
-      console.error('[EliminationPhaseState] 验证特定行动失败:', error)
+      console.error('[EliminationPhaseState] 验证特定行动失败:', error.message || error)
       return false
     }
   }
@@ -615,7 +615,7 @@ export class EliminationPhaseState extends NightPhaseState {
         await this.handleVotingTimeout()
       }
     } catch (error) {
-      console.error('[EliminationPhaseState] 处理超时行动失败:', error)
+      console.error('[EliminationPhaseState] 处理超时行动失败:', error.message || error)
     }
   }
 
@@ -637,7 +637,7 @@ export class EliminationPhaseState extends NightPhaseState {
 
       // 移除emit调用，父类会处理回调机制
     } catch (error) {
-      console.error('[EliminationPhaseState] 阶段完成处理失败:', error)
+      console.error('[EliminationPhaseState] 阶段完成处理失败:', error.message || error)
       throw error // 抛出错误让父类处理
     }
   }
@@ -668,7 +668,7 @@ export class EliminationPhaseState extends NightPhaseState {
 
       console.log('[EliminationPhaseState] 消除阶段资源清理完成')
     } catch (error) {
-      console.error('[EliminationPhaseState] 清理阶段资源失败:', error)
+      console.error('[EliminationPhaseState] 清理阶段资源失败:', error.message || error)
     }
   }
 

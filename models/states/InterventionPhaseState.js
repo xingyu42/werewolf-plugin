@@ -54,7 +54,7 @@ export class InterventionPhaseState extends NightPhaseState {
       // 启动解药阶段
       await this.startSavePhase()
     } catch (error) {
-      console.error('[InterventionPhaseState] 启动阶段逻辑失败:', error)
+      console.error('[InterventionPhaseState] 启动阶段逻辑失败:', error.message || error)
       // 替换emit调用为notificationCenter
       await this.game.notificationCenter.handleError(new GameError(
         '启动干预阶段失败',
@@ -82,7 +82,7 @@ export class InterventionPhaseState extends NightPhaseState {
 
       console.log('[InterventionPhaseState] 解药阶段开始')
     } catch (error) {
-      console.error('[InterventionPhaseState] 启动解药阶段失败:', error)
+      console.error('[InterventionPhaseState] 启动解药阶段失败:', error.message || error)
     }
   }
 
@@ -104,7 +104,7 @@ export class InterventionPhaseState extends NightPhaseState {
 
       console.log('[InterventionPhaseState] 毒药阶段开始')
     } catch (error) {
-      console.error('[InterventionPhaseState] 启动毒药阶段失败:', error)
+      console.error('[InterventionPhaseState] 启动毒药阶段失败:', error.message || error)
     }
   }
 
@@ -180,7 +180,7 @@ export class InterventionPhaseState extends NightPhaseState {
 
       return result
     } catch (error) {
-      console.error('[InterventionPhaseState] 执行玩家行动失败:', error)
+      console.error('[InterventionPhaseState] 执行玩家行动失败:', error.message || error)
       throw error
     }
   }
@@ -300,7 +300,7 @@ export class InterventionPhaseState extends NightPhaseState {
 
       return false
     } catch (error) {
-      console.error('[InterventionPhaseState] 验证行动时发生错误:', error)
+      console.error('[InterventionPhaseState] 验证行动时发生错误:', error.message || error)
       return false
     }
   }
@@ -328,7 +328,7 @@ export class InterventionPhaseState extends NightPhaseState {
         }
       }
     } catch (error) {
-      console.error('[InterventionPhaseState] 处理超时行动失败:', error)
+      console.error('[InterventionPhaseState] 处理超时行动失败:', error.message || error)
     }
   }
 
@@ -377,7 +377,7 @@ export class InterventionPhaseState extends NightPhaseState {
         await this.sendPrivateMessage(player, message)
       }
     } catch (error) {
-      console.error('[InterventionPhaseState] 通知子阶段开始失败:', error)
+      console.error('[InterventionPhaseState] 通知子阶段开始失败:', error.message || error)
     }
   }
 
@@ -408,7 +408,7 @@ export class InterventionPhaseState extends NightPhaseState {
 
       await this.sendPrivateMessage(player, message)
     } catch (error) {
-      console.error('[InterventionPhaseState] 通知行动结果失败:', error)
+      console.error('[InterventionPhaseState] 通知行动结果失败:', error.message || error)
     }
   }
 
@@ -422,7 +422,7 @@ export class InterventionPhaseState extends NightPhaseState {
       // 替换emit调用为notificationCenter
       await this.game.notificationCenter.sendPrivateMessage(player.id, message)
     } catch (error) {
-      console.error('[InterventionPhaseState] 发送私聊消息失败:', error)
+      console.error('[InterventionPhaseState] 发送私聊消息失败:', error.message || error)
     }
   }
 
@@ -470,7 +470,7 @@ export class InterventionPhaseState extends NightPhaseState {
         await this.completePhase()
       }
     } catch (error) {
-      console.error('[InterventionPhaseState] 检查子阶段完成状态失败:', error)
+      console.error('[InterventionPhaseState] 检查子阶段完成状态失败:', error.message || error)
     }
   }
 
@@ -505,7 +505,7 @@ export class InterventionPhaseState extends NightPhaseState {
       // 检查是否需要进入下一阶段
       await this.checkSubPhaseCompletion()
     } catch (error) {
-      console.error('[InterventionPhaseState] 处理子阶段超时失败:', error)
+      console.error('[InterventionPhaseState] 处理子阶段超时失败:', error.message || error)
     }
   }
 
@@ -525,7 +525,7 @@ export class InterventionPhaseState extends NightPhaseState {
       // 通知阶段完成
       await this.game.e.reply('🌙 女巫行动完成')
     } catch (error) {
-      console.error('[InterventionPhaseState] 阶段完成处理失败:', error)
+      console.error('[InterventionPhaseState] 阶段完成处理失败:', error.message || error)
     }
   }
 
@@ -552,7 +552,7 @@ export class InterventionPhaseState extends NightPhaseState {
       // 调用父类清理方法
       await super.cleanupPhase()
     } catch (error) {
-      console.error('[InterventionPhaseState] 清理阶段资源失败:', error)
+      console.error('[InterventionPhaseState] 清理阶段资源失败:', error.message || error)
     }
   }
 }

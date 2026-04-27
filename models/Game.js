@@ -294,7 +294,7 @@ export class Game {
       await this.changeState(initialState)
       this.currentPhase = GAME_PHASES.NIGHT
     } catch (error) {
-      console.error('[Game] initializeState NightPhase failed:', error)
+      console.error('[Game] initializeState NightPhase failed:', error.message || error)
       try {
         const { DayState } = await import('./states/DayState.js')
         const fallback = new DayState(this)
@@ -505,7 +505,7 @@ export class Game {
       this.playerNumberMap.clear()
       this.eventErrors.length = 0
     } catch (error) {
-      console.error('[Game] cleanup failed:', error)
+      console.error('[Game] cleanup failed:', error.message || error)
     }
   }
 

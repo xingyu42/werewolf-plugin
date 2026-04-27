@@ -51,7 +51,7 @@ export class PhaseCoordinator {
         timestamp: Date.now()
       }
     } catch (error) {
-      console.error('[PhaseCoordinator] 处理阶段开始失败:', error)
+      console.error('[PhaseCoordinator] 处理阶段开始失败:', error.message || error)
       return { success: false, error: error.message }
     }
   }
@@ -88,7 +88,7 @@ export class PhaseCoordinator {
         results
       }
     } catch (error) {
-      console.error('[PhaseCoordinator] 处理阶段完成失败:', error)
+      console.error('[PhaseCoordinator] 处理阶段完成失败:', error.message || error)
       return { success: false, shouldContinue: false, error: error.message }
     }
   }
@@ -121,7 +121,7 @@ export class PhaseCoordinator {
         managerHistory: phaseHistory
       }
     } catch (error) {
-      console.error('[PhaseCoordinator] 处理所有阶段完成失败:', error)
+      console.error('[PhaseCoordinator] 处理所有阶段完成失败:', error.message || error)
       return { allCompleted: false, error: error.message }
     }
   }
@@ -150,7 +150,7 @@ export class PhaseCoordinator {
         timestamp: Date.now()
       }
     } catch (error) {
-      console.error('[PhaseCoordinator] 处理夜晚阶段完成失败:', error)
+      console.error('[PhaseCoordinator] 处理夜晚阶段完成失败:', error.message || error)
       return { nightCompleted: false, error: error.message }
     }
   }
@@ -253,7 +253,7 @@ export class PhaseCoordinator {
       this.phaseHistory.length = 0
       console.log('[PhaseCoordinator] 阶段协调器清理完成')
     } catch (error) {
-      console.error('[PhaseCoordinator] 清理阶段协调器时发生错误:', error)
+      console.error('[PhaseCoordinator] 清理阶段协调器时发生错误:', error.message || error)
     }
   }
 }

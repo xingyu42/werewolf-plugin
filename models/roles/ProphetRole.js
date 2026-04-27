@@ -136,7 +136,7 @@ export class ProphetRole extends Role {
         const camp = await targetRole.getCamp()
         isGood = camp !== 'WOLF'
       } catch (error) {
-        console.error('ProphetRole.act: 获取阵营信息失败:', error)
+        console.error('ProphetRole.act: 获取阵营信息失败:', error.message || error)
         await this.e.reply(`查验失败: 无法获取目标阵营信息 - ${error.message || '未知错误'} (目标: ${target.name || target.id})`)
         return false
       }
@@ -162,7 +162,7 @@ export class ProphetRole extends Role {
 
       return result
     } catch (error) {
-      console.error('ProphetRole.act: 查验过程中发生错误:', error)
+      console.error('ProphetRole.act: 查验过程中发生错误:', error.message || error)
       await this.e.reply(`查验失败: 查验过程中发生异常 - ${error.message || '未知错误'} (目标: ${target.name || target.id}, 时间: ${new Date().toLocaleTimeString()})`)
       return false
     }

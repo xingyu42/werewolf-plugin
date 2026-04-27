@@ -338,10 +338,10 @@ class Puppeteer {
       // 调用渲染器进行截图
       let base64 = await renderer.screenshot(`${PLUGIN_NAME}/${tplPath}`, data)
       let ret = true
-      if (base64) {
+      if (base64 && e) {
         ret = userId ? await e.bot.sendPrivateMsg(userId, base64) : await e.reply(base64)
       }
-      return ret || true
+      return base64 || ret || true
     } finally {
       this.shoting.pop()
     }

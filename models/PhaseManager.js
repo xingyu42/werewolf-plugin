@@ -99,7 +99,7 @@ export class PhaseManager {
         )
       }
     } catch (error) {
-      console.error('[PhaseManager] 启动阶段失败:', error)
+      console.error('[PhaseManager] 启动阶段失败:', error.message || error)
       await this.handlePhaseError(error, 'start')
     }
   }
@@ -132,7 +132,7 @@ export class PhaseManager {
       // 转换到下一个阶段
       await this.transitionToNextPhase()
     } catch (error) {
-      console.error('[PhaseManager] 完成阶段失败:', error)
+      console.error('[PhaseManager] 完成阶段失败:', error.message || error)
       await this.handlePhaseError(error, 'complete')
     }
   }
@@ -157,7 +157,7 @@ export class PhaseManager {
 
       return false
     } catch (error) {
-      console.error('[PhaseManager] 检查阶段完成条件失败:', error)
+      console.error('[PhaseManager] 检查阶段完成条件失败:', error.message || error)
       return false
     }
   }
@@ -193,7 +193,7 @@ export class PhaseManager {
       await this.startPhase(this.currentPhaseIndex)
       return
     } catch (error) {
-      console.error('[PhaseManager] 转换到下一阶段失败:', error)
+      console.error('[PhaseManager] 转换到下一阶段失败:', error.message || error)
       await this.handlePhaseError(error, 'transition')
     } finally {
       this.isTransitioning = false
@@ -237,7 +237,7 @@ export class PhaseManager {
 
       return result
     } catch (error) {
-      console.error('[PhaseManager] 完成所有阶段失败:', error)
+      console.error('[PhaseManager] 完成所有阶段失败:', error.message || error)
       // 替换：this.game.emit('error', new GameError(...))
       await this.game.notificationCenter.handleError(
         new GameError(
@@ -297,7 +297,7 @@ export class PhaseManager {
 
       return phaseState
     } catch (error) {
-      console.error(`[PhaseManager] 创建阶段状态失败: ${phaseConfig.name}`, error)
+      console.error(`[PhaseManager] 创建阶段状态失败: ${phaseConfig.name}`, error.message || error)
       return null
     }
   }
@@ -344,7 +344,7 @@ export class PhaseManager {
    * @param {string} stateName 状态名称
    */
   async handleStateError (error, stateName) {
-    console.error(`[PhaseManager] 状态 ${stateName} 错误:`, error)
+    console.error(`[PhaseManager] 状态 ${stateName} 错误:`, error.message || error)
 
     // 委托给PhaseCoordinator处理
     if (this.phaseCoordinator) {
@@ -363,7 +363,7 @@ export class PhaseManager {
    */
   async handlePhaseError (error, context) {
     try {
-      console.error(`[PhaseManager] 阶段错误 (${context}):`, error)
+      console.error(`[PhaseManager] 阶段错误 (${context}):`, error.message || error)
 
       // 记录错误历史
       this.recordPhaseHistory('error', context, { error: error.message })
@@ -489,7 +489,7 @@ export class PhaseManager {
 
       console.log('[PhaseManager] 阶段管理器清理完成')
     } catch (error) {
-      console.error('[PhaseManager] 清理阶段管理器失败:', error)
+      console.error('[PhaseManager] 清理阶段管理器失败:', error.message || error)
     }
   }
 }

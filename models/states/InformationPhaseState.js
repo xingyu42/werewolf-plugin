@@ -48,7 +48,7 @@ export class InformationPhaseState extends NightPhaseState {
 
       console.log('[InformationPhaseState] 所有角色通知已发送')
     } catch (error) {
-      console.error('[InformationPhaseState] 启动阶段逻辑失败:', error)
+      console.error('[InformationPhaseState] 启动阶段逻辑失败:', error.message || error)
       throw error
     }
   }
@@ -85,7 +85,7 @@ export class InformationPhaseState extends NightPhaseState {
 
       console.log(`[InformationPhaseState] ${roleType} 行动通知发送成功`)
     } catch (error) {
-      console.error(`[InformationPhaseState] 通知 ${roleType} 行动失败:`, error)
+      console.error(`[InformationPhaseState] 通知 ${roleType} 行动失败:`, error.message || error)
     }
   }
 
@@ -129,7 +129,7 @@ export class InformationPhaseState extends NightPhaseState {
 
       return result
     } catch (error) {
-      console.error('[InformationPhaseState] 执行玩家行动失败:', error)
+      console.error('[InformationPhaseState] 执行玩家行动失败:', error.message || error)
       throw error
     }
   }
@@ -166,7 +166,7 @@ export class InformationPhaseState extends NightPhaseState {
 
       return result
     } catch (error) {
-      console.error('[InformationPhaseState] 处理预言家查验失败:', error)
+      console.error('[InformationPhaseState] 处理预言家查验失败:', error.message || error)
       throw error
     }
   }
@@ -202,7 +202,7 @@ export class InformationPhaseState extends NightPhaseState {
 
       return result
     } catch (error) {
-      console.error('[InformationPhaseState] 处理守卫保护失败:', error)
+      console.error('[InformationPhaseState] 处理守卫保护失败:', error.message || error)
       throw error
     }
   }
@@ -223,7 +223,7 @@ export class InformationPhaseState extends NightPhaseState {
 
       return true
     } catch (error) {
-      console.error('[InformationPhaseState] 处理跳过行动失败:', error)
+      console.error('[InformationPhaseState] 处理跳过行动失败:', error.message || error)
       throw error
     }
   }
@@ -259,7 +259,7 @@ export class InformationPhaseState extends NightPhaseState {
           return false
       }
     } catch (error) {
-      console.error('[InformationPhaseState] 验证特定行动失败:', error)
+      console.error('[InformationPhaseState] 验证特定行动失败:', error.message || error)
       return false
     }
   }
@@ -293,7 +293,7 @@ export class InformationPhaseState extends NightPhaseState {
         }
       }
     } catch (error) {
-      console.error('[InformationPhaseState] 处理超时行动失败:', error)
+      console.error('[InformationPhaseState] 处理超时行动失败:', error.message || error)
     }
   }
 
@@ -315,7 +315,7 @@ export class InformationPhaseState extends NightPhaseState {
 
       // 这里只需要输出日志，父类会处理回调机制
     } catch (error) {
-      console.error('[InformationPhaseState] 阶段完成处理失败:', error)
+      console.error('[InformationPhaseState] 阶段完成处理失败:', error.message || error)
       throw error // 抛出错误让父类处理
     }
   }
@@ -335,7 +335,7 @@ export class InformationPhaseState extends NightPhaseState {
 
       console.log('[InformationPhaseState] 信息收集阶段资源清理完成')
     } catch (error) {
-      console.error('[InformationPhaseState] 清理阶段资源失败:', error)
+      console.error('[InformationPhaseState] 清理阶段资源失败:', error.message || error)
     }
   }
 

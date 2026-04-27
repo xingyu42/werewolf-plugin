@@ -81,7 +81,7 @@ export class NightPhaseState {
 
       console.log(`[${this.constructor.name}] 阶段开始: ${this.phaseConfig.name}`)
     } catch (error) {
-      console.error(`[${this.constructor.name}] 进入阶段时发生错误:`, error)
+      console.error(`[${this.constructor.name}] 进入阶段时发生错误:`, error.message || error)
       // 替换emit调用为回调机制
       if (this.errorCallback) {
         await this.errorCallback(new GameError(
@@ -112,7 +112,7 @@ export class NightPhaseState {
 
       console.log(`[${this.constructor.name}] 阶段结束: ${this.phaseConfig.name}`)
     } catch (error) {
-      console.error(`[${this.constructor.name}] 退出阶段时发生错误:`, error)
+      console.error(`[${this.constructor.name}] 退出阶段时发生错误:`, error.message || error)
     } finally {
       // 手动实现GameState的onExit逻辑
       if (this.timer) {
@@ -164,7 +164,7 @@ export class NightPhaseState {
 
       return result
     } catch (error) {
-      console.error(`[${this.constructor.name}] 处理玩家行动时发生错误:`, error)
+      if (!(error instanceof GameError)) console.error(`[${this.constructor.name}] 处理玩家行动时发生错误:`, error.message || error)
       throw error
     }
   }
@@ -214,7 +214,7 @@ export class NightPhaseState {
       // 子类可以重写此方法添加更多验证逻辑
       return this.validateSpecificAction(player, action)
     } catch (error) {
-      console.error(`[${this.constructor.name}] 验证行动时发生错误:`, error)
+      console.error(`[${this.constructor.name}] 验证行动时发生错误:`, error.message || error)
       return false
     }
   }
@@ -232,7 +232,7 @@ export class NightPhaseState {
       // 强制完成阶段
       await this.forceCompletePhase()
     } catch (error) {
-      console.error(`[${this.constructor.name}] 处理阶段超时时发生错误:`, error)
+      console.error(`[${this.constructor.name}] 处理阶段超时时发生错误:`, error.message || error)
     }
   }
 
@@ -319,7 +319,7 @@ export class NightPhaseState {
       const message = `🌙 ${this.phaseConfig.description || this.phaseConfig.name}开始，请查看私聊消息`
       await this.game.e.reply(message)
     } catch (error) {
-      console.error(`[${this.constructor.name}] 发送阶段开始通知失败:`, error)
+      console.error(`[${this.constructor.name}] 发送阶段开始通知失败:`, error.message || error)
     }
   }
 
@@ -378,7 +378,7 @@ export class NightPhaseState {
         })
       }
     } catch (error) {
-      console.error(`[${this.constructor.name}] 完成阶段时发生错误:`, error)
+      console.error(`[${this.constructor.name}] 完成阶段时发生错误:`, error.message || error)
       // 替换emit调用为回调机制
       if (this.errorCallback) {
         await this.errorCallback(error)
@@ -402,7 +402,7 @@ export class NightPhaseState {
       try {
         await Promise.allSettled(Array.from(this.parallelActions.values()))
       } catch (error) {
-        console.error(`[${this.constructor.name}] 等待并行行动完成时发生错误:`, error)
+        console.error(`[${this.constructor.name}] 等待并行行动完成时发生错误:`, error.message || error)
       }
     }
   }

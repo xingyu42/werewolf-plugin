@@ -235,7 +235,7 @@ export const NIGHT_PHASE_CONFIG = {
     timeout: 120000, // 120秒超时（包含讨论时间）
     order: 2, // 执行顺序
     requiredActions: {
-      [ROLES.WOLF]: [ACTIONS.KILL, ACTIONS.SKIP, ACTIONS.SUICIDE]
+      [ROLES.WOLF]: [ACTIONS.KILL, ACTIONS.SKIP, ACTIONS.SUICIDE, 'discuss', 'ready_vote']
     },
     discussionTime: 60000, // 狼人讨论时间
     votingTime: 60000 // 狼人投票时间

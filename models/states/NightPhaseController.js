@@ -68,7 +68,7 @@ export class NightPhaseController extends GameState {
 
       console.log('[NightPhaseController] 夜晚阶段控制器启动成功')
     } catch (error) {
-      console.error('[NightPhaseController] 进入夜晚状态失败:', error)
+      console.error('[NightPhaseController] 进入夜晚状态失败:', error.message || error)
       await this.handleNightError(error, 'onEnter')
     }
   }
@@ -95,7 +95,7 @@ export class NightPhaseController extends GameState {
 
       console.log('[NightPhaseController] 夜晚阶段控制器退出完成')
     } catch (error) {
-      console.error('[NightPhaseController] 退出夜晚状态失败:', error)
+      console.error('[NightPhaseController] 退出夜晚状态失败:', error.message || error)
     } finally {
       await super.onExit()
     }
@@ -128,7 +128,10 @@ export class NightPhaseController extends GameState {
       // 委派给当前阶段状态处理
       await currentPhaseState.handleAction(player, action, data)
     } catch (error) {
-      console.error('[NightPhaseController] 处理玩家行动失败:', error)
+      if (error instanceof GameError) {
+        throw error
+      }
+      console.error('[NightPhaseController] 处理玩家行动失败:', error.message || error)
       throw error
     }
   }
@@ -155,7 +158,7 @@ export class NightPhaseController extends GameState {
       // 委派给当前阶段状态验证
       return currentPhaseState.isValidAction(player, action)
     } catch (error) {
-      console.error('[NightPhaseController] 验证行动有效性失败:', error)
+      console.error('[NightPhaseController] 验证行动有效性失败:', error.message || error)
       return false
     }
   }
@@ -170,7 +173,7 @@ export class NightPhaseController extends GameState {
       await this.game.e.reply('🌙 夜晚降临，请查看私聊消息')
       console.log('[NightPhaseController] 夜晚开始通知发送成功')
     } catch (error) {
-      console.error('[NightPhaseController] 发送夜晚开始通知失败:', error)
+      console.error('[NightPhaseController] 发送夜晚开始通知失败:', error.message || error)
     }
   }
 
@@ -184,7 +187,7 @@ export class NightPhaseController extends GameState {
       // 启动第一个阶段（信息收集阶段）
       await this.phaseManager.startPhase(0)
     } catch (error) {
-      console.error('[NightPhaseController] 启动夜晚阶段流程失败:', error)
+      console.error('[NightPhaseController] 启动夜晚阶段流程失败:', error.message || error)
       throw error
     }
   }
@@ -207,7 +210,7 @@ export class NightPhaseController extends GameState {
       // 转换到白天状态
       await this.transitionToDay()
     } catch (error) {
-      console.error('[NightPhaseController] 完成夜晚流程失败:', error)
+      console.error('[NightPhaseController] 完成夜晚流程失败:', error.message || error)
       throw error
     }
   }
@@ -224,7 +227,7 @@ export class NightPhaseController extends GameState {
       this.game._dayStartDeathsAnnounced = false
       await this.game.changeState(new DayState(this.game))
     } catch (error) {
-      console.error('[NightPhaseController] 转换到白天状态失败:', error)
+      console.error('[NightPhaseController] 转换到白天状态失败:', error.message || error)
       throw error
     }
   }
@@ -241,7 +244,7 @@ export class NightPhaseController extends GameState {
 
       console.log('[NightPhaseController] 玩家状态清理完成')
     } catch (error) {
-      console.error('[NightPhaseController] 清理玩家状态失败:', error)
+      console.error('[NightPhaseController] 清理玩家状态失败:', error.message || error)
     }
   }
 
@@ -260,7 +263,7 @@ export class NightPhaseController extends GameState {
         await this.completeNight()
       }
     } catch (error) {
-      console.error('[NightPhaseController] 处理夜晚阶段完成失败:', error)
+      console.error('[NightPhaseController] 处理夜晚阶段完成失败:', error.message || error)
       throw error
     }
   }

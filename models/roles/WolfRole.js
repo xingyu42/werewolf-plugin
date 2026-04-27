@@ -379,7 +379,7 @@ export class WolfRole extends Role {
           await this.sendPrivate('你选择了放弃击杀')
           return { success: true, message: '成功选择放弃击杀', completed: result }
         } catch (error) {
-          console.error('WolfRole.act: 处理弃权投票失败:', error)
+          console.error('WolfRole.act: 处理弃权投票失败:', error.message || error)
           return { success: false, message: `弃权投票失败: ${error.message || '未知错误'}` }
         }
       }
@@ -391,7 +391,7 @@ export class WolfRole extends Role {
           await this.sendPrivate(`你已投票击杀${target.name}`)
           return { success: true, message: `成功投票击杀${target.name}`, completed: result }
         } catch (error) {
-          console.error('WolfRole.act: 处理投票失败:', error)
+          console.error('WolfRole.act: 处理投票失败:', error.message || error)
           return { success: false, message: `投票失败: ${error.message || '未知错误'}` }
         }
       }
@@ -453,7 +453,7 @@ export class WolfRole extends Role {
 
       return { success: true, message: '消息发送成功' }
     } catch (error) {
-      console.error('WolfRole.discuss: 队内沟通失败:', error)
+      console.error('WolfRole.discuss: 队内沟通失败:', error.message || error)
       return { success: false, message: `队内沟通失败: ${error.message || '未知错误'}` }
     }
   }
