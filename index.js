@@ -15,6 +15,7 @@
  */
 import fs from 'node:fs'
 import { RoleFactory } from './models/roles/RoleFactory.js'
+import { GameController } from './controllers/GameController.js'
 
 if (!global.segment) {
   global.segment = (await import('oicq')).segment
@@ -81,5 +82,36 @@ if (failedModules.length > 0) {
   logger.warn(`以下模块加载失败：${failedModules.join(', ')}`)
 }
 logger.info(logger.green('- 狼人杀插件载入成功 -'))
+
+// 注册进程退出信号，确保游戏资源正确清理
+if (!global.__werewolf_shutdown_registered) {
+  global.__werewolf_shutdown_registered = true
+  let shuttingDown = false
+  const signalExitCode = {
+    SIGINT: 130,
+    SIGTERM: 143
+  }
+
+  const shutdown = async (signal) => {
+    if (shuttingDown) {
+      process.exit(signalExitCode[signal] ?? 1)
+    }
+    shuttingDown = true
+
+    try {
+      await GameController.gracefulShutdown()
+    } catch (e) {
+      console.error(e)
+    } finally {
+      process.exit(signalExitCode[signal] ?? 1)
+    }
+  }
+  process.once('SIGINT', () => {
+    void shutdown('SIGINT')
+  })
+  process.once('SIGTERM', () => {
+    void shutdown('SIGTERM')
+  })
+}
 
 export { apps }

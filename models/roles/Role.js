@@ -103,7 +103,7 @@ export class Role {
       await this.e.bot.pickFriend(target).sendMsg(message)
       return true
     } catch (error) {
-      console.error(`[Role] sendPrivate失败 (${target}):`, error)
+      console.error(`[Role] sendPrivate失败 (${target}):`, error.message || error)
       return false
     }
   }
@@ -128,7 +128,7 @@ export class Role {
       const alivePlayers = Array.from(this.game.players.values()).filter(player => player.isAlive)
       return alivePlayers.map(player => `${player.gameNumber}号 ${player.name}`).join('\n')
     } catch (error) {
-      console.error('[Role] getAlivePlayersList: 获取存活玩家列表失败:', error)
+      console.error('[Role] getAlivePlayersList: 获取存活玩家列表失败:', error.message || error)
       return ''
     }
   }

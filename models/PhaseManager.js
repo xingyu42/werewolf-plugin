@@ -36,11 +36,10 @@ export class PhaseManager {
     // 错误恢复
     this.maxRetries = 3 // 最大重试次数
     this.retryCount = 0 // 当前重试次数
+    this._retryTimer = null // 重试定时器引用，cleanup 时清理
 
     // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:51:10 +08:00; Reason: Shrimp Task ID: #e18d361a-009f-4c79-896e-75ac0bb4b038, 完全移除Redis持久化相关属性; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
     // 移除了所有Redis持久化相关属性：persistenceEnabled, redis, persistenceKeyPrefix
-
-    console.log('[PhaseManager] 阶段管理器初始化完成')
   }
 
   /**
@@ -59,13 +58,11 @@ export class PhaseManager {
 
       // 验证阶段索引
       if (this.currentPhaseIndex >= this.phaseOrder.length) {
-        console.log('[PhaseManager] 所有阶段已完成，准备结束夜晚')
         await this.completeAllPhases()
         return
       }
 
       const phaseConfig = this.phaseOrder[this.currentPhaseIndex]
-      console.log(`[PhaseManager] 启动阶段: ${phaseConfig.name} (索引: ${this.currentPhaseIndex})`)
 
       // 创建阶段状态实例
       const phaseState = await this.createPhaseState(phaseConfig)
@@ -73,18 +70,23 @@ export class PhaseManager {
         throw new GameError(`无法创建阶段状态: ${phaseConfig.name}`, 'PHASE_STATE_CREATION_FAILED')
       }
 
-      this.currentPhaseState = phaseState
-
       // 记录阶段历史
       this.recordPhaseHistory('start', phaseConfig.name)
 
-      // 替换事件监听为回调函数设置
+      // 设置回调
       this.setupPhaseCallbacks(phaseState)
 
-      // 启动阶段状态
-      await this.game.changeState(phaseState)
+      // 退出上一个子阶段（如果存在）
+      const prev = this.currentPhaseState
+      this.currentPhaseState = phaseState
 
-      // 替换：this.emit('phaseStarted', {...})
+      if (prev && typeof prev.onExit === 'function') {
+        await prev.onExit()
+      }
+
+      // 直接启动子阶段，绕过 StateMachine 避免重入锁死锁
+      await phaseState.onEnter()
+
       if (this.phaseCoordinator) {
         await this.phaseCoordinator.handlePhaseStarted(
           phaseConfig.name,
@@ -92,11 +94,8 @@ export class PhaseManager {
           { phaseConfig, startTime: Date.now() }
         )
       }
-
-      // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:51:10 +08:00; Reason: Shrimp Task ID: #e18d361a-009f-4c79-896e-75ac0bb4b038, 移除保存阶段状态调用; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
-      // 移除了保存阶段状态的调用
     } catch (error) {
-      console.error('[PhaseManager] 启动阶段失败:', error)
+      console.error('[PhaseManager] 启动阶段失败:', error.message || error)
       await this.handlePhaseError(error, 'start')
     }
   }
@@ -112,7 +111,6 @@ export class PhaseManager {
       }
 
       const phaseName = this.currentPhaseState.phaseConfig.name
-      console.log(`[PhaseManager] 完成阶段: ${phaseName}`)
 
       // 记录阶段历史
       this.recordPhaseHistory('complete', phaseName)
@@ -129,7 +127,7 @@ export class PhaseManager {
       // 转换到下一个阶段
       await this.transitionToNextPhase()
     } catch (error) {
-      console.error('[PhaseManager] 完成阶段失败:', error)
+      console.error('[PhaseManager] 完成阶段失败:', error.message || error)
       await this.handlePhaseError(error, 'complete')
     }
   }
@@ -147,14 +145,13 @@ export class PhaseManager {
       const isCompleted = this.currentPhaseState.isPhaseCompleted
 
       if (isCompleted) {
-        console.log(`[PhaseManager] 阶段完成条件满足: ${this.currentPhaseState.phaseConfig.name}`)
         await this.completePhase()
         return true
       }
 
       return false
     } catch (error) {
-      console.error('[PhaseManager] 检查阶段完成条件失败:', error)
+      console.error('[PhaseManager] 检查阶段完成条件失败:', error.message || error)
       return false
     }
   }
@@ -178,7 +175,6 @@ export class PhaseManager {
 
       // 检查是否还有更多阶段
       if (this.currentPhaseIndex >= this.phaseOrder.length) {
-        console.log('[PhaseManager] 所有阶段已完成')
         await this.completeAllPhases()
         return
       }
@@ -190,7 +186,7 @@ export class PhaseManager {
       await this.startPhase(this.currentPhaseIndex)
       return
     } catch (error) {
-      console.error('[PhaseManager] 转换到下一阶段失败:', error)
+      console.error('[PhaseManager] 转换到下一阶段失败:', error.message || error)
       await this.handlePhaseError(error, 'transition')
     } finally {
       this.isTransitioning = false
@@ -202,7 +198,10 @@ export class PhaseManager {
    */
   async completeAllPhases () {
     try {
-      console.log('[PhaseManager] 夜晚所有阶段已完成')
+      // 确保最后一个子阶段正确退出（清理定时器/资源）
+      if (this.currentPhaseState && typeof this.currentPhaseState.onExit === 'function') {
+        await this.currentPhaseState.onExit()
+      }
 
       // 记录完成历史
       this.recordPhaseHistory('complete_all', 'all_phases')
@@ -229,7 +228,7 @@ export class PhaseManager {
 
       return result
     } catch (error) {
-      console.error('[PhaseManager] 完成所有阶段失败:', error)
+      console.error('[PhaseManager] 完成所有阶段失败:', error.message || error)
       // 替换：this.game.emit('error', new GameError(...))
       await this.game.notificationCenter.handleError(
         new GameError(
@@ -289,7 +288,7 @@ export class PhaseManager {
 
       return phaseState
     } catch (error) {
-      console.error(`[PhaseManager] 创建阶段状态失败: ${phaseConfig.name}`, error)
+      console.error(`[PhaseManager] 创建阶段状态失败: ${phaseConfig.name}`, error.message || error)
       return null
     }
   }
@@ -316,8 +315,6 @@ export class PhaseManager {
    * @param {Object} results 状态结果
    */
   async handleStateCompletion (stateName, results) {
-    console.log(`[PhaseManager] 状态 ${stateName} 完成`, results)
-
     // 委托给PhaseCoordinator处理
     if (this.phaseCoordinator) {
       return await this.phaseCoordinator.handlePhaseCompleted(
@@ -336,7 +333,7 @@ export class PhaseManager {
    * @param {string} stateName 状态名称
    */
   async handleStateError (error, stateName) {
-    console.error(`[PhaseManager] 状态 ${stateName} 错误:`, error)
+    console.error(`[PhaseManager] 状态 ${stateName} 错误:`, error.message || error)
 
     // 委托给PhaseCoordinator处理
     if (this.phaseCoordinator) {
@@ -355,7 +352,7 @@ export class PhaseManager {
    */
   async handlePhaseError (error, context) {
     try {
-      console.error(`[PhaseManager] 阶段错误 (${context}):`, error)
+      console.error(`[PhaseManager] 阶段错误 (${context}):`, error.message || error)
 
       // 记录错误历史
       this.recordPhaseHistory('error', context, { error: error.message })
@@ -363,10 +360,9 @@ export class PhaseManager {
       // 检查是否需要重试
       if (this.retryCount < this.maxRetries && context !== 'transition') {
         this.retryCount++
-        console.log(`[PhaseManager] 尝试重试 (${this.retryCount}/${this.maxRetries})`)
 
         // 延迟重试
-        setTimeout(() => {
+        this._retryTimer = setTimeout(() => {
           this.startPhase(this.currentPhaseIndex)
         }, 1000 * this.retryCount) // 递增延迟
 
@@ -457,9 +453,13 @@ export class PhaseManager {
    */
   async cleanup () {
     try {
-      console.log('[PhaseManager] 开始清理阶段管理器')
-
       // 移除事件监听器清理：现在使用回调函数，无需清理事件监听器
+
+      // 清理重试定时器
+      if (this._retryTimer) {
+        clearTimeout(this._retryTimer)
+        this._retryTimer = null
+      }
 
       // 清理阶段状态缓存
       this.phaseStates.clear()
@@ -472,10 +472,8 @@ export class PhaseManager {
 
       // {{CHENGQI: Action: Removed; Timestamp: 2025-06-22 18:51:10 +08:00; Reason: Shrimp Task ID: #e18d361a-009f-4c79-896e-75ac0bb4b038, 移除持久化状态清理逻辑; Principle_Applied: SOLID-SRP-SingleResponsibility;}}
       // 移除了持久化状态清理相关代码
-
-      console.log('[PhaseManager] 阶段管理器清理完成')
     } catch (error) {
-      console.error('[PhaseManager] 清理阶段管理器失败:', error)
+      console.error('[PhaseManager] 清理阶段管理器失败:', error.message || error)
     }
   }
 }

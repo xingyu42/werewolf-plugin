@@ -10,6 +10,20 @@
  * @dependencies 无
  */
 
+// ==================== 角色工具函数 ====================
+
+/**
+ * 将角色常量转换为角色类名
+ * 例如 'PROPHET' -> 'ProphetRole', 'WOLF' -> 'WolfRole'
+ *
+ * @param {string} roleConstant - ROLES 枚举值 (全大写)
+ * @returns {string} 对应的角色类名 (PascalCase + 'Role')
+ */
+export function toRoleClassName (roleConstant) {
+  if (!roleConstant || typeof roleConstant !== 'string') return ''
+  return roleConstant.charAt(0).toUpperCase() + roleConstant.slice(1).toLowerCase() + 'Role'
+}
+
 // ==================== 角色相关常量 ====================
 
 /**
@@ -221,7 +235,7 @@ export const NIGHT_PHASE_CONFIG = {
     timeout: 120000, // 120秒超时（包含讨论时间）
     order: 2, // 执行顺序
     requiredActions: {
-      [ROLES.WOLF]: [ACTIONS.KILL, ACTIONS.SKIP, ACTIONS.SUICIDE]
+      [ROLES.WOLF]: [ACTIONS.KILL, ACTIONS.SKIP, ACTIONS.SUICIDE, 'discuss', 'ready_vote']
     },
     discussionTime: 60000, // 狼人讨论时间
     votingTime: 60000 // 狼人投票时间

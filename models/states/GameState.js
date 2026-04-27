@@ -67,6 +67,10 @@ export class GameState {
     return this.constructor.name
   }
 
+  async onResume () {
+    // Override in subclasses to restart timers after CLI pause
+  }
+
   // 超时处理
   async onTimeout () {
     if (!this.game) {

@@ -42,8 +42,6 @@ export class PhaseCoordinator {
         eventData
       })
 
-      console.log(`[PhaseCoordinator] 阶段开始: ${phaseName} (索引: ${phaseIndex})`)
-
       return {
         success: true,
         phaseName,
@@ -51,7 +49,7 @@ export class PhaseCoordinator {
         timestamp: Date.now()
       }
     } catch (error) {
-      console.error('[PhaseCoordinator] 处理阶段开始失败:', error)
+      console.error('[PhaseCoordinator] 处理阶段开始失败:', error.message || error)
       return { success: false, error: error.message }
     }
   }
@@ -78,8 +76,6 @@ export class PhaseCoordinator {
         timestamp: Date.now()
       })
 
-      console.log(`[PhaseCoordinator] 阶段完成: ${phaseName} (索引: ${phaseIndex})`)
-
       return {
         success: true,
         shouldContinue: true,
@@ -88,7 +84,7 @@ export class PhaseCoordinator {
         results
       }
     } catch (error) {
-      console.error('[PhaseCoordinator] 处理阶段完成失败:', error)
+      console.error('[PhaseCoordinator] 处理阶段完成失败:', error.message || error)
       return { success: false, shouldContinue: false, error: error.message }
     }
   }
@@ -112,8 +108,6 @@ export class PhaseCoordinator {
         timestamp: Date.now()
       })
 
-      console.log('[PhaseCoordinator] 所有阶段完成')
-
       return {
         allCompleted: true,
         totalPhases,
@@ -121,7 +115,7 @@ export class PhaseCoordinator {
         managerHistory: phaseHistory
       }
     } catch (error) {
-      console.error('[PhaseCoordinator] 处理所有阶段完成失败:', error)
+      console.error('[PhaseCoordinator] 处理所有阶段完成失败:', error.message || error)
       return { allCompleted: false, error: error.message }
     }
   }
@@ -142,15 +136,13 @@ export class PhaseCoordinator {
         timestamp: Date.now()
       })
 
-      console.log('[PhaseCoordinator] 夜晚阶段完成')
-
       return {
         nightCompleted: true,
         shouldTransitionToDay: true,
         timestamp: Date.now()
       }
     } catch (error) {
-      console.error('[PhaseCoordinator] 处理夜晚阶段完成失败:', error)
+      console.error('[PhaseCoordinator] 处理夜晚阶段完成失败:', error.message || error)
       return { nightCompleted: false, error: error.message }
     }
   }
@@ -242,18 +234,14 @@ export class PhaseCoordinator {
    */
   cleanup () {
     if (this.isCleanedUp) {
-      console.debug('[PhaseCoordinator] 已经清理过，跳过重复清理')
       return
     }
-
-    console.log('[PhaseCoordinator] 开始清理阶段协调器...')
 
     try {
       this.isCleanedUp = true
       this.phaseHistory.length = 0
-      console.log('[PhaseCoordinator] 阶段协调器清理完成')
     } catch (error) {
-      console.error('[PhaseCoordinator] 清理阶段协调器时发生错误:', error)
+      console.error('[PhaseCoordinator] 清理阶段协调器时发生错误:', error.message || error)
     }
   }
 }

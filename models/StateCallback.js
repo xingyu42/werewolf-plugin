@@ -41,8 +41,6 @@ export class StateCallback {
         timestamp: Date.now()
       })
 
-      console.log(`[StateCallback] 状态完成回调: ${stateName}`)
-
       // 委托给PhaseManager处理
       if (this.phaseManager && typeof this.phaseManager.handleStateCompletion === 'function') {
         const result = await this.phaseManager.handleStateCompletion(stateName, results)
@@ -52,7 +50,7 @@ export class StateCallback {
         return { handled: false, reason: 'manager_unavailable' }
       }
     } catch (error) {
-      console.error('[StateCallback] 处理状态完成回调失败:', error)
+      console.error('[StateCallback] 处理状态完成回调失败:', error.message || error)
 
       // 记录错误到历史
       this.callbackHistory.push({
@@ -87,7 +85,7 @@ export class StateCallback {
         timestamp: Date.now()
       })
 
-      console.error(`[StateCallback] 状态错误回调: ${stateName}`, error)
+      console.error(`[StateCallback] 状态错误回调: ${stateName}`, error.message || error)
 
       // 委托给PhaseManager处理
       if (this.phaseManager && typeof this.phaseManager.handleStateError === 'function') {
@@ -124,7 +122,6 @@ export class StateCallback {
     }
 
     this.phaseManager = phaseManager
-    console.log('[StateCallback] PhaseManager引用已更新')
   }
 
   /**
@@ -159,11 +156,8 @@ export class StateCallback {
    */
   cleanup () {
     if (this.isCleanedUp) {
-      console.debug('[StateCallback] 已经清理过，跳过重复清理')
       return
     }
-
-    console.log('[StateCallback] 开始清理状态回调接口...')
 
     try {
       // 标记为已清理
@@ -174,10 +168,8 @@ export class StateCallback {
 
       // 清理历史记录
       this.callbackHistory.length = 0
-
-      console.log('[StateCallback] 状态回调接口清理完成')
     } catch (error) {
-      console.error('[StateCallback] 清理状态回调接口时发生错误:', error)
+      console.error('[StateCallback] 清理状态回调接口时发生错误:', error.message || error)
     }
   }
 }

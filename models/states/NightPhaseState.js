@@ -11,6 +11,7 @@
  * - ../../core/GameError.js - 游戏错误
  */
 import { GameError } from '../../utils/GameError.js'
+import { toRoleClassName } from '../Constants.js'
 
 export class NightPhaseState {
   constructor (game, phaseConfig) {
@@ -77,10 +78,8 @@ export class NightPhaseState {
 
       // 启动阶段逻辑
       await this.startPhaseLogic()
-
-      console.log(`[${this.constructor.name}] 阶段开始: ${this.phaseConfig.name}`)
     } catch (error) {
-      console.error(`[${this.constructor.name}] 进入阶段时发生错误:`, error)
+      console.error(`[${this.constructor.name}] 进入阶段时发生错误:`, error.message || error)
       // 替换emit调用为回调机制
       if (this.errorCallback) {
         await this.errorCallback(new GameError(
@@ -108,10 +107,8 @@ export class NightPhaseState {
 
       // 执行阶段清理逻辑
       await this.cleanupPhase()
-
-      console.log(`[${this.constructor.name}] 阶段结束: ${this.phaseConfig.name}`)
     } catch (error) {
-      console.error(`[${this.constructor.name}] 退出阶段时发生错误:`, error)
+      console.error(`[${this.constructor.name}] 退出阶段时发生错误:`, error.message || error)
     } finally {
       // 手动实现GameState的onExit逻辑
       if (this.timer) {
@@ -163,7 +160,7 @@ export class NightPhaseState {
 
       return result
     } catch (error) {
-      console.error(`[${this.constructor.name}] 处理玩家行动时发生错误:`, error)
+      if (!(error instanceof GameError)) console.error(`[${this.constructor.name}] 处理玩家行动时发生错误:`, error.message || error)
       throw error
     }
   }
@@ -213,7 +210,7 @@ export class NightPhaseState {
       // 子类可以重写此方法添加更多验证逻辑
       return this.validateSpecificAction(player, action)
     } catch (error) {
-      console.error(`[${this.constructor.name}] 验证行动时发生错误:`, error)
+      console.error(`[${this.constructor.name}] 验证行动时发生错误:`, error.message || error)
       return false
     }
   }
@@ -223,15 +220,13 @@ export class NightPhaseState {
    */
   async onTimeout () {
     try {
-      console.log(`[${this.constructor.name}] 阶段超时: ${this.phaseConfig.name}`)
-
       // 为未行动的玩家设置默认行动
       await this.handleTimeoutActions()
 
       // 强制完成阶段
       await this.forceCompletePhase()
     } catch (error) {
-      console.error(`[${this.constructor.name}] 处理阶段超时时发生错误:`, error)
+      console.error(`[${this.constructor.name}] 处理阶段超时时发生错误:`, error.message || error)
     }
   }
 
@@ -300,27 +295,18 @@ export class NightPhaseState {
 
     for (const role of this.phaseConfig.roles) {
       // 检查是否有该角色的存活玩家
-      const alivePlayers = this.game.getAlivePlayers({ roleType: role + 'Role', includeRole: true })
+      const alivePlayers = this.game.getAlivePlayers({ roleType: toRoleClassName(role), includeRole: true })
       if (alivePlayers.length > 0) {
         this.activeRoles.add(role)
       }
     }
-
-    console.log(`[${this.constructor.name}] 活跃角色:`, Array.from(this.activeRoles))
   }
 
   /**
-   * 发送阶段开始通知
+   * 阶段开始通知 — 夜晚子阶段对群聊保持静默以避免身份/存活信息泄露
+   * 私聊提示由具体角色/阶段自行发送
    */
-  async notifyPhaseStart () {
-    try {
-      // 发送阶段开始通知
-      const message = `🌙 ${this.phaseConfig.description || this.phaseConfig.name}开始，请查看私聊消息`
-      await this.game.e.reply(message)
-    } catch (error) {
-      console.error(`[${this.constructor.name}] 发送阶段开始通知失败:`, error)
-    }
-  }
+  async notifyPhaseStart () {}
 
   /**
    * 检查阶段是否完成
@@ -334,7 +320,7 @@ export class NightPhaseState {
     let allCompleted = true
 
     for (const role of this.activeRoles) {
-      const rolePlayers = this.game.getAlivePlayers({ roleType: role + 'Role', includeRole: true })
+      const rolePlayers = this.game.getAlivePlayers({ roleType: toRoleClassName(role), includeRole: true })
       const completedCount = rolePlayers.filter(({ player }) =>
         this.completedActions.has(player.id)
       ).length
@@ -367,8 +353,6 @@ export class NightPhaseState {
       // 执行阶段完成逻辑（由子类实现）
       await this.onPhaseComplete()
 
-      console.log(`[${this.constructor.name}] 阶段完成: ${this.phaseConfig.name}`)
-
       // 替换emit调用为回调机制
       if (this.completionCallback) {
         await this.completionCallback({
@@ -377,7 +361,7 @@ export class NightPhaseState {
         })
       }
     } catch (error) {
-      console.error(`[${this.constructor.name}] 完成阶段时发生错误:`, error)
+      console.error(`[${this.constructor.name}] 完成阶段时发生错误:`, error.message || error)
       // 替换emit调用为回调机制
       if (this.errorCallback) {
         await this.errorCallback(error)
@@ -389,7 +373,6 @@ export class NightPhaseState {
    * 强制完成阶段（超时时调用）
    */
   async forceCompletePhase () {
-    console.log(`[${this.constructor.name}] 强制完成阶段: ${this.phaseConfig.name}`)
     await this.completePhase()
   }
 
@@ -401,7 +384,7 @@ export class NightPhaseState {
       try {
         await Promise.allSettled(Array.from(this.parallelActions.values()))
       } catch (error) {
-        console.error(`[${this.constructor.name}] 等待并行行动完成时发生错误:`, error)
+        console.error(`[${this.constructor.name}] 等待并行行动完成时发生错误:`, error.message || error)
       }
     }
   }

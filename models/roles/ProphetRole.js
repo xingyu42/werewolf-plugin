@@ -63,12 +63,15 @@ export class ProphetRole extends Role {
    *
    * @returns {string} 查验提示消息
    */
-  async getActionPrompt (e) {
+  async getActionPrompt () {
     const currentState = this.game.getCurrentState()
-    if (!this.canAct(currentState)) return e.reply('预言家只能在夜晚阶段行动')
+    if (!this.canAct(currentState)) {
+      await this.sendPrivate('预言家只能在夜晚阶段行动')
+      return false
+    }
     const alivePlayersList = this.getAlivePlayersList()
-    const msg = `【预言家】请选择今晚的查验目标：\n ${alivePlayersList.join('\n')} \n 输入格式：#查验*号 `
-    e.reply(msg)
+    const msg = `【预言家】请选择今晚的查验目标：\n ${alivePlayersList} \n 输入格式：#查验*号 `
+    await this.sendPrivate(msg)
     return true
   }
 
@@ -97,18 +100,16 @@ export class ProphetRole extends Role {
    */
   async act (target, action = 'check') {
     if (!target) {
-      console.debug('ProphetRole.act: target 为空')
       return false
     }
 
     if (!this.isValidTarget(target)) {
-      // 提供更具体的错误信息
       if (target.id === this.player.id) {
-        await this.e.reply('查验失败: 不能查验自己')
+        await this.sendPrivate('查验失败: 不能查验自己')
       } else if (!target.isAlive) {
-        await this.e.reply(`查验失败: 目标玩家 ${target.name || target.id} 已死亡`)
+        await this.sendPrivate(`查验失败: 目标玩家 ${target.name || target.id} 已死亡`)
       } else {
-        await this.e.reply(`查验失败: 目标玩家 ${target.name || target.id} 不是有效的查验目标`)
+        await this.sendPrivate(`查验失败: 目标玩家 ${target.name || target.id} 不是有效的查验目标`)
       }
       return false
     }
@@ -117,31 +118,28 @@ export class ProphetRole extends Role {
       let result
       const timestamp = Date.now()
 
-      // 使用 ValidationUtils 验证角色数据
       const roleValidation = ValidationUtils.validateRole(this.game, target.id)
       if (!roleValidation.isValid) {
         console.error(`ProphetRole.act: ${roleValidation.error.message}`)
-        await this.e.reply(`查验失败: 目标角色验证失败 - ${roleValidation.error.message} (玩家ID: ${target.id})`)
+        await this.sendPrivate(`查验失败: 目标角色验证失败 - ${roleValidation.error.message} (玩家ID: ${target.id})`)
         return false
       }
 
       const targetRole = roleValidation.role
 
-      // 查验阵营
       let isGood
       try {
         const camp = await targetRole.getCamp()
         isGood = camp !== 'WOLF'
       } catch (error) {
-        console.error('ProphetRole.act: 获取阵营信息失败:', error)
-        await this.e.reply(`查验失败: 无法获取目标阵营信息 - ${error.message || '未知错误'} (目标: ${target.name || target.id})`)
+        console.error('ProphetRole.act: 获取阵营信息失败:', error.message || error)
+        await this.sendPrivate(`查验失败: 无法获取目标阵营信息 - ${error.message || '未知错误'} (目标: ${target.name || target.id})`)
         return false
       }
 
       const targetName = target.name || '未知玩家'
       result = `${targetName}是${isGood ? '好人' : '狼人'}`
 
-      // 记录查验结果
       if (!this.checkHistory) {
         this.checkHistory = new Map()
       }
@@ -152,15 +150,14 @@ export class ProphetRole extends Role {
         turn: this.game.turn || 0
       })
 
-      // 发送查验结果
       const turnInfo = this.game.turn || 0
       const timeInfo = new Date(timestamp).toLocaleTimeString()
-      await this.e.reply(`${result} (查验时间: 第${turnInfo}天 ${timeInfo})`)
+      await this.sendPrivate(`${result} (查验时间: 第${turnInfo}天 ${timeInfo})`)
 
       return result
     } catch (error) {
-      console.error('ProphetRole.act: 查验过程中发生错误:', error)
-      await this.e.reply(`查验失败: 查验过程中发生异常 - ${error.message || '未知错误'} (目标: ${target.name || target.id}, 时间: ${new Date().toLocaleTimeString()})`)
+      console.error('ProphetRole.act: 查验过程中发生错误:', error.message || error)
+      await this.sendPrivate(`查验失败: 查验过程中发生异常 - ${error.message || '未知错误'} (目标: ${target.name || target.id}, 时间: ${new Date().toLocaleTimeString()})`)
       return false
     }
   }

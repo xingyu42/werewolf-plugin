@@ -10,7 +10,7 @@
 
 <body>
     <div class="vote-container">
-        {{# if voteResult.exiled }}
+        {{if voteResult.exiled}}
         <div class="vote-row vote-row-target">
             <div class="vote-badge">放逐</div>
             <div class="vote-content">
@@ -21,15 +21,15 @@
                     <div class="vote-arrow"></div>
                 </div>
                 <div class="player-numbers voters">
-                    {{# each voteResult.exiled.voters }}
-                    <div class="number {{#if isSheriff}}sheriff{{/if}}">{{number}}</div>
+                    {{each voteResult.exiled.voters}}
+                    <div class="number {{if $value.isSheriff}}sheriff{{/if}}">{{$value.number}}</div>
                     {{/each}}
                 </div>
             </div>
         </div>
         {{/if}}
 
-        {{# each voteResult.others }}
+        {{each voteResult.others}}
         <div class="vote-row vote-row-normal">
             <div class="vote-content">
                 <div class="player-numbers target">
@@ -39,15 +39,15 @@
                     <div class="vote-arrow"></div>
                 </div>
                 <div class="player-numbers voters">
-                    {{# each this.voters }}
-                    <div class="number {{#if isSheriff}}sheriff{{/if}}">{{number}}</div>
+                    {{each this.voters}}
+                    <div class="number {{if $value.isSheriff}}sheriff{{/if}}">{{$value.number}}</div>
                     {{/each}}
                 </div>
             </div>
         </div>
         {{/each}}
 
-        {{# if voteResult.abstained.length }}
+        {{if voteResult.abstained.length}}
         <div class="vote-row vote-row-abstain">
             <div class="vote-content">
                 <div class="vote-label inline-label">弃票</div>
@@ -55,8 +55,8 @@
                     <div class="vote-arrow"></div>
                 </div>
                 <div class="player-numbers voters">
-                    {{# each voteResult.abstained }}
-                    <div class="number {{#if isSheriff}}sheriff{{/if}}">{{number}}</div>
+                    {{each voteResult.abstained}}
+                    <div class="number {{if $value.isSheriff}}sheriff{{/if}}">{{$value.number}}</div>
                     {{/each}}
                 </div>
             </div>
@@ -64,7 +64,7 @@
         {{/if}}
 
         <div class="vote-result-bar">
-            {{# if voteResult.exiled }}
+            {{if voteResult.exiled}}
             [{{voteResult.exiled.number}}号] 被放逐！
             {{else}}
             无人出局

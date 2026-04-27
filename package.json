@@ -5,6 +5,7 @@
     "type": "module",
     "main": "index.js",
     "scripts": {
+        "cli": "node tools/cli.js",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix"
     },

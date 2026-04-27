@@ -55,10 +55,8 @@ export class WolfRole extends Role {
    * @static
    */
   static cleanup () {
-    console.log('[WolfRole] 清理静态数据...')
     this.wolfVotes.clear()
     this.wolfKillTarget = null
-    console.log('[WolfRole] 静态数据清理完成')
   }
 
   /**
@@ -108,16 +106,19 @@ export class WolfRole extends Role {
    *
    * @returns {string} 行动提示消息
    */
-  async getActionPrompt (e) {
+  async getActionPrompt () {
     const currentState = this.game.getCurrentState()
-    if (!this.canAct(currentState)) return e.reply('狼人只能在夜晚阶段行动')
+    if (!this.canAct(currentState)) {
+      await this.sendPrivate('狼人只能在夜晚阶段行动')
+      return false
+    }
     const aliveWolves = this.game.getAlivePlayers({ roleType: 'WolfRole', includeRole: true })
     let msg = ''
     if (aliveWolves.length > 0) {
       msg += '\n\n其他存活狼人：\n' + aliveWolves.map((w) => `${w.player.gameNumber}号：${w.player.name}`).join('、')
     }
     msg += `【狼人】请选择今晚的击杀目标：\n${this.getAlivePlayersList()}\n输入格式：#刀*号\n你也可以与其他狼人进行队内沟通，输入格式：#讨论 你想说的话`
-    await e.reply(msg)
+    await this.sendPrivate(msg)
     return true
   }
 
@@ -230,9 +231,9 @@ export class WolfRole extends Role {
     }
 
     // 通知其他狼人
-    for (const wolf of wolves) {
-      if (wolf.id !== this.player.id) {
-        await this.sendPrivate(voteMsg + '\n' + voteStatus, wolf.id)
+    for (const { player: wolfPlayer } of wolves) {
+      if (wolfPlayer.id !== this.player.id) {
+        await this.sendPrivate(voteMsg + '\n' + voteStatus, wolfPlayer.id)
       }
     }
   }
@@ -287,8 +288,8 @@ export class WolfRole extends Role {
       if (target) message += `\n【最终结果】狼人队伍决定击杀${target.gameNumber}号(${target.name})`
     }
 
-    for (const wolf of wolves) {
-      await this.sendPrivate(message, wolf.id)
+    for (const { player: wolfPlayer } of wolves) {
+      await this.sendPrivate(message, wolfPlayer.id)
     }
   }
 
@@ -316,7 +317,7 @@ export class WolfRole extends Role {
 
     // 单狼直接返回
     if (aliveWolves.length === 1) {
-      const vote = WolfRole.wolfVotes.get(aliveWolves[0].id)
+      const vote = WolfRole.wolfVotes.get(aliveWolves[0].player.id)
       return vote ? vote.targetId : null
     }
 
@@ -344,7 +345,7 @@ export class WolfRole extends Role {
    */
   isAllWolvesVoted () {
     const aliveWolves = this.game.getAlivePlayers({ roleType: 'WolfRole', includeRole: true })
-    return aliveWolves.every(wolf => WolfRole.wolfVotes.has(wolf.id))
+    return aliveWolves.every(({ player }) => WolfRole.wolfVotes.has(player.id))
   }
 
   /**
@@ -354,7 +355,9 @@ export class WolfRole extends Role {
    */
   getUnvotedWolves () {
     const aliveWolves = this.game.getAlivePlayers({ roleType: 'WolfRole', includeRole: true })
-    return aliveWolves.filter(wolf => !WolfRole.wolfVotes.has(wolf.id))
+    return aliveWolves
+      .filter(({ player }) => !WolfRole.wolfVotes.has(player.id))
+      .map(({ player }) => player)
   }
 
   /**
@@ -374,7 +377,7 @@ export class WolfRole extends Role {
           await this.sendPrivate('你选择了放弃击杀')
           return { success: true, message: '成功选择放弃击杀', completed: result }
         } catch (error) {
-          console.error('WolfRole.act: 处理弃权投票失败:', error)
+          console.error('WolfRole.act: 处理弃权投票失败:', error.message || error)
           return { success: false, message: `弃权投票失败: ${error.message || '未知错误'}` }
         }
       }
@@ -386,7 +389,7 @@ export class WolfRole extends Role {
           await this.sendPrivate(`你已投票击杀${target.name}`)
           return { success: true, message: `成功投票击杀${target.name}`, completed: result }
         } catch (error) {
-          console.error('WolfRole.act: 处理投票失败:', error)
+          console.error('WolfRole.act: 处理投票失败:', error.message || error)
           return { success: false, message: `投票失败: ${error.message || '未知错误'}` }
         }
       }
@@ -397,7 +400,7 @@ export class WolfRole extends Role {
     if (action === 'kill') {
       if (!target) return true // 空刀直接返回成功
       if (target.protected) {
-        await this.e.reply(`${target.name}被守卫保护，无法击杀`)
+        await this.sendPrivate(`${target.name}被守卫保护，无法击杀`)
         return false
       }
       await this.game.handlePlayerDeath(target, 'WOLF_KILL')
@@ -448,7 +451,7 @@ export class WolfRole extends Role {
 
       return { success: true, message: '消息发送成功' }
     } catch (error) {
-      console.error('WolfRole.discuss: 队内沟通失败:', error)
+      console.error('WolfRole.discuss: 队内沟通失败:', error.message || error)
       return { success: false, message: `队内沟通失败: ${error.message || '未知错误'}` }
     }
   }

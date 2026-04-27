@@ -27,7 +27,7 @@ import { DayState } from '../models/states/DayState.js'
 
 export class ActionController {
   static _getGameOrReply (e) {
-    const game = GameController.getGame(e.group_id)
+    const game = GameController.getGame(e.group_id) || GameController.getGameByPlayer(e.user_id)
     if (!game) {
       e.reply('当前群没有进行中的游戏。')
       return null
@@ -242,6 +242,22 @@ export class ActionController {
     if (!this._assertActionAllowedOrReply(e, game, player, 'discuss', content)) return false
 
     game.handleAction(player, 'discuss', content).catch(err => {
+      e.reply(err instanceof GameError ? err.message : '操作失败，发生了未知错误。')
+    })
+    return true
+  }
+
+  static wolfReadyVote (e) {
+    const game = this._getGameOrReply(e)
+    if (!game) return false
+
+    const player = this._getPlayerOrReply(e, game)
+    if (!player) return false
+    if (!this._assertAliveOrReply(e, player)) return false
+
+    if (!this._assertActionAllowedOrReply(e, game, player, 'ready_vote')) return false
+
+    game.handleAction(player, 'ready_vote').catch(err => {
       e.reply(err instanceof GameError ? err.message : '操作失败，发生了未知错误。')
     })
     return true

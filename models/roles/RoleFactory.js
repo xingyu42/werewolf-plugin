@@ -45,7 +45,6 @@ export class RoleFactory {
    */
   static async preloadRoleModules () {
     // 使用静态导入，无需预加载
-    console.log('所有角色模块已通过静态导入加载完成')
   }
 
   /**

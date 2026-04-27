@@ -100,6 +100,10 @@ export const StateTransitions = {
     [GameStateType.SHERIFF_ELECT]: {
       description: '首日特殊流程，进入警长竞选',
       condition: (game) => game.turn === 0 // 仅在第一天允许（首夜过渡到白天时）
+    },
+    [GameStateType.SHERIFF_TRANSFER]: {
+      description: '白天发现警长死亡，进入警长移交',
+      condition: (game) => true
     }
   },
 
@@ -206,6 +210,7 @@ export class StateMachine {
   constructor (initialState) {
     this.currentState = initialState
     this._changingState = false
+    this._pendingState = null // 队列：onEnter 内触发的二次切换
     this.stateHistory = []
     this.maxHistoryLength = 50
     this.stateTransitionContext = {}
@@ -218,14 +223,14 @@ export class StateMachine {
 
   async changeState (newState) {
     if (!newState) {
-      // In a real scenario, you'd probably want to emit an error or log it.
       console.error('StateMachine: newState is undefined')
-      return
+      return false
     }
 
+    // 如果正在切换中，队列化请求而非丢弃
     if (this._changingState) {
-      console.warn('StateMachine: State change blocked, already changing state.')
-      return
+      this._pendingState = newState
+      return true
     }
 
     if (this.currentState) {
@@ -236,8 +241,7 @@ export class StateMachine {
 
       if (!validationResult.allowed) {
         console.error(`StateMachine: Invalid state transition from ${fromState} to ${toState}. Reason: ${validationResult.reason}`)
-        // Optionally, emit an event or throw an error
-        return
+        return false
       }
 
       this.recordStateHistory(this.currentState)
@@ -250,8 +254,6 @@ export class StateMachine {
       }
 
       this.currentState = newState
-      // The new state needs a reference to the game context.
-      // This assumes states have a setContext or similar method, or are constructed with it.
       if (typeof this.currentState.setContext === 'function') {
         this.currentState.setContext(this.game)
       }
@@ -261,6 +263,15 @@ export class StateMachine {
     } finally {
       this._changingState = false
     }
+
+    // 处理在 onEnter 期间排队的状态切换
+    if (this._pendingState) {
+      const pending = this._pendingState
+      this._pendingState = null
+      await this.changeState(pending)
+    }
+
+    return true
   }
 
   recordStateHistory (state) {

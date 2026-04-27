@@ -68,6 +68,8 @@ export class Game {
     this.config = config
 
     this._isCleanedUp = false
+    this._isGameOver = false
+    this.startTime = Date.now()
     this.eventErrors = []
 
     // Player data
@@ -149,7 +151,12 @@ export class Game {
 
   shuffle (arr) {
     if (!Array.isArray(arr)) return []
-    return [...arr].sort(() => Math.random() - 0.5)
+    const result = [...arr]
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[result[i], result[j]] = [result[j], result[i]]
+    }
+    return result
   }
 
   get sheriff () {
@@ -219,9 +226,10 @@ export class Game {
     }
 
     // shuffle
-    const shuffled = [...roleNames].sort(() => Math.random() - 0.5)
+    const shuffled = this.shuffle(roleNames)
 
     this.roles.clear()
+    const notifyPromises = []
     for (let i = 0; i < players.length; i++) {
       const player = players[i]
       const roleName = shuffled[i]
@@ -235,7 +243,19 @@ export class Game {
       }
 
       this.roles.set(player.id, roleInstance)
+
+      // 私聊通知玩家角色信息
+      const roleNameCN = ROLE_NAMES_CN[roleName] || roleName
+      const msg = `你的游戏编号是：${player.gameNumber}号\n你的身份是：${roleNameCN}`
+      notifyPromises.push(
+        this.notificationCenter.sendPrivateMessage(player.id, msg)
+      )
     }
+
+    // Best-effort 发送，不阻塞游戏开始流程
+    Promise.allSettled(notifyPromises).catch(err => {
+      console.warn('[Game] role notification failed:', err)
+    })
   }
 
   // ==================== Game Flow ====================
@@ -274,14 +294,27 @@ export class Game {
       await this.changeState(initialState)
       this.currentPhase = GAME_PHASES.NIGHT
     } catch (error) {
-      console.error('[Game] initializeState failed:', error)
-      await this.e.reply('初始化游戏状态失败，请重新创建游戏。')
-      throw error
+      console.error('[Game] initializeState NightPhase failed:', error.message || error)
+      try {
+        const { DayState } = await import('./states/DayState.js')
+        const fallback = new DayState(this)
+        await this.changeState(fallback)
+        this.currentPhase = GAME_PHASES.DAY_DISCUSSION
+        await this.e.reply('夜晚阶段初始化异常，已回退至白天讨论阶段')
+      } catch (fallbackError) {
+        console.error('[Game] DayState fallback also failed:', fallbackError)
+        await this.e.reply('初始化游戏状态失败，请重新创建游戏。')
+        throw fallbackError
+      }
     }
   }
 
   async changeState (newState) {
     if (!newState) throw new GameError('新状态不能为空', 'E1201')
+    if (this._isGameOver) {
+      console.warn('[Game] 游戏已结束，拒绝状态切换')
+      return false
+    }
 
     const oldState = this.getCurrentState()
 
@@ -302,7 +335,8 @@ export class Game {
 
     this.updateCurrentPhase(newState)
 
-    await this.e.reply(`游戏进入${newState.getName()}阶段`)
+    // 不再自动广播状态切换：内部类名（NightPhaseController/SheriffElectState 等）会泄露夜晚/竞选时序，
+    // 且对玩家无意义。各状态的 onEnter() 会自行发送面向玩家的提示。
   }
 
   setStateTransitionContext (context) {
@@ -345,6 +379,7 @@ export class Game {
 
   async handleAction (player, action, data) {
     if (!player) throw new GameError('玩家参数不能为空', 'E1100')
+    if (this._isGameOver) throw new GameError('游戏已结束', 'E1201')
 
     const currentState = this.getCurrentState()
     if (!currentState) throw new GameError('游戏尚未开始或已结束', 'E1201')
@@ -359,20 +394,50 @@ export class Game {
 
   // ==================== Death / Victory ====================
 
+  clearAllProtectedStatus () {
+    for (const player of this._players.values()) {
+      player.protected = false
+    }
+  }
+
+  setProtectedStatus (targetOrId, status = true) {
+    const player = typeof targetOrId === 'string'
+      ? this._players.get(targetOrId)
+      : targetOrId
+    if (!player) return false
+    player.protected = !!status
+    return true
+  }
+
+  revivePlayer (targetOrId) {
+    const player = typeof targetOrId === 'string'
+      ? this._players.get(targetOrId)
+      : targetOrId
+    if (!player) return false
+    player.isAlive = true
+    player.deathReason = null
+    player.deathTurn = null
+    return true
+  }
+
   async handlePlayerDeath (player, reason) {
     if (!player) return false
 
     player.isAlive = false
     player.deathReason = reason
+    player.deathTurn = this.turn // 记录死亡回合，供 DayState 按回合过滤
 
-    // After a death, check victory
-    await this.endGame()
-    return true
+    const gameOver = await this.endGame()
+    return gameOver
   }
 
   async endGame () {
+    if (this._isGameOver) return true
+
     const victoryResult = this.victoryChecker.checkVictory(this)
     if (!victoryResult?.gameOver) return false
+
+    this._isGameOver = true
 
     const alivePlayers = this.getAlivePlayers()
     const alivePlayersStr = alivePlayers.length > 0
@@ -429,11 +494,27 @@ export class Game {
     }
   }
 
-  cleanup () {
+  async cleanup () {
     if (this._isCleanedUp) return
     this._isCleanedUp = true
 
     try {
+      // 先退出当前状态，让状态自己清理 setTimeout/计时器，
+      // 否则游戏结束后旧状态的定时器仍会回调到已销毁的 game 实例，
+      // 污染下一局的消息队列（"=== 第 N 天 ===" 鬼火）
+      const currentState = this.stateMachine?.getCurrentState?.()
+      if (currentState && typeof currentState.onExit === 'function') {
+        try {
+          await currentState.onExit()
+        } catch (err) {
+          console.warn('[Game] currentState.onExit failed during cleanup:', err?.message || err)
+        }
+      }
+      if (this.stateMachine) {
+        this.stateMachine.currentState = null
+        this.stateMachine._pendingState = null
+      }
+
       this.cleanupWolfRoleStatics()
       this.notificationCenter?.cleanup?.()
       this._players.clear()
@@ -441,7 +522,7 @@ export class Game {
       this.playerNumberMap.clear()
       this.eventErrors.length = 0
     } catch (error) {
-      console.error('[Game] cleanup failed:', error)
+      console.error('[Game] cleanup failed:', error.message || error)
     }
   }
 

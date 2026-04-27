@@ -28,6 +28,8 @@ export class DayState extends GameState {
     this.speakTimeLimit = game.getConfig().game.speakTimeLimit // 发言时间限制
     this.currentSpeakerIndex = 0
     this.speakOrder = []
+    this._advancingLock = false // 发言切换互斥锁，防止超时+手动结束并发
+    this._hunterShootTimeout = null // 猎人开枪超时定时器
   }
 
   async onEnter () {
@@ -48,9 +50,12 @@ export class DayState extends GameState {
   async announceDeaths () {
     if (!this.game._dayStartPending) return false
 
-    // 获取夜间死亡的玩家
+    // 获取本夜死亡的玩家（按 deathTurn 过滤，避免累计历史死亡）
+    const currentTurn = this.game.turn
     const deadPlayers = [...this.game.players.values()]
-      .filter(p => !p.isAlive && (p.deathReason === 'WOLF_KILL' || p.deathReason === 'POISON'))
+      .filter(p => !p.isAlive &&
+        (p.deathReason === 'WOLF_KILL' || p.deathReason === 'POISON') &&
+        p.deathTurn === currentTurn)
 
     if (!this.game._dayStartDeathsAnnounced) {
       if (deadPlayers.length === 0) {
@@ -80,22 +85,52 @@ export class DayState extends GameState {
 
     // 首夜过后检查死亡玩家中特殊角色
     if (this.game.turn !== 0) {
+      // 先收集所有特殊事件，再统一决策
+      let hunterToPrompt = null
+      let sheriffDead = null
+
       for (const player of deadPlayers) {
         const role = this.game.roles.get(player.id)
-        // 设置状态转换上下文
-        this.game.setStateTransitionContext({ deadPlayer: player })
 
-        if (role instanceof HunterRole && role.canAct()) {
-          await this.game.notificationCenter.sendMessage('group', null, `猎人 ${player.name} 死亡，现在可以开枪`)
-          await role.getActionPrompt()
-          return true
+        if (role instanceof HunterRole && role.canAct() && !hunterToPrompt) {
+          hunterToPrompt = { player, role }
         }
 
-        if (player.isSheriff) {
-          await this.game.notificationCenter.sendMessage('group', null, `警长 ${player.name} 死亡，现在可以转移警徽`)
-          await this.game.changeState(new SheriffTransferState(this.game, player, this))
-          return true
+        if (player.isSheriff && !sheriffDead) {
+          sheriffDead = player
         }
+      }
+
+      // 处理猎人开枪（含超时保护，防止猎人不操作时卡死）
+      if (hunterToPrompt) {
+        this.game.setStateTransitionContext({ deadPlayer: hunterToPrompt.player })
+        await this.game.notificationCenter.sendMessage('group', null, `猎人 ${hunterToPrompt.player.name} 死亡，现在可以开枪（30秒内操作）`)
+        await hunterToPrompt.role.getActionPrompt()
+
+        // 设置猎人开枪超时，超时后自动继续白天流程
+        this._hunterShootTimeout = setTimeout(async () => {
+          try {
+            // 仅当当前状态仍是本 DayState 实例时才恢复流程
+            if (this.game.getCurrentState() === this) {
+              await this.e.reply(`猎人 ${hunterToPrompt.player.name} 超时未开枪，放弃开枪机会`)
+              await this._resumeDayFlow()
+            }
+          } catch (err) {
+            console.error('[DayState] 猎人超时恢复失败:', err)
+          }
+        }, 30 * 1000)
+      }
+
+      // 处理警长死亡（需要状态切换）
+      if (sheriffDead) {
+        this.game.setStateTransitionContext({ deadPlayer: sheriffDead })
+        await this.game.notificationCenter.sendMessage('group', null, `警长 ${sheriffDead.name} 死亡，现在可以转移警徽`)
+        await this.game.changeState(new SheriffTransferState(this.game, sheriffDead, this))
+        return true
+      }
+
+      if (hunterToPrompt) {
+        return true
       }
     }
 
@@ -165,12 +200,17 @@ export class DayState extends GameState {
 
   // 处理发言超时
   async handleSpeakTimeout (player) {
+    // 互斥锁：防止与 handleEndSpeech 并发
+    if (this._advancingLock) return
+    this._advancingLock = true
+
     await this.e.reply([
       segment.at(player.id),
       '发言时间已到，将自动进入下一位发言'
     ])
     this.currentSpeakerIndex++
     await this.nextSpeaker()
+    this._advancingLock = false
   }
 
   // 处理结束发言
@@ -181,14 +221,19 @@ export class DayState extends GameState {
       this.speakTimeout = null
     }
 
+    // 互斥锁：防止与 handleSpeakTimeout 并发
+    if (this._advancingLock) return false
+
     // 检查是否当前发言者
     if (this.currentSpeakerIndex < this.speakOrder.length &&
         this.speakOrder[this.currentSpeakerIndex].id === player.id) {
+      this._advancingLock = true
       await this.e.reply(`${player.name} 结束发言`)
 
       // 进入下一位发言者
       this.currentSpeakerIndex++
       await this.nextSpeaker()
+      this._advancingLock = false
       return true
     } else {
       await this.e.reply(`${player.name} 现在不是你的发言时间`)
@@ -196,8 +241,47 @@ export class DayState extends GameState {
     }
   }
 
+  async onResume () {
+    if (this.currentSpeakerIndex < this.speakOrder.length) {
+      const currentPlayer = this.speakOrder[this.currentSpeakerIndex]
+      this.speakTimeout = setTimeout(() => {
+        this.handleSpeakTimeout(currentPlayer)
+      }, this.speakTimeLimit * 1000)
+    }
+  }
+
   async onTimeout () {
     await this.e.reply('发言时间结束，进入投票阶段')
     await this.game.changeState(new VoteState(this.game))
+  }
+
+  async onExit () {
+    await super.onExit()
+    // 清理所有定时器
+    if (this.speakTimeout) {
+      clearTimeout(this.speakTimeout)
+      this.speakTimeout = null
+    }
+    if (this._hunterShootTimeout) {
+      clearTimeout(this._hunterShootTimeout)
+      this._hunterShootTimeout = null
+    }
+  }
+
+  /**
+   * 恢复白天讨论流程（猎人超时或开枪后调用）
+   */
+  async _resumeDayFlow () {
+    if (this._hunterShootTimeout) {
+      clearTimeout(this._hunterShootTimeout)
+      this._hunterShootTimeout = null
+    }
+    if (this.game._dayStartPending) {
+      await this.game.startNewDay()
+      this.game._dayStartPending = false
+      this.game._dayStartDeathsAnnounced = false
+    }
+    await this.initializeSpeakOrder()
+    await this.startDiscussion()
   }
 }

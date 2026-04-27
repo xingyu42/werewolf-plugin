@@ -18,11 +18,14 @@ export class SheriffElectState extends GameState {
   constructor (game) {
     super(game)
     this.SPEECH_TIME = game.getConfig().game.sheriffSpeechTime // 每人发言时间（秒）
+    this.REGISTER_TIMEOUT = game.getConfig().game.sheriffRegisterTime ?? 30 // 报名等待时间（秒）
+    this.VOTE_TIMEOUT = game.getConfig().game.sheriffVoteTime ?? 60 // 投票阶段超时（秒）
     this.phase = 'REGISTER' // 阶段：REGISTER(报名), SPEECH(发言), VOTE(投票)
     this.candidates = [] // 候选人
     this.votes = new Map() // 投票记录
     this.votedPlayers = new Set() // 已投票玩家
     this.speechRecords = new Map() // 发言记录
+    this._voteTimer = null // 投票阶段超时定时器
   }
 
   // 进入竞选阶段
@@ -30,7 +33,10 @@ export class SheriffElectState extends GameState {
     await super.onEnter()
 
     // 通知开始警长竞选
-    await this.e.reply('开始竞选警长环节,想要竞选警长的玩家请发言"#竞选警长"')
+    await this.e.reply(`开始竞选警长环节,想要竞选警长的玩家请发言"#竞选警长"（${this.REGISTER_TIMEOUT}秒内报名）`)
+
+    // 启动报名超时计时器，无人报名时自动跳过
+    this.startRegisterTimer()
   }
 
   async onExit () {
@@ -45,6 +51,41 @@ export class SheriffElectState extends GameState {
     if (this.speechTimeout) {
       clearTimeout(this.speechTimeout)
       this.speechTimeout = null
+    }
+    // 清除投票计时器
+    if (this._voteTimer) {
+      clearTimeout(this._voteTimer)
+      this._voteTimer = null
+    }
+  }
+
+  async onResume () {
+    switch (this.phase) {
+      case 'REGISTER':
+        this.startRegisterTimer()
+        break
+      case 'SPEECH':
+        if (this.currentSpeaker) {
+          const index = this.speakOrder.indexOf(this.currentSpeaker)
+          if (index >= 0) {
+            await this.startNextSpeaker(index)
+          }
+        }
+        break
+      case 'VOTE':
+        if (!this._votesResolved) {
+          this._voteTimer = setTimeout(async () => {
+            try {
+              if (this.phase === 'VOTE') {
+                await this.e.reply('投票时间到，自动结算投票结果')
+                await this.resolveVotes()
+              }
+            } catch (err) {
+              console.error('警长竞选投票超时处理失败:', err)
+            }
+          }, this.VOTE_TIMEOUT * 1000)
+        }
+        break
     }
   }
 
@@ -74,11 +115,15 @@ export class SheriffElectState extends GameState {
 
     await this.e.reply(`${player.name}参与警长竞选`)
 
-    // 使用状态锁防止竞态条件
+    // 有人报名时重置计时器
+    this.startRegisterTimer()
+  }
+
+  // 启动/重置报名计时器
+  startRegisterTimer () {
     if (this._registerTimer) {
       clearTimeout(this._registerTimer)
     }
-    // 竞选计时器
     this._registerTimer = setTimeout(async () => {
       try {
         if (this.phase === 'REGISTER' && !this._phaseChanging) {
@@ -90,7 +135,7 @@ export class SheriffElectState extends GameState {
         console.error('切换发言阶段失败:', err)
         this._phaseChanging = false
       }
-    }, 3000)
+    }, this.REGISTER_TIMEOUT * 1000)
   }
 
   // 开始发言阶段
@@ -165,17 +210,29 @@ export class SheriffElectState extends GameState {
     }
 
     // 开始投票
-    await this.e.reply('所有竞选者发言完毕,开始投票\n' + '请存活的玩家投票选出警长(输入#投票*号)')
+    await this.e.reply('所有竞选者发言完毕,开始投票\n' + '请存活的玩家投票选出警长(输入#支持*号)')
 
     // 显示候选人列表
     const candidateList = [...this.candidates]
       .map((id) => {
         const player = this.game.players.get(id)
-        return `${id}: ${player.name}`
+        return `${player.gameNumber}号: ${player.name}`
       })
       .join('\n')
 
     await this.e.reply(candidateList)
+
+    // 设置投票超时定时器
+    this._voteTimer = setTimeout(async () => {
+      try {
+        if (this.phase === 'VOTE') {
+          await this.e.reply('投票时间到，自动结算投票结果')
+          await this.resolveVotes()
+        }
+      } catch (err) {
+        console.error('警长竞选投票超时处理失败:', err)
+      }
+    }, this.VOTE_TIMEOUT * 1000)
   }
 
   // 处理投票
@@ -203,6 +260,16 @@ export class SheriffElectState extends GameState {
 
   // 处理投票结果
   async resolveVotes () {
+    // 幂等锁
+    if (this._votesResolved) return
+    this._votesResolved = true
+
+    // 清除投票定时器
+    if (this._voteTimer) {
+      clearTimeout(this._voteTimer)
+      this._voteTimer = null
+    }
+
     // 统计票数
     const voteCount = new Map()
     for (const targetId of this.votes.values()) {
@@ -222,16 +289,22 @@ export class SheriffElectState extends GameState {
       }
     }
 
-    if (sheriffCandidates.length > 1) {
+    if (sheriffCandidates.length === 0) {
+      // 无人投票，警徽流失
+      await this.e.reply('无人投票，警徽流失')
+    } else if (sheriffCandidates.length > 1) {
       // 平票,无人当选
       await this.e.reply('警长竞选出现平票,无人当选')
     } else {
       // 产生新警长
       const sheriffId = sheriffCandidates[0]
       const sheriff = this.game.players.get(sheriffId)
-      sheriff.isSheriff = true
-
-      await this.e.reply(`${sheriff.name}当选为新警长`)
+      if (!sheriff) {
+        await this.e.reply('警长候选人数据异常，警徽流失')
+      } else {
+        sheriff.isSheriff = true
+        await this.e.reply(`${sheriff.name}当选为新警长`)
+      }
     }
 
     // 进入白天

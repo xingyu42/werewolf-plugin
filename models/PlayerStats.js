@@ -82,7 +82,6 @@ class PlayerStats {
     }
 
     this.data.writeJSON(this.dataFile, this.stats)
-    console.log('[PlayerStats] 玩家统计数据已更新。')
   }
 
   /**
